@@ -155,7 +155,9 @@ export function VehicleDetailClient({
                       <p className="text-sm text-muted-foreground">Location</p>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        <p className="font-semibold">{vehicle.currentLocation}</p>
+                        <p className="font-semibold">
+                          {vehicle.currentLocation.city}, {vehicle.currentLocation.country}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -267,7 +269,9 @@ export function VehicleDetailClient({
                       <p className="text-sm font-semibold mb-2">Current Location</p>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        <p className="text-sm">{vehicle.currentLocation}</p>
+                        <p className="text-sm">
+                          {vehicle.currentLocation.city}, {vehicle.currentLocation.country}
+                        </p>
                       </div>
                     </div>
                     <div className="bg-muted/50 p-4 rounded-md">

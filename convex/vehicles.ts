@@ -31,13 +31,24 @@ export const getFeaturedVehicles = query({
           .filter((q) => q.eq(q.field("status"), "active"))
           .first();
 
+        const imagesWithUrls = await Promise.all(
+          images.map(async (img) => {
+            let url = img.imageUrl;
+            if (!url.startsWith("http") && !url.startsWith("/")) {
+              url = (await ctx.storage.getUrl(url)) || "";
+            }
+            return {
+              url,
+              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+              type: img.imageType,
+            };
+          })
+        );
+
         return {
           ...vehicle,
-          images: images.map((img) => ({
-            url: img.imageUrl,
-            alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-            type: img.imageType,
-          })),
+          images: imagesWithUrls,
+          heroImage: imagesWithUrls[0]?.url,
           auctionLot,
         };
       })
@@ -209,13 +220,24 @@ export const listVehicles = query({
           .order("asc")
           .collect();
 
+        const imagesWithUrls = await Promise.all(
+          images.map(async (img) => {
+            let url = img.imageUrl;
+            if (!url.startsWith("http") && !url.startsWith("/")) {
+              url = (await ctx.storage.getUrl(url)) || "";
+            }
+            return {
+              url,
+              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+              type: img.imageType,
+            };
+          })
+        );
+
         return {
           ...vehicle,
-          images: images.map((img) => ({
-            url: img.imageUrl,
-            alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-            type: img.imageType,
-          })),
+          images: imagesWithUrls,
+          heroImage: imagesWithUrls[0]?.url,
           auctionLot,
         };
       })
@@ -280,13 +302,24 @@ export const searchVehicles = query({
           .filter((q) => q.eq(q.field("status"), "active"))
           .first();
 
+        const imagesWithUrls = await Promise.all(
+          images.map(async (img) => {
+            let url = img.imageUrl;
+            if (!url.startsWith("http") && !url.startsWith("/")) {
+              url = (await ctx.storage.getUrl(url)) || "";
+            }
+            return {
+              url,
+              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+              type: img.imageType,
+            };
+          })
+        );
+
         return {
           ...vehicle,
-          images: images.map((img) => ({
-            url: img.imageUrl,
-            alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-            type: img.imageType,
-          })),
+          images: imagesWithUrls,
+          heroImage: imagesWithUrls[0]?.url,
           auctionLot,
         };
       })
@@ -340,15 +373,40 @@ export const getVehicleById = query({
       .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
       .collect();
 
+    const imagesWithUrls = await Promise.all(
+      images.map(async (img) => {
+        let url = img.imageUrl;
+        if (!url.startsWith("http") && !url.startsWith("/")) {
+          url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+        }
+        return {
+          _id: img._id,
+          url,
+          alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          type: img.imageType,
+          displayOrder: img.order,
+        };
+      })
+    );
+
+    const documentsWithUrls = await Promise.all(
+      documents.map(async (doc) => {
+        let url = doc.documentUrl;
+        if (!url.startsWith("http") && !url.startsWith("/")) {
+          url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+        }
+        return {
+          _id: doc._id,
+          type: doc.documentType,
+          url,
+        };
+      })
+    );
+
     return {
       ...vehicle,
-      images: images.map((img) => ({
-        _id: img._id,
-        url: img.imageUrl,
-        alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-        type: img.imageType,
-        displayOrder: img.order,
-      })),
+      images: imagesWithUrls,
+      heroImage: imagesWithUrls[0]?.url,
       auctionLot,
       bids: bids.map((bid) => ({
         _id: bid._id,
@@ -357,11 +415,7 @@ export const getVehicleById = query({
         userId: bid.userId,
         type: bid.bidType,
       })),
-      documents: documents.map((doc) => ({
-        _id: doc._id,
-        type: doc.documentType,
-        url: doc.documentUrl,
-      })),
+      documents: documentsWithUrls,
     };
   },
 });

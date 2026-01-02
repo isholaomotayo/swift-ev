@@ -9,7 +9,7 @@ import { Id } from "@/convex/_generated/dataModel";
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   return {
     title: "Order Details | VoltBid Africa",
@@ -23,7 +23,7 @@ export async function generateMetadata({
 export default async function OrderDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("voltbid_token")?.value;
@@ -32,7 +32,8 @@ export default async function OrderDetailsPage({
     redirect("/login");
   }
 
-  const orderId = params.id as Id<"orders">;
+  const resolvedParams = await params;
+  const orderId = resolvedParams.id as Id<"orders">;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let initialOrderDetails: any = null;

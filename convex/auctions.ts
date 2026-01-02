@@ -91,11 +91,17 @@ export const getAuctionById = query({
           .order("asc")
           .take(1);
 
+        const image = images[0];
+        let imageUrl = image?.imageUrl;
+        if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("/")) {
+          imageUrl = (await ctx.storage.getUrl(imageUrl as Id<"_storage">)) || imageUrl;
+        }
+
         return {
           lot,
           vehicle: {
             ...vehicle,
-            image: images[0]?.imageUrl,
+            image: imageUrl,
           },
         };
       })
@@ -137,15 +143,25 @@ export const getCurrentLot = query({
       .order("asc")
       .collect();
 
+    const imagesWithUrls = await Promise.all(
+      images.map(async (img) => {
+        let url = img.imageUrl;
+        if (!url.startsWith("http") && !url.startsWith("/")) {
+          url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+        }
+        return {
+          url,
+          alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          type: img.imageType,
+        };
+      })
+    );
+
     return {
       lot,
       vehicle: {
         ...vehicle,
-        images: images.map((img) => ({
-          url: img.imageUrl,
-          alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          type: img.imageType,
-        })),
+        images: imagesWithUrls,
       },
     };
   },

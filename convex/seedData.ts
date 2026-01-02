@@ -1,12 +1,91 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+
+/**
+ * Save an image storage ID to system settings
+ */
+export const saveImageStorageId = mutation({
+  args: {
+    key: v.string(),
+    storageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: args.storageId,
+      });
+    } else {
+      await ctx.db.insert("systemSettings", {
+        key: args.key,
+        value: args.storageId,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
+
+/**
+ * Get an image storage ID from system settings
+ */
+export const getImageStorageId = query({
+  args: {
+    key: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .first();
+    return setting?.value;
+  },
+});
+
+/**
+ * Generate an upload URL for seeding images
+ */
+export const generateSeedUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
 
 /**
  * Seed the database with sample data
  * Run this once to populate the database for testing
  */
 export const seedDatabase = mutation({
-  handler: async (ctx) => {
+  args: {
+    clearExisting: v.optional(v.boolean()),
+    imageStorageIds: v.optional(v.any()), // Map of filename -> storageId
+  },
+  handler: async (ctx, args) => {
     const now = Date.now();
+
+    // 0. Clear existing data if requested
+    if (args.clearExisting) {
+      console.log("🗑️  Clearing all data from database...");
+      const tables = [
+        "users", "sessions", "userDocuments", "vehicles", "vehicleImages",
+        "vehicleDocuments", "auctions", "auctionLots", "bids", "maxBids",
+        "watchlist", "vehicleAlerts", "orders", "payments", "shipments",
+        "shipmentUpdates", "customsClearance", "notifications", "sellers",
+        "auditLog" // Don't clear systemSettings to preserve image IDs
+      ];
+
+      for (const table of tables) {
+        const records = await ctx.db.query(table as any).collect();
+        for (const record of records) {
+          await ctx.db.delete(record._id);
+        }
+      }
+      console.log("✅ Database cleared");
+    }
 
     // ============================================
     // USERS
@@ -445,14 +524,23 @@ export const seedDatabase = mutation({
     console.log("✓ Created 6 vehicles (5 ready, 1 in auction)");
 
     // Add placeholder images for vehicles
-    const imagePlaceholders = [
-      "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800", // BYD Atto 3
-      "https://images.unsplash.com/photo-1617654112368-307921291f42?w=800", // BYD Seal
-      "https://images.unsplash.com/photo-1620121692029-d088224ddc74?w=800", // XPeng P7
-      "https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800", // XPeng G9
-      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800", // BYD Tang
-      "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800", // NIO ES6
+    const imageNames = [
+      "byd-atto-3.png",
+      "byd-seal.png",
+      "xpeng-p7.png",
+      "xpeng-g9.png",
+      "byd-tang.png",
+      "nio-es6.png",
     ];
+
+    const imagePlaceholders = imageNames.map(name => {
+      // Use storage ID if provided and exists
+      if (args.imageStorageIds && args.imageStorageIds[name]) {
+        return args.imageStorageIds[name];
+      }
+      // Fallback to local path
+      return `/images/vehicles/${name}`;
+    });
 
     const vehicleIds = [vehicle1Id, vehicle2Id, vehicle3Id, vehicle4Id, vehicle5Id, vehicle6Id];
 

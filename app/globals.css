@@ -72,6 +72,8 @@
   --card-foreground: var(--carbon-black);
   --popover: var(--clean-white);
   --popover-foreground: var(--carbon-black);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-sora);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -94,6 +96,10 @@ body {
 }
 
 /* Utility classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
 .font-mono {
   font-family: var(--font-mono);
 }

@@ -11,6 +11,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const steps = [
   {
@@ -92,15 +93,26 @@ export default function HowItWorksPage() {
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="bg-gradient-to-b from-electric-blue/10 to-background py-16">
-          <div className="container mx-auto px-4">
+        {/* Hero Section */}
+        <section className="relative py-24 md:py-32 overflow-hidden bg-black text-white">
+          <div className="absolute inset-0 z-0 opacity-40">
+            <Image
+              src="/images/how-it-works-hero.png"
+              alt="Global EV Logistics"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+          </div>
+          <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-electric-blue to-volt-green">
                 How VoltBid Works
               </h1>
-              <p className="text-xl text-muted-foreground">
+              <p className="text-xl md:text-2xl text-gray-300">
                 Your complete guide to buying electric vehicles through our
-                auction platform
+                global auction platform
               </p>
             </div>
           </div>

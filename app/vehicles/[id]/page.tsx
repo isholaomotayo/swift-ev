@@ -10,9 +10,10 @@ import { Id } from "@/convex/_generated/dataModel";
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const vehicleId = params.id as Id<"vehicles">;
+  const resolvedParams = await params;
+  const vehicleId = resolvedParams.id as Id<"vehicles">;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   try {
@@ -42,9 +43,10 @@ export async function generateMetadata({
 export default async function VehicleDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const vehicleId = params.id as Id<"vehicles">;
+  const resolvedParams = await params;
+  const vehicleId = resolvedParams.id as Id<"vehicles">;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let initialVehicle: any = null;

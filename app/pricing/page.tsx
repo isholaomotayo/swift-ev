@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Zap, TrendingUp, Building2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ServiceFeeCalculator } from "@/components/pricing/service-fee-calculator";
 
 const tiers = [
@@ -86,15 +87,25 @@ export default function PricingPage() {
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="bg-gradient-to-b from-electric-blue/10 to-background py-16">
-          <div className="container mx-auto px-4">
+        {/* Hero Section */}
+        <section className="relative py-24 md:py-32 overflow-hidden bg-slate-900 text-white">
+          <div className="absolute inset-0 z-0 opacity-20">
+            <Image
+              src="/images/pricing-bg.png"
+              alt="Pricing Background"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+          <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 Membership & Pricing
               </h1>
-              <p className="text-xl text-muted-foreground">
+              <p className="text-xl text-gray-300">
                 Choose the membership tier that fits your needs. All memberships
-                are annual.
+                are annual and include tax benefits.
               </p>
             </div>
           </div>
@@ -109,9 +120,8 @@ export default function PricingPage() {
                 return (
                   <Card
                     key={tier.name}
-                    className={`p-6 relative ${
-                      tier.popular ? "border-electric-blue border-2" : ""
-                    }`}
+                    className={`p-6 relative ${tier.popular ? "border-electric-blue border-2" : ""
+                      }`}
                   >
                     {tier.popular && (
                       <Badge className="absolute top-4 right-4 bg-electric-blue">

@@ -10,9 +10,10 @@ import { Id } from "@/convex/_generated/dataModel";
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const auctionId = params.id as Id<"auctions">;
+  const resolvedParams = await params;
+  const auctionId = resolvedParams.id as Id<"auctions">;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   try {
@@ -41,24 +42,10 @@ export async function generateMetadata({
 export default async function LiveAuctionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  // Get auction ID from params - handle URL encoding
-  let auctionId: Id<"auctions">;
-  try {
-    const decodedId = decodeURIComponent(params.id);
-    if (decodedId.startsWith("auctions:")) {
-      auctionId = decodedId as Id<"auctions">;
-    } else if (decodedId.includes(":")) {
-      auctionId = decodedId as Id<"auctions">;
-    } else if (decodedId.match(/^[a-zA-Z0-9]+$/)) {
-      auctionId = `auctions:${decodedId}` as Id<"auctions">;
-    } else {
-      auctionId = params.id as Id<"auctions">;
-    }
-  } catch (error) {
-    auctionId = params.id as Id<"auctions">;
-  }
+  const resolvedParams = await params;
+  const auctionId = resolvedParams.id as Id<"auctions">;
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
