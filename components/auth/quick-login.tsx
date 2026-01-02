@@ -19,7 +19,7 @@ export function QuickLogin() {
     // Only show in development OR if enabled in settings
     // Using loose equality or checking for both boolean and string "true"
     const isEnabled = enableQuickLogin === true || enableQuickLogin === "true";
-    const isDev = process.env.NODE_ENV === "development";
+    const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "production";
 
     if (!isDev || !isEnabled) {
         return null;
