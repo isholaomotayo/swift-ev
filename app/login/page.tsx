@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { QuickLogin } from "@/components/auth/quick-login";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -117,7 +118,6 @@ export default function LoginPage() {
                 className="h-14 rounded-2xl border-border bg-muted/30 focus:bg-background transition-all"
               />
             </div>
-
             <Button
               type="submit"
               className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10"
@@ -126,6 +126,8 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Continue"}
             </Button>
           </form>
+
+          <QuickLogin />
 
           <div className="mt-10">
             <div className="relative">
@@ -205,6 +207,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

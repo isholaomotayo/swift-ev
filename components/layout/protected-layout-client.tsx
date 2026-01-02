@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Header } from "@/components/layout/header";
@@ -59,13 +60,15 @@ export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientP
   const { logout } = useAuth();
 
   // Redirect admin/vendor users to their respective dashboards
-  if (user.role === "admin" || user.role === "superadmin") {
-    router.push("/admin");
-    return null;
-  }
+  useEffect(() => {
+    if (user.role === "admin" || user.role === "superadmin") {
+      router.push("/admin");
+    } else if (user.role === "seller") {
+      router.push("/vendor");
+    }
+  }, [user.role, router]);
 
-  if (user.role === "seller") {
-    router.push("/vendor");
+  if (user.role === "admin" || user.role === "superadmin" || user.role === "seller") {
     return null;
   }
 

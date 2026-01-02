@@ -636,6 +636,7 @@ export default defineSchema({
     entityType: v.string(),
     entityId: v.string(),
     changes: v.optional(v.string()),
+    metadata: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
     timestamp: v.number(),
   })

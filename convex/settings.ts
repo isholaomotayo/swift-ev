@@ -64,6 +64,38 @@ export const getSetting = query({
 });
 
 /**
+ * Get a specific setting by key without authentication
+ * Restricted to specific public keys for safety
+ */
+export const getPublicSetting = query({
+  args: {
+    key: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const publicKeys = ["dev.enableQuickLogin", "platform.companyName"];
+
+    if (!publicKeys.includes(args.key)) {
+      return null;
+    }
+
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .first();
+
+    if (!setting) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(setting.value);
+    } catch {
+      return setting.value;
+    }
+  },
+});
+
+/**
  * Update a system setting
  * Superadmin only
  */
@@ -214,6 +246,8 @@ export const initializeDefaultSettings = mutation({
       { key: "membership.business.price", value: "49900", description: "Business membership price" },
       { key: "membership.basic.dailyBidLimit", value: "3", description: "Basic tier daily bid limit" },
       { key: "membership.premier.dailyBidLimit", value: "10", description: "Premier tier daily bid limit" },
+      // Dev settings
+      { key: "dev.enableQuickLogin", value: "false", description: "Enable quick login buttons for development" },
     ];
 
     let created = 0;

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireAuth, requireSeller } from "./lib/auth";
 
 /**
  * List all auctions with optional status filter
@@ -668,9 +669,6 @@ export const getVendorAuctions = query({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    // Import auth helpers
-    const { requireAuth, requireSeller } = await import("./lib/auth");
-
     // Validate authorization
     const user = await requireAuth(ctx, args.token);
     requireSeller(user);

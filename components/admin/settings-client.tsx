@@ -58,6 +58,11 @@ export function SettingsClient({
     premierDailyBidLimit: "",
   });
 
+  // Dev settings state
+  const [devSettings, setDevSettings] = useState({
+    enableQuickLogin: "false",
+  });
+
   // Load settings when data arrives
   useEffect(() => {
     if (settings) {
@@ -81,6 +86,10 @@ export function SettingsClient({
         businessPrice: settings["membership.business.price"] || "",
         basicDailyBidLimit: settings["membership.basic.dailyBidLimit"] || "",
         premierDailyBidLimit: settings["membership.premier.dailyBidLimit"] || "",
+      });
+
+      setDevSettings({
+        enableQuickLogin: settings["dev.enableQuickLogin"] || "false",
       });
     }
   }, [settings]);
@@ -228,6 +237,37 @@ export function SettingsClient({
     }
   };
 
+  const handleSaveDevSettings = async () => {
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      await bulkUpdateSettings({
+        token,
+        settings: [
+          {
+            key: "dev.enableQuickLogin",
+            value: devSettings.enableQuickLogin,
+            description: "Enable quick login buttons for development",
+          },
+        ],
+      });
+
+      toast({
+        title: "Success",
+        description: "Development settings saved",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInitializeDefaults = async () => {
     if (!token) return;
 
@@ -276,6 +316,10 @@ export function SettingsClient({
           <TabsTrigger value="membership">
             <Users className="w-4 h-4 mr-2" />
             Membership
+          </TabsTrigger>
+          <TabsTrigger value="dev">
+            <Settings className="w-4 h-4 mr-2" />
+            Development
           </TabsTrigger>
         </TabsList>
 
@@ -530,6 +574,40 @@ export function SettingsClient({
               <div className="flex justify-end pt-4 border-t">
                 <Button onClick={handleSaveMembershipSettings} disabled={loading}>
                   {loading ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Development Settings */}
+        <TabsContent value="dev">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">Development Tools</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-2xl">
+                <div>
+                  <Label htmlFor="enableQuickLogin" className="text-base font-bold">Enable Quick Login</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Show quick login buttons on the login page for development testing.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <select
+                    id="enableQuickLogin"
+                    value={devSettings.enableQuickLogin}
+                    onChange={(e) => setDevSettings({ enableQuickLogin: e.target.value })}
+                    className="h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={handleSaveDevSettings} disabled={loading}>
+                  {loading ? "Saving..." : "Save Dev Settings"}
                 </Button>
               </div>
             </div>

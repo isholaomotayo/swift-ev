@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireAuth, requireSeller } from "./lib/auth";
 
 /**
  * Get featured vehicles for homepage
@@ -722,9 +723,6 @@ export const getVendorStats = query({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    // Import auth helpers
-    const { requireAuth, requireSeller } = await import("./lib/auth");
-
     // Validate authorization
     const user = await requireAuth(ctx, args.token);
     requireSeller(user);
@@ -781,9 +779,6 @@ export const getVendorRevenueHistory = query({
     months: v.optional(v.number()), // Number of months to look back
   },
   handler: async (ctx, args) => {
-    // Import auth helpers
-    const { requireAuth, requireSeller } = await import("./lib/auth");
-
     // Validate authorization
     const user = await requireAuth(ctx, args.token);
     requireSeller(user);
