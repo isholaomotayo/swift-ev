@@ -600,6 +600,7 @@ export default function VehicleUploadPage() {
                 <div className="mt-4 grid grid-cols-3 gap-4">
                   {images.map((image, index) => (
                     <div key={index} className="relative group">
+                      {/* Using regular img tag for blob URL previews - Next.js Image doesn't support blob URLs */}
                       <img
                         src={URL.createObjectURL(image)}
                         alt={`Upload ${index + 1}`}

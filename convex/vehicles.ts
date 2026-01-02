@@ -470,6 +470,26 @@ export const createVehicle = mutation({
 
     const { vehicleData } = args;
 
+    // Check for duplicate VIN
+    const existingVIN = await ctx.db
+      .query("vehicles")
+      .withIndex("by_vin", (q) => q.eq("vin", vehicleData.vin))
+      .first();
+
+    if (existingVIN) {
+      throw new Error(`A vehicle with VIN ${vehicleData.vin} already exists`);
+    }
+
+    // Check for duplicate lot number
+    const existingLotNumber = await ctx.db
+      .query("vehicles")
+      .withIndex("by_lot_number", (q) => q.eq("lotNumber", vehicleData.lotNumber))
+      .first();
+
+    if (existingLotNumber) {
+      throw new Error(`A vehicle with lot number ${vehicleData.lotNumber} already exists`);
+    }
+
     const now = Date.now();
 
     // Create vehicle record matching exact schema

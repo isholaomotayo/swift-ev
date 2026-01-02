@@ -25,7 +25,7 @@ export const listAuctions = query({
       auctions = auctions.filter((a) => a.status === args.status);
     }
 
-    // Get lot counts for each auction
+    // Get lot counts and bid counts for each auction
     const auctionsWithCounts = await Promise.all(
       auctions.map(async (auction) => {
         const lots = await ctx.db
@@ -33,10 +33,24 @@ export const listAuctions = query({
           .withIndex("by_auction", (q) => q.eq("auctionId", auction._id))
           .collect();
 
+        // Count total bids across all lots in this auction
+        const totalBids = await Promise.all(
+          lots.map(async (lot) => {
+            const bids = await ctx.db
+              .query("bids")
+              .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", lot._id))
+              .collect();
+            return bids.length;
+          })
+        );
+
+        const bidCount = totalBids.reduce((sum, count) => sum + count, 0);
+
         return {
           ...auction,
-          lotCount: lots.length,
-          activeLotCount: lots.filter((l) => l.status === "active").length,
+          totalLots: lots.length,
+          soldLots: lots.filter((l) => l.status === "sold").length,
+          totalBids: bidCount,
         };
       })
     );
@@ -420,6 +434,37 @@ export const advanceLot = mutation({
 });
 
 /**
+ * Generate a unique order number
+ */
+async function generateUniqueOrderNumber(ctx: any): Promise<string> {
+  let orderNumber: string;
+  let exists = true;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  // Generate order number and check for duplicates
+  while (exists && attempts < maxAttempts) {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+    orderNumber = `VB-${timestamp}-${random}`;
+
+    const existing = await ctx.db
+      .query("orders")
+      .withIndex("by_order_number", (q) => q.eq("orderNumber", orderNumber))
+      .first();
+
+    exists = !!existing;
+    attempts++;
+  }
+
+  if (exists) {
+    throw new Error("Failed to generate unique order number after multiple attempts");
+  }
+
+  return orderNumber!;
+}
+
+/**
  * Internal: End a lot and create order if sold
  */
 async function endLot(ctx: any, lotId: Id<"auctionLots">) {
@@ -436,18 +481,38 @@ async function endLot(ctx: any, lotId: Id<"auctionLots">) {
     // Mark as sold
     await ctx.db.patch(lotId, {
       status: "sold",
-      finalPrice: lot.currentBid,
+      winningBid: lot.currentBid,
+      winnerId: lot.currentBidderId,
+      soldAt: Date.now(),
     });
 
-    // Create order
+    // Generate unique order number
+    const orderNumber = await generateUniqueOrderNumber(ctx);
+
+    // Calculate fees
+    const serviceFee = calculateServiceFee(lot.currentBid);
+    const documentationFee = 50_000; // Standard documentation fee
+    const subtotal = lot.currentBid;
+    const totalAmount = subtotal + serviceFee + documentationFee;
+
+    // Create order with all required fields
     await ctx.db.insert("orders", {
+      orderNumber,
       userId: lot.currentBidderId,
       vehicleId: lot.vehicleId,
       auctionLotId: lotId,
-      orderStatus: "pending_payment",
-      vehiclePrice: lot.currentBid,
-      serviceFee: calculateServiceFee(lot.currentBid),
-      totalAmount: lot.currentBid + calculateServiceFee(lot.currentBid),
+      orderType: "auction_win",
+      winningBid: lot.currentBid,
+      serviceFee,
+      documentationFee,
+      subtotal,
+      totalAmount,
+      paidAmount: 0,
+      balanceDue: totalAmount,
+      status: "pending_payment",
+      paymentDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
 
     // Update vehicle status

@@ -2,6 +2,11 @@
  * VoltBid Africa Platform Constants
  */
 
+// UI Constants
+export const UPCOMING_LOTS_DISPLAY_COUNT = 10; // Number of upcoming lots to show in auction room
+export const RECENT_ITEMS_DISPLAY_COUNT = 5; // Number of recent items to show in dashboard
+export const BID_HISTORY_MAX_HEIGHT = 256; // Max height for bid history scroll area (px)
+
 // Membership Tiers
 export const MEMBERSHIP_TIERS = {
   GUEST: {

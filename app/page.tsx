@@ -1,50 +1,52 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useConvex } from "convex/react";
+import { ConvexHttpClient } from "convex/browser";
 import { Zap, Shield, TrendingUp, Package } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { VehicleCard } from "@/components/voltbid/vehicle-card";
+import { FeaturedVehicles } from "@/components/home/featured-vehicles";
 import { api } from "@/convex/_generated/api";
 
-export default function Home() {
-  const convex = useConvex();
-  const [featuredVehicles, setFeaturedVehicles] = useState<any[] | null>(null);
-  const [stats, setStats] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+export const metadata: Metadata = {
+  title: "VoltBid Africa - Premier Electric Vehicle Auction Platform",
+  description:
+    "Bid on quality electric vehicles directly from Chinese manufacturers. Complete import solution from China to your doorstep in Nigeria.",
+  keywords: [
+    "electric vehicles",
+    "EV auction",
+    "Nigeria",
+    "BYD",
+    "NIO",
+    "XPeng",
+    "vehicle import",
+    "auction platform",
+    "Africa",
+  ],
+  openGraph: {
+    title: "VoltBid Africa - Premier Electric Vehicle Auction Platform",
+    description:
+      "Bid on quality electric vehicles directly from Chinese manufacturers.",
+    type: "website",
+  },
+};
 
-  // Fetch once on mount (no real-time subscriptions)
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+export default async function Home() {
+  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-    Promise.all([
+  // Fetch data server-side
+  let featuredVehicles: any[] = [];
+  let stats: any = null;
+
+  try {
+    [featuredVehicles, stats] = await Promise.all([
       convex.query(api.vehicles.getFeaturedVehicles, {}),
       convex.query(api.vehicles.getVehicleStats, {}),
-    ])
-      .then(([vehicles, vehicleStats]) => {
-        if (mounted) {
-          setFeaturedVehicles(vehicles || []);
-          setStats(vehicleStats || null);
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to fetch homepage data:", error);
-        if (mounted) {
-          setFeaturedVehicles([]);
-          setStats(null);
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [convex]);
+    ]);
+  } catch (error) {
+    console.error("Failed to fetch homepage data:", error);
+    // Continue with empty data - error boundaries will handle errors
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -120,41 +122,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {loading || featuredVehicles === null ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-96 bg-muted animate-pulse rounded-lg"
-                  />
-                ))}
-              </div>
-            ) : featuredVehicles.length === 0 ? (
-              <div className="text-center py-12 bg-background rounded-lg border">
-                <p className="text-muted-foreground">
-                  No vehicles currently available. Check back soon!
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredVehicles.map((vehicle) => (
-                  <VehicleCard
-                    key={vehicle._id}
-                    vehicle={vehicle}
-                    auctionLot={vehicle.auctionLot}
-                    onBidClick={() => {
-                      // Navigate to vehicle detail page
-                      window.location.href = `/vehicles/${vehicle._id}`;
-                    }}
-                    onWatchlistToggle={() => {
-                      // TODO: Implement watchlist functionality
-                      console.log("Toggle watchlist for", vehicle._id);
-                    }}
-                    isWatchlisted={false}
-                  />
-                ))}
-              </div>
-            )}
+            <FeaturedVehicles vehicles={featuredVehicles || []} />
           </div>
         </section>
 

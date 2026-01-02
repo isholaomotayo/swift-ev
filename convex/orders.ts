@@ -304,6 +304,18 @@ export const addShippingTracking = mutation({
       throw new Error(`Vehicle ${order.vehicleId} not found for order ${args.orderId}`);
     }
 
+    // Check for duplicate tracking number
+    if (args.trackingNumber) {
+      const existingTracking = await ctx.db
+        .query("shipments")
+        .withIndex("by_tracking_number", (q) => q.eq("trackingNumber", args.trackingNumber))
+        .first();
+
+      if (existingTracking) {
+        throw new Error(`Tracking number ${args.trackingNumber} is already in use`);
+      }
+    }
+
     // Create shipment record
     await ctx.db.insert("shipments", {
       orderId: args.orderId,

@@ -25,6 +25,18 @@ export const register = mutation({
       throw new Error("Email already registered");
     }
 
+    // Check if phone already exists (if provided)
+    if (args.phone) {
+      const existingPhone = await ctx.db
+        .query("users")
+        .withIndex("by_phone", (q) => q.eq("phone", args.phone))
+        .first();
+
+      if (existingPhone) {
+        throw new Error("Phone number already registered");
+      }
+    }
+
     // Hash password using bcrypt
     const passwordHash = await hashPassword(args.password);
 

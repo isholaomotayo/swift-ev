@@ -22,6 +22,7 @@ import type * as seedData from "../seedData.js";
 import type * as settings from "../settings.js";
 import type * as users from "../users.js";
 import type * as vehicles from "../vehicles.js";
+import type * as watchlist from "../watchlist.js";
 
 import type {
   ApiFromModules,
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   users: typeof users;
   vehicles: typeof vehicles;
+  watchlist: typeof watchlist;
 }>;
 
 /**

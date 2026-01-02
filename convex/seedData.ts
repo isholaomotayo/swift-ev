@@ -12,138 +12,204 @@ export const seedDatabase = mutation({
     // USERS
     // ============================================
 
-    // 1. Admin User
-    const adminId = await ctx.db.insert("users", {
-      email: "admin@voltbid.africa",
-      firstName: "System",
-      lastName: "Administrator",
-      passwordHash: "$2a$10$guhGBa7/c2jbqJt9i8gkrOKyueMx6CpCg6IZAfSJBTjN/UhJOG88K", // admin123
-      status: "active",
-      emailVerified: true,
-      phoneVerified: false,
-      membershipTier: "business",
-      depositAmount: 0,
-      buyingPower: 999_999_999,
-      dailyBidsUsed: 0,
-      lastBidResetAt: now,
-      role: "superadmin",
-      kycStatus: "approved",
-      createdAt: now,
-      updatedAt: now,
-    });
+    // 1. Admin User - Check if exists first
+    let adminId;
+    const existingAdmin = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "admin@voltbid.africa"))
+      .first();
 
-    // 2. Vendor 1 - BYD Official Nigeria
-    const vendor1Id = await ctx.db.insert("users", {
-      email: "vendor@bydnigeria.com",
-      phone: "+2348012345678",
-      firstName: "BYD",
-      lastName: "Nigeria",
-      passwordHash: "$2a$10$IdVSEXmCv96DL7pabWRnneVI1XILetV72kj0dL/dI98YFRaBup/OG", // vendor123
-      status: "active",
-      emailVerified: true,
-      phoneVerified: true,
-      membershipTier: "business",
-      depositAmount: 5_000_000,
-      buyingPower: 50_000_000,
-      dailyBidsUsed: 0,
-      lastBidResetAt: now,
-      role: "seller",
-      vendorCompany: "BYD Auto Nigeria Ltd",
-      vendorLicense: "DL-BYD-2024-001",
-      kycStatus: "approved",
-      createdAt: now - 90 * 24 * 60 * 60 * 1000, // 90 days ago
-      updatedAt: now,
-    });
+    if (existingAdmin) {
+      adminId = existingAdmin._id;
+      console.log("✓ Admin user already exists, skipping creation");
+    } else {
+      adminId = await ctx.db.insert("users", {
+        email: "admin@voltbid.africa",
+        firstName: "System",
+        lastName: "Administrator",
+        passwordHash: "$2a$10$guhGBa7/c2jbqJt9i8gkrOKyueMx6CpCg6IZAfSJBTjN/UhJOG88K", // admin123
+        status: "active",
+        emailVerified: true,
+        phoneVerified: false,
+        membershipTier: "business",
+        depositAmount: 0,
+        buyingPower: 999_999_999,
+        dailyBidsUsed: 0,
+        lastBidResetAt: now,
+        role: "superadmin",
+        kycStatus: "approved",
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
-    // 3. Vendor 2 - XPeng Motors
-    const vendor2Id = await ctx.db.insert("users", {
-      email: "sales@xpeng-ng.com",
-      phone: "+2348087654321",
-      firstName: "XPeng",
-      lastName: "Motors",
-      passwordHash: "$2a$10$aaAwklBTyxbqmPKu/nF8q.cg1xJn7U1Njx9Qimx3gYE3v4rm1sPou", // vendor456
-      status: "active",
-      emailVerified: true,
-      phoneVerified: true,
-      membershipTier: "business",
-      depositAmount: 3_000_000,
-      buyingPower: 30_000_000,
-      dailyBidsUsed: 0,
-      lastBidResetAt: now,
-      role: "seller",
-      vendorCompany: "XPeng Motors Nigeria",
-      vendorLicense: "DL-XPN-2024-002",
-      kycStatus: "approved",
-      createdAt: now - 60 * 24 * 60 * 60 * 1000, // 60 days ago
-      updatedAt: now,
-    });
+    // 2. Vendor 1 - BYD Official Nigeria - Check if exists first
+    let vendor1Id;
+    const existingVendor1 = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "vendor@bydnigeria.com"))
+      .first();
 
-    // 4. Regular Buyer 1 - Premier Member
-    const buyer1Id = await ctx.db.insert("users", {
-      email: "john.doe@example.com",
-      phone: "+2348011112222",
-      firstName: "John",
-      lastName: "Doe",
-      passwordHash: "$2a$10$2zNn452QDxi1anEGlm6f.ueqVwlX6tGJv3rdSRVPGti2ejf2L7vYe", // buyer123
-      status: "active",
-      emailVerified: true,
-      phoneVerified: true,
-      membershipTier: "premier",
-      depositAmount: 500_000,
-      buyingPower: 15_000_000,
-      dailyBidsUsed: 2,
-      lastBidResetAt: now,
-      role: "buyer",
-      kycStatus: "approved",
-      createdAt: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
-      updatedAt: now,
-      lastLoginAt: now - 2 * 60 * 60 * 1000, // 2 hours ago
-    });
+    if (existingVendor1) {
+      vendor1Id = existingVendor1._id;
+      console.log("✓ Vendor 1 already exists, skipping creation");
+    } else {
+      vendor1Id = await ctx.db.insert("users", {
+        email: "vendor@bydnigeria.com",
+        phone: "+2348012345678",
+        firstName: "BYD",
+        lastName: "Nigeria",
+        passwordHash: "$2a$10$IdVSEXmCv96DL7pabWRnneVI1XILetV72kj0dL/dI98YFRaBup/OG", // vendor123
+        status: "active",
+        emailVerified: true,
+        phoneVerified: true,
+        membershipTier: "business",
+        depositAmount: 5_000_000,
+        buyingPower: 50_000_000,
+        dailyBidsUsed: 0,
+        lastBidResetAt: now,
+        role: "seller",
+        vendorCompany: "BYD Auto Nigeria Ltd",
+        vendorLicense: "DL-BYD-2024-001",
+        kycStatus: "approved",
+        createdAt: now - 90 * 24 * 60 * 60 * 1000, // 90 days ago
+        updatedAt: now,
+      });
+    }
 
-    // 5. Regular Buyer 2 - Basic Member
-    const buyer2Id = await ctx.db.insert("users", {
-      email: "jane.smith@example.com",
-      phone: "+2348022223333",
-      firstName: "Jane",
-      lastName: "Smith",
-      passwordHash: "$2a$10$i3cDpEYe7UCJhv93xEVKeefjXDcbpmmEnHjzYRo94myJRrfjqV/UO", // buyer456
-      status: "active",
-      emailVerified: true,
-      phoneVerified: false,
-      membershipTier: "basic",
-      depositAmount: 100_000,
-      buyingPower: 5_000_000,
-      dailyBidsUsed: 1,
-      lastBidResetAt: now,
-      role: "buyer",
-      kycStatus: "approved",
-      createdAt: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
-      updatedAt: now,
-      lastLoginAt: now - 5 * 60 * 60 * 1000, // 5 hours ago
-    });
+    // 3. Vendor 2 - XPeng Motors - Check if exists first
+    let vendor2Id;
+    const existingVendor2 = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "sales@xpeng-ng.com"))
+      .first();
 
-    // 6. Business Buyer
-    const buyer3Id = await ctx.db.insert("users", {
-      email: "fleet@logistics.ng",
-      phone: "+2348033334444",
-      firstName: "Swift",
-      lastName: "Logistics",
-      passwordHash: "$2a$10$gMmuUHtCc5ZugIcrtOAtbO5QiO5qdm5CS/xQaaD3pWmgydTskx1kW", // buyer789
-      status: "active",
-      emailVerified: true,
-      phoneVerified: true,
-      membershipTier: "business",
-      depositAmount: 10_000_000,
-      buyingPower: 100_000_000,
-      dailyBidsUsed: 5,
-      lastBidResetAt: now,
-      role: "buyer",
-      vendorCompany: "Swift Logistics Ltd",
-      kycStatus: "approved",
-      createdAt: now - 45 * 24 * 60 * 60 * 1000, // 45 days ago
-      updatedAt: now,
-      lastLoginAt: now - 1 * 60 * 60 * 1000, // 1 hour ago
-    });
+    if (existingVendor2) {
+      vendor2Id = existingVendor2._id;
+      console.log("✓ Vendor 2 already exists, skipping creation");
+    } else {
+      vendor2Id = await ctx.db.insert("users", {
+        email: "sales@xpeng-ng.com",
+        phone: "+2348087654321",
+        firstName: "XPeng",
+        lastName: "Motors",
+        passwordHash: "$2a$10$aaAwklBTyxbqmPKu/nF8q.cg1xJn7U1Njx9Qimx3gYE3v4rm1sPou", // vendor456
+        status: "active",
+        emailVerified: true,
+        phoneVerified: true,
+        membershipTier: "business",
+        depositAmount: 3_000_000,
+        buyingPower: 30_000_000,
+        dailyBidsUsed: 0,
+        lastBidResetAt: now,
+        role: "seller",
+        vendorCompany: "XPeng Motors Nigeria",
+        vendorLicense: "DL-XPN-2024-002",
+        kycStatus: "approved",
+        createdAt: now - 60 * 24 * 60 * 60 * 1000, // 60 days ago
+        updatedAt: now,
+      });
+    }
+
+    // 4. Regular Buyer 1 - Premier Member - Check if exists first
+    let buyer1Id;
+    const existingBuyer1 = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "john.doe@example.com"))
+      .first();
+
+    if (existingBuyer1) {
+      buyer1Id = existingBuyer1._id;
+      console.log("✓ Buyer 1 already exists, skipping creation");
+    } else {
+      buyer1Id = await ctx.db.insert("users", {
+        email: "john.doe@example.com",
+        phone: "+2348011112222",
+        firstName: "John",
+        lastName: "Doe",
+        passwordHash: "$2a$10$2zNn452QDxi1anEGlm6f.ueqVwlX6tGJv3rdSRVPGti2ejf2L7vYe", // buyer123
+        status: "active",
+        emailVerified: true,
+        phoneVerified: true,
+        membershipTier: "premier",
+        depositAmount: 500_000,
+        buyingPower: 15_000_000,
+        dailyBidsUsed: 2,
+        lastBidResetAt: now,
+        role: "buyer",
+        kycStatus: "approved",
+        createdAt: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
+        updatedAt: now,
+        lastLoginAt: now - 2 * 60 * 60 * 1000, // 2 hours ago
+      });
+    }
+
+    // 5. Regular Buyer 2 - Basic Member - Check if exists first
+    let buyer2Id;
+    const existingBuyer2 = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "jane.smith@example.com"))
+      .first();
+
+    if (existingBuyer2) {
+      buyer2Id = existingBuyer2._id;
+      console.log("✓ Buyer 2 already exists, skipping creation");
+    } else {
+      buyer2Id = await ctx.db.insert("users", {
+        email: "jane.smith@example.com",
+        phone: "+2348022223333",
+        firstName: "Jane",
+        lastName: "Smith",
+        passwordHash: "$2a$10$i3cDpEYe7UCJhv93xEVKeefjXDcbpmmEnHjzYRo94myJRrfjqV/UO", // buyer456
+        status: "active",
+        emailVerified: true,
+        phoneVerified: false,
+        membershipTier: "basic",
+        depositAmount: 100_000,
+        buyingPower: 5_000_000,
+        dailyBidsUsed: 1,
+        lastBidResetAt: now,
+        role: "buyer",
+        kycStatus: "approved",
+        createdAt: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+        updatedAt: now,
+        lastLoginAt: now - 5 * 60 * 60 * 1000, // 5 hours ago
+      });
+    }
+
+    // 6. Business Buyer - Check if exists first
+    let buyer3Id;
+    const existingBuyer3 = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "fleet@logistics.ng"))
+      .first();
+
+    if (existingBuyer3) {
+      buyer3Id = existingBuyer3._id;
+      console.log("✓ Buyer 3 already exists, skipping creation");
+    } else {
+      buyer3Id = await ctx.db.insert("users", {
+        email: "fleet@logistics.ng",
+        phone: "+2348033334444",
+        firstName: "Swift",
+        lastName: "Logistics",
+        passwordHash: "$2a$10$gMmuUHtCc5ZugIcrtOAtbO5QiO5qdm5CS/xQaaD3pWmgydTskx1kW", // buyer789
+        status: "active",
+        emailVerified: true,
+        phoneVerified: true,
+        membershipTier: "business",
+        depositAmount: 10_000_000,
+        buyingPower: 100_000_000,
+        dailyBidsUsed: 5,
+        lastBidResetAt: now,
+        role: "buyer",
+        vendorCompany: "Swift Logistics Ltd",
+        kycStatus: "approved",
+        createdAt: now - 45 * 24 * 60 * 60 * 1000, // 45 days ago
+        updatedAt: now,
+        lastLoginAt: now - 1 * 60 * 60 * 1000, // 1 hour ago
+      });
+    }
 
     console.log("✓ Created 6 users (1 admin, 2 vendors, 3 buyers)");
 

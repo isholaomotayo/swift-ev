@@ -339,6 +339,7 @@ export const getUserBids = query({
         const image = imageMap.get(vehicle._id);
 
         return {
+          _id: bid._id,
           bid: {
             _id: bid._id,
             amount: bid.bidAmount,
@@ -352,6 +353,9 @@ export const getUserBids = query({
             currentBid: lot.currentBid,
             endsAt: lot.endsAt,
             isUserHighBidder: lot.currentBidderId === session.userId,
+            lotOrder: lot.lotOrder,
+            bidCount: lot.bidCount,
+            winningBid: lot.winningBid,
           },
           vehicle: {
             _id: vehicle._id,
@@ -360,6 +364,7 @@ export const getUserBids = query({
             year: vehicle.year,
             lotNumber: vehicle.lotNumber,
             image: image?.imageUrl,
+            startingBid: vehicle.startingBid,
           },
         };
       })
