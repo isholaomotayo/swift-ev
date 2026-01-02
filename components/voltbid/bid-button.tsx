@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "convex/react";
 import { Gavel, TrendingUp } from "lucide-react";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +23,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface BidButtonProps {
-  lotId: string;
+  lotId: Id<"auctionLots">;
   currentBid: number;
   bidIncrement: number;
   isUserHighBidder?: boolean;
@@ -44,14 +48,41 @@ export function BidButton({
   const [customBid, setCustomBid] = useState<string>("");
   const [maxBid, setMaxBid] = useState<string>("");
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+
+  const placeBidMutation = useMutation(api.bids.placeBid);
+  const setMaxBidMutation = useMutation(api.bids.setMaxBid);
 
   const quickBidAmount = currentBid + bidIncrement;
 
   const handleQuickBid = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to place a bid",
+        variant: "destructive",
+      });
+      window.location.href = "/login";
+      return;
+    }
+
+    const token = localStorage.getItem("voltbid_token");
+    if (!token) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Implement actual bidding logic with Convex
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      await placeBidMutation({
+        token,
+        lotId,
+        amount: quickBidAmount,
+      });
 
       toast({
         title: "Bid Placed Successfully!",
@@ -63,7 +94,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Bid Failed",
-        description: "There was an error placing your bid. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error placing your bid",
         variant: "destructive",
       });
     } finally {
@@ -83,10 +114,26 @@ export function BidButton({
       return;
     }
 
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to place a bid",
+        variant: "destructive",
+      });
+      window.location.href = "/login";
+      return;
+    }
+
+    const token = localStorage.getItem("voltbid_token");
+    if (!token) return;
+
     setLoading(true);
     try {
-      // TODO: Implement actual bidding logic with Convex
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      await placeBidMutation({
+        token,
+        lotId,
+        amount: bidAmount,
+      });
 
       toast({
         title: "Bid Placed Successfully!",
@@ -99,7 +146,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Bid Failed",
-        description: "There was an error placing your bid. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error placing your bid",
         variant: "destructive",
       });
     } finally {
@@ -119,10 +166,26 @@ export function BidButton({
       return;
     }
 
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to set a max bid",
+        variant: "destructive",
+      });
+      window.location.href = "/login";
+      return;
+    }
+
+    const token = localStorage.getItem("voltbid_token");
+    if (!token) return;
+
     setLoading(true);
     try {
-      // TODO: Implement max bid logic with Convex
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      await setMaxBidMutation({
+        token,
+        lotId,
+        maxAmount: maxBidAmount,
+      });
 
       toast({
         title: "Max Bid Set Successfully!",
@@ -135,7 +198,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Failed to Set Max Bid",
-        description: "There was an error setting your max bid. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error setting your max bid",
         variant: "destructive",
       });
     } finally {

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export interface GalleryImage {
   url: string;
   alt: string;
-  type?: "hero" | "exterior" | "interior" | "damage" | "document";
+  type?: "hero" | "exterior" | "interior" | "damage" | "document" | "vin_plate";
 }
 
 interface ImageGalleryProps {

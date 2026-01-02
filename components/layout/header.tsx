@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, Search, Bell, User, Zap } from "lucide-react";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -25,7 +27,7 @@ const navItems = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // TODO: Replace with actual auth
+  const { user, isAuthenticated, logout } = useAuth();
   const unreadNotifications = 0; // TODO: Replace with actual notification count
 
   return (
@@ -71,6 +73,9 @@ export function Header() {
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Notifications */}
           {isAuthenticated && (
             <Button variant="ghost" size="icon" className="relative">
@@ -113,7 +118,10 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/account">Settings</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive cursor-pointer"
+                  onClick={() => logout()}
+                >
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

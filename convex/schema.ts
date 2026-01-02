@@ -21,14 +21,16 @@ export default defineSchema({
     ),
     emailVerified: v.boolean(),
     phoneVerified: v.boolean(),
-    avatar: v.optional(v.string()),
-    address: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      state: v.string(),
-      country: v.string(),
-      postalCode: v.optional(v.string()),
-    })),
+    avatar: v.optional(v.union(v.string(), v.id("_storage"))), // Support both legacy URLs and new storage IDs
+    address: v.optional(
+      v.object({
+        street: v.string(),
+        city: v.string(),
+        state: v.string(),
+        country: v.string(),
+        postalCode: v.optional(v.string()),
+      })
+    ),
     membershipTier: v.union(
       v.literal("guest"),
       v.literal("basic"),
@@ -38,12 +40,17 @@ export default defineSchema({
     membershipExpiry: v.optional(v.number()),
     depositAmount: v.number(),
     buyingPower: v.number(),
+    dailyBidsUsed: v.number(),
+    lastBidResetAt: v.number(),
     role: v.union(
       v.literal("buyer"),
-      v.literal("seller"),
+      v.literal("seller"), // Vendors who can upload vehicles
       v.literal("admin"),
       v.literal("superadmin")
     ),
+    // Vendor-specific fields
+    vendorCompany: v.optional(v.string()),
+    vendorLicense: v.optional(v.string()),
     kycStatus: v.union(
       v.literal("not_started"),
       v.literal("pending"),
@@ -67,7 +74,7 @@ export default defineSchema({
       v.literal("business_registration"),
       v.literal("dealer_license")
     ),
-    documentUrl: v.string(),
+    documentUrl: v.union(v.string(), v.id("_storage")), // Support both legacy URLs and new storage IDs
     status: v.union(
       v.literal("pending"),
       v.literal("approved"),
@@ -170,8 +177,8 @@ export default defineSchema({
 
   vehicleImages: defineTable({
     vehicleId: v.id("vehicles"),
-    imageUrl: v.string(),
-    thumbnailUrl: v.string(),
+    imageUrl: v.union(v.string(), v.id("_storage")), // Support both legacy URLs and new storage IDs
+    thumbnailUrl: v.optional(v.union(v.string(), v.id("_storage"))), // Support both legacy URLs and new storage IDs
     imageType: v.union(
       v.literal("hero"),
       v.literal("exterior"),
@@ -182,8 +189,7 @@ export default defineSchema({
     ),
     order: v.number(),
     uploadedAt: v.number(),
-  })
-    .index("by_vehicle", ["vehicleId"]),
+  }).index("by_vehicle", ["vehicleId"]),
 
   vehicleDocuments: defineTable({
     vehicleId: v.id("vehicles"),
@@ -195,10 +201,9 @@ export default defineSchema({
       v.literal("export_certificate"),
       v.literal("soncap_cert")
     ),
-    documentUrl: v.string(),
+    documentUrl: v.union(v.string(), v.id("_storage")), // Support both legacy URLs and new storage IDs
     uploadedAt: v.number(),
-  })
-    .index("by_vehicle", ["vehicleId"]),
+  }).index("by_vehicle", ["vehicleId"]),
 
   // ============================================
   // AUCTION TABLES
@@ -250,6 +255,15 @@ export default defineSchema({
     currentBidderId: v.optional(v.id("users")),
     bidCount: v.number(),
     reserveMet: v.boolean(),
+    // Pricing fields - optional for backward compatibility with existing data
+    startingBid: v.optional(v.number()),
+    reservePrice: v.optional(v.number()),
+    buyItNowPrice: v.optional(v.number()),
+    bidIncrement: v.optional(v.number()),
+    // Timing fields
+    estimatedStartTime: v.optional(v.number()),
+    lotDuration: v.optional(v.number()),
+    startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
     winningBid: v.optional(v.number()),
     winnerId: v.optional(v.id("users")),
@@ -328,8 +342,7 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     lastTriggeredAt: v.optional(v.number()),
-  })
-    .index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]),
 
   // ============================================
   // ORDER & PAYMENT TABLES
@@ -349,23 +362,24 @@ export default defineSchema({
     serviceFee: v.number(),
     documentationFee: v.number(),
     inspectionFee: v.optional(v.number()),
-    shippingMethod: v.optional(v.union(
-      v.literal("container"),
-      v.literal("roro")
-    )),
+    shippingMethod: v.optional(
+      v.union(v.literal("container"), v.literal("roro"))
+    ),
     shippingCost: v.optional(v.number()),
     insuranceCost: v.optional(v.number()),
     estimatedDuties: v.optional(v.number()),
     actualDuties: v.optional(v.number()),
     clearanceFee: v.optional(v.number()),
-    deliveryAddress: v.optional(v.object({
-      street: v.string(),
-      city: v.string(),
-      state: v.string(),
-      country: v.string(),
-      postalCode: v.optional(v.string()),
-      phone: v.string(),
-    })),
+    deliveryAddress: v.optional(
+      v.object({
+        street: v.string(),
+        city: v.string(),
+        state: v.string(),
+        country: v.string(),
+        postalCode: v.optional(v.string()),
+        phone: v.string(),
+      })
+    ),
     deliveryFee: v.optional(v.number()),
     subtotal: v.number(),
     totalAmount: v.number(),
@@ -477,8 +491,7 @@ export default defineSchema({
       v.literal("customs"),
       v.literal("manual")
     ),
-  })
-    .index("by_shipment", ["shipmentId"]),
+  }).index("by_shipment", ["shipmentId"]),
 
   // ============================================
   // CUSTOMS & CLEARANCE TABLES
@@ -541,12 +554,14 @@ export default defineSchema({
     vehicleId: v.optional(v.id("vehicles")),
     orderId: v.optional(v.id("orders")),
     auctionId: v.optional(v.id("auctions")),
-    channels: v.array(v.union(
-      v.literal("in_app"),
-      v.literal("email"),
-      v.literal("sms"),
-      v.literal("push")
-    )),
+    channels: v.array(
+      v.union(
+        v.literal("in_app"),
+        v.literal("email"),
+        v.literal("sms"),
+        v.literal("push")
+      )
+    ),
     read: v.boolean(),
     emailSent: v.boolean(),
     smsSent: v.boolean(),
@@ -600,16 +615,14 @@ export default defineSchema({
     rate: v.number(),
     source: v.string(),
     fetchedAt: v.number(),
-  })
-    .index("by_currencies", ["fromCurrency", "toCurrency"]),
+  }).index("by_currencies", ["fromCurrency", "toCurrency"]),
 
   systemSettings: defineTable({
     key: v.string(),
     value: v.string(),
     updatedAt: v.number(),
     updatedBy: v.optional(v.id("users")),
-  })
-    .index("by_key", ["key"]),
+  }).index("by_key", ["key"]),
 
   auditLog: defineTable({
     userId: v.optional(v.id("users")),

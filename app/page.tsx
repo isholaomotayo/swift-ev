@@ -1,9 +1,51 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useConvex } from "convex/react";
+import { Zap, Shield, TrendingUp, Package } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
+import { VehicleCard } from "@/components/voltbid/vehicle-card";
+import { api } from "@/convex/_generated/api";
 
 export default function Home() {
+  const convex = useConvex();
+  const [featuredVehicles, setFeaturedVehicles] = useState<any[] | null>(null);
+  const [stats, setStats] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch once on mount (no real-time subscriptions)
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
+    Promise.all([
+      convex.query(api.vehicles.getFeaturedVehicles, {}),
+      convex.query(api.vehicles.getVehicleStats, {}),
+    ])
+      .then(([vehicles, vehicleStats]) => {
+        if (mounted) {
+          setFeaturedVehicles(vehicles || []);
+          setStats(vehicleStats || null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to fetch homepage data:", error);
+        if (mounted) {
+          setFeaturedVehicles([]);
+          setStats(null);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [convex]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -29,44 +71,236 @@ export default function Home() {
                   <Link href="/how-it-works">How It Works</Link>
                 </Button>
               </div>
+
+              {/* Stats */}
+              {stats && (
+                <div className="grid grid-cols-3 gap-8 mt-12 max-w-2xl mx-auto">
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-electric-blue">
+                      {stats.totalListings}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Total Vehicles
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-volt-green">
+                      {stats.activeAuctions}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Live Auctions
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-3xl md:text-4xl font-bold text-electric-blue">
+                      {stats.totalSold}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Vehicles Sold
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* Coming Soon Content */}
+        {/* Featured Vehicles */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Featured Vehicles</h2>
+                <p className="text-muted-foreground">
+                  Browse our latest electric vehicles up for auction
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/vehicles">View All</Link>
+              </Button>
+            </div>
+
+            {loading || featuredVehicles === null ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-96 bg-muted animate-pulse rounded-lg"
+                  />
+                ))}
+              </div>
+            ) : featuredVehicles.length === 0 ? (
+              <div className="text-center py-12 bg-background rounded-lg border">
+                <p className="text-muted-foreground">
+                  No vehicles currently available. Check back soon!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredVehicles.map((vehicle) => (
+                  <VehicleCard
+                    key={vehicle._id}
+                    vehicle={vehicle}
+                    auctionLot={vehicle.auctionLot}
+                    onBidClick={() => {
+                      // Navigate to vehicle detail page
+                      window.location.href = `/vehicles/${vehicle._id}`;
+                    }}
+                    onWatchlistToggle={() => {
+                      // TODO: Implement watchlist functionality
+                      console.log("Toggle watchlist for", vehicle._id);
+                    }}
+                    isWatchlisted={false}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Value Propositions */}
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold mb-4">
-                Platform Under Development
+            <div className="mx-auto max-w-6xl">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Why Choose VoltBid Africa
               </h2>
-              <p className="text-muted-foreground mb-6">
-                We're building an amazing electric vehicle auction platform for
-                Africa. Stay tuned for updates!
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-                <div className="p-6 border rounded-lg">
-                  <div className="text-4xl mb-4">⚡</div>
-                  <h3 className="font-semibold mb-2">EV Expertise</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-electric-blue/10 text-electric-blue mb-4">
+                    <Zap className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">EV Expertise</h3>
                   <p className="text-sm text-muted-foreground">
-                    Specialized in electric vehicle imports with battery health
-                    reports
+                    Specialized in electric vehicle imports with comprehensive
+                    battery health reports and technical inspections
                   </p>
                 </div>
-                <div className="p-6 border rounded-lg">
-                  <div className="text-4xl mb-4">🚢</div>
-                  <h3 className="font-semibold mb-2">Complete Solution</h3>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-volt-green/10 text-volt-green mb-4">
+                    <Package className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">
+                    Complete Solution
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     End-to-end import handling from China to your doorstep
+                    including shipping, customs, and delivery
                   </p>
                 </div>
-                <div className="p-6 border rounded-lg">
-                  <div className="text-4xl mb-4">💰</div>
-                  <h3 className="font-semibold mb-2">Transparent Pricing</h3>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-electric-blue/10 text-electric-blue mb-4">
+                    <TrendingUp className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">
+                    Transparent Pricing
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    No hidden fees - see total costs upfront including duties
+                    No hidden fees - see total costs upfront including duties,
+                    taxes, and all associated charges
                   </p>
                 </div>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-volt-green/10 text-volt-green mb-4">
+                    <Shield className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">
+                    Buyer Protection
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Detailed condition reports, money-back guarantees, and
+                    verified seller credentials for peace of mind
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-4xl">
+              <h2 className="text-3xl font-bold text-center mb-12">
+                How VoltBid Works
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="relative">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-electric-blue text-white font-bold text-xl mb-4">
+                    1
+                  </div>
+                  <h3 className="font-semibold mb-2">Browse & Register</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Browse vehicles and create a free account to start bidding
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-electric-blue text-white font-bold text-xl mb-4">
+                    2
+                  </div>
+                  <h3 className="font-semibold mb-2">Place Your Bid</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Bid on your favorite EV or set a maximum auto-bid amount
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-electric-blue text-white font-bold text-xl mb-4">
+                    3
+                  </div>
+                  <h3 className="font-semibold mb-2">Win & Pay</h3>
+                  <p className="text-sm text-muted-foreground">
+                    If you win, complete payment and we handle all logistics
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-electric-blue text-white font-bold text-xl mb-4">
+                    4
+                  </div>
+                  <h3 className="font-semibold mb-2">Receive Your EV</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track shipping and receive your EV at your doorstep
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center mt-8">
+                <Button asChild>
+                  <Link href="/how-it-works">Learn More</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 bg-electric-blue text-white">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Ready to Drive Electric?
+              </h2>
+              <p className="text-xl mb-8 opacity-90">
+                Join thousands of Nigerians making the switch to sustainable
+                transportation
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" variant="secondary" asChild>
+                  <Link href="/register">Create Account</Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white text-white hover:bg-white/10"
+                  asChild
+                >
+                  <Link href="/auctions">View Live Auctions</Link>
+                </Button>
               </div>
             </div>
           </div>

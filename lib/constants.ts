@@ -117,6 +117,18 @@ export const VEHICLE_CONDITIONS = [
   { value: "salvage", label: "Salvage" },
 ] as const;
 
+// Simplified for upload form
+export const CONDITION_OPTIONS = ["new", "like_new", "excellent", "good", "fair", "salvage"] as const;
+
+// Battery Types
+export const BATTERY_TYPES = [
+  "Lithium-ion (Li-ion)",
+  "Lithium Iron Phosphate (LFP)",
+  "Nickel Manganese Cobalt (NMC)",
+  "Nickel Cobalt Aluminum (NCA)",
+  "Solid State",
+] as const;
+
 // Title Types
 export const TITLE_TYPES = [
   { value: "clean", label: "Clean Title" },
@@ -331,6 +343,10 @@ export const PAYMENT_DEADLINE_DAYS = 3; // 3 business days
 // Pagination
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
+
+// Query Limits
+export const MAX_BIDS_PER_LOT = 100;
+export const MAX_USER_BIDS = 50;
 
 // File Upload Limits
 export const MAX_VEHICLE_IMAGES = 20;
