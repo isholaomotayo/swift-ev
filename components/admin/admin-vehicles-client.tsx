@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { VehicleActionsModal } from "@/components/admin/vehicles/vehicle-actions-modal";
 import {
   Table,
   TableBody,
@@ -31,6 +32,11 @@ interface AdminVehiclesClientProps {
 export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehiclesClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Modal State
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"view" | "edit">("view");
 
   const filteredVehicles = useMemo(() => {
     let filtered = initialVehicles;
@@ -172,8 +178,8 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
                     {vehicle.auctionLot
                       ? formatCurrency(vehicle.auctionLot.currentBid)
                       : vehicle.startingBid
-                      ? formatCurrency(vehicle.startingBid)
-                      : "—"}
+                        ? formatCurrency(vehicle.startingBid)
+                        : "—"}
                   </TableCell>
                   <TableCell>
                     <span className="font-medium">
@@ -183,13 +189,27 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/vehicles/${vehicle._id}`}>View</Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVehicle(vehicle);
+                          setModalMode("view");
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        View
                       </Button>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/admin/vehicles/${vehicle._id}/edit`}>
-                          Edit
-                        </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVehicle(vehicle);
+                          setModalMode("edit");
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        Edit
                       </Button>
                     </div>
                   </TableCell>
@@ -199,6 +219,13 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
           </Table>
         )}
       </div>
+
+      <VehicleActionsModal
+        vehicle={selectedVehicle}
+        mode={modalMode}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

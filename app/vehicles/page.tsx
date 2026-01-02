@@ -53,10 +53,13 @@ export default async function VehiclesPage() {
       <main className="flex-1 bg-muted/30">
         <div className="container mx-auto px-4 py-8">
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Browse Vehicles</h1>
-            <p className="text-muted-foreground">
-              Find your perfect electric vehicle from our curated selection
+          <div className="mb-8 p-8 rounded-2xl bg-gradient-to-r from-card to-card/50 border border-border/50 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-electric-blue/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent relative z-10">
+              Browse Vehicles
+            </h1>
+            <p className="text-muted-foreground text-lg relative z-10 max-w-2xl">
+              Find your perfect electric vehicle from our curated selection of premium Chinese EVs.
             </p>
           </div>
 

@@ -68,9 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation(api.auth.logout);
   const updateProfileMutation = useMutation(api.auth.updateProfile);
 
-  // Load token from localStorage on mount
+  // Helper to get cookie by name
+  const getCookie = (name: string): string | null => {
+    if (typeof document === "undefined") return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+    return null;
+  };
+
+  // Load token from cookie on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedToken = getCookie(TOKEN_KEY);
     if (storedToken) {
       setToken(storedToken);
     }
@@ -83,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const result = await loginMutation({ email, password });
 
-      // Store token
-      localStorage.setItem(TOKEN_KEY, result.token);
+      // Store token in cookie
+      setCookie(TOKEN_KEY, result.token, 30);
       setToken(result.token);
 
       toast({
@@ -101,6 +110,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const setCookie = (name: string, value: string, days: number) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+  };
+
+  const deleteCookie = (name: string) => {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
   };
 
   // Register function
@@ -133,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Clear token
-      localStorage.removeItem(TOKEN_KEY);
+      deleteCookie(TOKEN_KEY);
       setToken(null);
 
       toast({

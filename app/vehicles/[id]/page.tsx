@@ -65,10 +65,8 @@ export default async function VehicleDetailPage({
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-muted/30">
-        <div className="container mx-auto px-4 py-8">
-          <VehicleDetailClient initialVehicle={initialVehicle} vehicleId={vehicleId} />
-        </div>
+      <main className="flex-1 bg-background">
+        <VehicleDetailClient initialVehicle={initialVehicle} vehicleId={vehicleId} />
       </main>
       <Footer />
     </div>

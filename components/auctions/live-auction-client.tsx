@@ -23,9 +23,12 @@ import {
   Zap,
   Battery,
   MapPin,
+  Timer,
+  Car
 } from "lucide-react";
-import { formatCurrency, formatLotNumber, formatVIN } from "@/lib/utils";
+import { formatCurrency, formatLotNumber, formatVIN, cn } from "@/lib/utils";
 import Link from "next/link";
+import Image from "next/image";
 
 interface LiveAuctionClientProps {
   initialAuctionData: any;
@@ -69,14 +72,16 @@ export function LiveAuctionClient({
 
   if (!auctionData) {
     return (
-      <div className="text-center py-12">
-        <p className="text-lg font-semibold mb-2">Auction not found</p>
-        <p className="text-muted-foreground mb-4">
-          The auction you're looking for doesn't exist.
-        </p>
-        <Button onClick={() => router.push("/auctions")}>
-          Back to Auctions
-        </Button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <Card className="p-8 max-w-md w-full border-dashed border-2 bg-muted/30">
+          <h2 className="text-xl font-bold mb-2">Auction Not Found</h2>
+          <p className="text-muted-foreground mb-6">
+            The auction you're looking for differs or has been removed.
+          </p>
+          <Button onClick={() => router.push("/auctions")} className="w-full">
+            Back to Auctions
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -99,334 +104,230 @@ export function LiveAuctionClient({
   const isAuctionLive = auction.status === "live";
   const isLotActive = currentLot?.status === "active";
 
-  return (
-    <>
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>
+  const heroImage = currentVehicle?.images && currentVehicle.images.length > 0 ? currentVehicle.images[0] : null;
 
-      {/* Auction Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold">{auction.name}</h1>
-          <Badge
-            className={
-              isAuctionLive
-                ? "bg-volt-green/20 text-volt-green border-volt-green/30"
-                : "bg-muted text-muted-foreground"
-            }
-          >
-            {isAuctionLive ? "Live" : auction.status}
-          </Badge>
-        </div>
-        {auction.description && (
-          <p className="text-muted-foreground">{auction.description}</p>
-        )}
-        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            <span>
-              {new Date(auction.scheduledStart).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span>{lots.length} lots</span>
-          </div>
-          {isAuctionLive && (
-            <div className="flex items-center gap-1">
-              <Gavel className="h-4 w-4" />
-              <span>{bidCount} bids</span>
+  return (
+    <div className="animate-in fade-in duration-500 pb-20">
+      {/* 1. Header / Top Bar (Sticky or top section) */}
+      <div className="bg-background border-b border-border/50 sticky top-16 z-20 shadow-sm backdrop-blur-md bg-background/80">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/auctions">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-muted">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-bold text-lg leading-tight truncate max-w-[200px] md:max-w-md">{auction.name}</h1>
+                <Badge
+                  variant={isAuctionLive ? "default" : "secondary"}
+                  className={cn(isAuctionLive ? "bg-volt-green/10 text-volt-green border-volt-green/20 animate-pulse" : "")}
+                >
+                  {isAuctionLive ? "LIVE NOW" : auction.status}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground hidden md:flex">
+                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(auction.scheduledStart).toLocaleDateString()}</span>
+                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {lots.length} Lots</span>
+              </div>
             </div>
-          )}
+          </div>
+          {/* Optional: Add a "Watch Live" View Toggle or similar here */}
         </div>
       </div>
 
       {!currentLot || !currentVehicle ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">
-            {isAuctionLive
-              ? "Waiting for next lot..."
-              : "Auction has not started yet"}
-          </p>
-        </Card>
+        <div className="container mx-auto px-4 py-12">
+          <Card className="p-12 text-center border-dashed border-2 bg-muted/20">
+            <Gavel className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">{isAuctionLive ? "Waiting for next lot..." : "Auction has not started"}</h2>
+            <p className="text-muted-foreground">Please wait for the auctioneer to open the next lot.</p>
+          </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left Column - Current Lot (60%) */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Vehicle Image Gallery */}
-            <Card className="p-4">
-              <ImageGallery
-                images={currentVehicle.images || []}
-                vehicleTitle={`${currentVehicle.year} ${currentVehicle.make} ${currentVehicle.model}`}
-              />
-            </Card>
+        <>
+          {/* Split Layout for Live View */}
+          <div className="container mx-auto px-4 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full lg:h-[calc(100vh-140px)]">
 
-            {/* Vehicle Details */}
-            <Card className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold">
-                    {currentVehicle.year} {currentVehicle.make}{" "}
-                    {currentVehicle.model}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Lot {formatLotNumber(currentLot.lotOrder.toString())}
-                  </p>
-                </div>
-                <BatteryHealthBadge
-                  healthPercent={currentVehicle.batteryHealthPercent || 0}
-                />
-              </div>
-
-              <Separator className="my-4" />
-
-              {/* Vehicle Specs Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">VIN</p>
-                  <p className="font-mono text-sm font-semibold">
-                    {formatVIN(currentVehicle.vin)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Battery Capacity
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Battery className="h-4 w-4 text-electric-blue" />
-                    <p className="font-semibold">
-                      {currentVehicle.batteryCapacity} kWh
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Range</p>
-                  <div className="flex items-center gap-1">
-                    <Zap className="h-4 w-4 text-volt-green" />
-                    <p className="font-semibold">
-                      {currentVehicle.estimatedRange} km
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Odometer</p>
-                  <p className="font-semibold">
-                    {currentVehicle.odometer.toLocaleString()} km
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Condition</p>
-                  <Badge variant="secondary">
-                    {currentVehicle.condition}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <p className="font-semibold text-sm">
-                      {currentVehicle.currentLocation.city},{" "}
-                      {currentVehicle.currentLocation.country}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Bid History */}
-            {bidHistory.length > 0 && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Bid History
-                </h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {bidHistory.map((bid) => (
-                    <div
-                      key={bid._id}
-                      className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-electric-blue/10 flex items-center justify-center">
-                          <Gavel className="h-4 w-4 text-electric-blue" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {bid.user
-                              ? `${bid.user.firstName} ${bid.user.lastName}`
-                              : `Bidder #${bid._id.slice(-6)}`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(bid.createdAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      <PriceDisplay amount={bid.amount} />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
-
-          {/* Right Column - Auction Info & Upcoming Lots (40%) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Current Lot Auction Info (Sticky) */}
-            <div className="sticky top-24 space-y-6">
-              <Card className="p-6 space-y-6">
-                {/* Lot Number */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Lot Number
-                  </p>
-                  <p className="text-xl font-bold font-mono text-electric-blue">
-                    {formatLotNumber(currentLot.lotOrder.toString())}
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* Current Bid */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Current Bid
-                  </p>
-                  <PriceDisplay amount={currentBid} variant="large" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {bidCount} {bidCount === 1 ? "bid" : "bids"} placed
-                  </p>
-                </div>
-
-                {/* Auction Timer */}
-                {isLotActive && currentLot.endsAt && (
-                  <>
-                    <Separator />
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Time Remaining
-                      </p>
-                      <AuctionTimer
-                        endsAt={currentLot.endsAt}
-                        variant="large"
-                        onExpire={() => {
-                          // useQuery will continue to update automatically
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  {isLotActive ? (
-                    <BidButton
-                      lotId={currentLot._id}
-                      currentBid={currentBid}
-                      bidIncrement={currentLot.bidIncrement || 50000}
-                      className="w-full"
+              {/* Left: Main Visuals & Stats (7 cols) */}
+              <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-hidden">
+                {/* Hero Image / Stream Placeholder */}
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-video lg:flex-1 shadow-2xl border border-border/50 group">
+                  {heroImage ? (
+                    <Image
+                      src={heroImage}
+                      alt="Live View"
+                      fill
+                      className="object-cover"
+                      priority
                     />
                   ) : (
-                    <Button disabled className="w-full">
-                      {isAuctionLive ? "Lot Not Active" : "Auction Not Live"}
-                    </Button>
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                      <Car className="h-16 w-16 text-muted-foreground/50" />
+                    </div>
                   )}
 
-                  <Link
-                    href={`/vehicles/${currentVehicle._id}`}
-                    className="block"
-                  >
-                    <Button variant="outline" className="w-full">
-                      View Full Details
-                    </Button>
-                  </Link>
+                  {/* Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+
+                  {/* Overlay Info */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge className="bg-electric-blue text-white border-none">Lot #{formatLotNumber(currentLot.lotOrder.toString())}</Badge>
+                        <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-md">{currentVehicle.year}</Badge>
+                      </div>
+                      <h2 className="text-3xl font-black text-white tracking-tight drop-shadow-md">
+                        {currentVehicle.make} {currentVehicle.model}
+                      </h2>
+                      <div className="flex items-center gap-4 text-white/80 text-sm mt-2">
+                        <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {currentVehicle.currentLocation.city}</span>
+                        <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-volt-green" /> {currentVehicle.estimatedRange} km</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Reserve Price Info */}
-                {currentVehicle.reservePrice && (
-                  <>
-                    <Separator />
-                    <div className="bg-muted/50 p-3 rounded-md">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Reserve Price
-                      </p>
-                      <p className="text-sm font-semibold">
-                        {currentBid >= currentVehicle.reservePrice ? (
-                          <span className="text-volt-green">
-                            ✓ Reserve Met
-                          </span>
-                        ) : (
-                          <span className="text-warning-amber">
-                            Reserve Not Met
-                          </span>
-                        )}
+                {/* Specs & Secondary Info */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:h-48">
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center">
+                    <p className="text-muted-foreground text-xs uppercase font-bold mb-2">Battery Health</p>
+                    <div className="flex items-center justify-between">
+                      <BatteryHealthBadge healthPercent={currentVehicle.batteryHealthPercent || 0} />
+                      <span className="text-2xl font-bold">{currentVehicle.batteryCapacity} <span className="text-sm font-normal text-muted-foreground">kWh</span></span>
+                    </div>
+                  </Card>
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center">
+                    <p className="text-muted-foreground text-xs uppercase font-bold mb-2">Mileage</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold">{currentVehicle.odometer?.toLocaleString()}</span>
+                      <span className="text-sm text-muted-foreground">km</span>
+                    </div>
+                  </Card>
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/vehicles/${currentVehicle._id}`)}>
+                    <div className="flex flex-col items-center text-center">
+                      <span className="text-electric-blue font-semibold mb-1">View Full Details</span>
+                      <p className="text-xs text-muted-foreground">Open in new tab</p>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Right: Bidding Console (5 cols) */}
+              <div className="lg:col-span-4 flex flex-col gap-4 h-full">
+                {/* Live Status & Timer */}
+                <Card className="p-5 border-border/50 shadow-lg bg-card/80 backdrop-blur-xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", isLotActive ? "bg-volt-green" : "bg-warning-amber")}></span>
+                        <span className={cn("relative inline-flex rounded-full h-3 w-3", isLotActive ? "bg-volt-green" : "bg-warning-amber")}></span>
+                      </span>
+                      <span className={cn("font-bold text-sm uppercase tracking-wider", isLotActive ? "text-volt-green" : "text-warning-amber")}>
+                        {isLotActive ? "Accepting Bids" : "Lot Closed"}
+                      </span>
+                    </div>
+                    {isLotActive && currentLot.endsAt && (
+                      <AuctionTimer endsAt={currentLot.endsAt} variant="default" onExpire={() => { }} className="font-mono text-lg font-bold" />
+                    )}
+                  </div>
+
+                  <div className="text-center py-4 bg-muted/10 rounded-xl mb-4 border border-border/50">
+                    <p className="text-sm text-muted-foreground font-medium mb-1">Current Highest Bid</p>
+                    <PriceDisplay amount={currentBid} variant="large" className="text-5xl justify-center font-black tracking-tight" />
+                  </div>
+
+                  {isLotActive ? (
+                    <div className="space-y-3">
+                      <BidButton
+                        lotId={currentLot._id}
+                        currentBid={currentBid}
+                        bidIncrement={currentLot.bidIncrement || 50000}
+                        className="w-full h-14 text-xl shadow-lg shadow-volt-green/20 bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green"
+                      />
+                      <p className="text-xs text-center text-muted-foreground">
+                        Bid increment: {formatCurrency(currentLot.bidIncrement || 50000)}
                       </p>
                     </div>
-                  </>
-                )}
-              </Card>
+                  ) : (
+                    <Button disabled className="w-full h-14 text-lg">
+                      {isAuctionLive ? "Waiting for next lot..." : "Auction Not Live"}
+                    </Button>
+                  )}
+                </Card>
 
-              {/* Upcoming Lots Sidebar */}
-              {upcomingLots.length > 0 && (
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Upcoming Lots
-                  </h3>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {upcomingLots.map((lotData: any, index: number) => {
-                      if (!lotData) return null;
-                      const { lot, vehicle } = lotData;
-                      return (
-                        <Link
-                          key={lot._id}
-                          href={`/vehicles/${vehicle._id}`}
-                          className="block"
-                        >
-                          <div className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
-                            <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                              {vehicle.image ? (
-                                <img
-                                  src={vehicle.image}
-                                  alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Zap className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate">
-                                {vehicle.year} {vehicle.make} {vehicle.model}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Lot {formatLotNumber(lot.lotOrder.toString())}
-                              </p>
-                              <p className="text-xs font-semibold mt-1">
-                                {formatCurrency(
-                                  lot.startingBid || vehicle.startingBid || 0
-                                )}
-                              </p>
-                            </div>
+                {/* Live Feed / History */}
+                <Card className="flex-1 border-border/50 bg-card/40 backdrop-blur-sm flex flex-col overflow-hidden min-h-[300px]">
+                  <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-electric-blue" />
+                      Live Feed
+                    </h3>
+                    <Badge variant="secondary" className="text-xs">{bidHistory.length} Bids</Badge>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-hide">
+                    {bidHistory.length > 0 ? bidHistory.map((bid) => (
+                      <div key={bid._id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 animate-in slide-in-from-right-2 duration-300">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-electric-blue/10 flex items-center justify-center">
+                            <Gavel className="h-4 w-4 text-electric-blue" />
                           </div>
-                        </Link>
-                      );
-                    })}
+                          <div>
+                            <p className="text-sm font-bold">User {bid.user?.firstName || "Guest"}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(bid.createdAt).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono font-bold text-electric-blue">{formatCurrency(bid.amount)}</span>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <p>No bids yet.</p>
+                        <p>Be the first to bid!</p>
+                      </div>
+                    )}
                   </div>
                 </Card>
-              )}
+              </div>
             </div>
+
+            {/* Upcoming Lots Queue (Horizontal Scroll) */}
+            {upcomingLots.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-bold mb-4 px-1">Up Next Queue</h3>
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                  {upcomingLots.map((lotData: any, i: number) => {
+                    if (!lotData) return null;
+                    const { lot, vehicle } = lotData;
+                    return (
+                      <Link key={lot._id} href={`/vehicles/${vehicle._id}`} className="min-w-[280px] group">
+                        <Card className="p-3 bg-card/40 border-border/50 hover:bg-card hover:border-electric-blue/30 transition-all flex items-center gap-3">
+                          <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
+                            {vehicle.images?.[0] && <Image src={vehicle.images[0]} alt="Thumbnail" fill className="object-cover" />}
+                            <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded backdrop-blur-sm">Lot {lot.lotOrder}</div>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate group-hover:text-electric-blue transition-colors">
+                              {vehicle.year} {vehicle.make} {vehicle.model}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{vehicle.trim || "Base Model"}</p>
+                            <p className="font-mono text-xs font-bold mt-1">Start: {formatCurrency(lot.startingBid)}</p>
+                          </div>
+                        </Card>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
-    </>
+    </div>
   );
 }
 

@@ -38,7 +38,7 @@ export const register = mutation({
     }
 
     // Hash password using bcrypt
-    const passwordHash = await hashPassword(args.password);
+    const passwordHash = hashPassword(args.password);
 
     // Create user
     const userId = await ctx.db.insert("users", {
@@ -87,7 +87,7 @@ export const login = mutation({
     }
 
     // Verify password
-    const isValid = await verifyPassword(args.password, user.passwordHash);
+    const isValid = verifyPassword(args.password, user.passwordHash);
     if (!isValid) {
       throw new Error("Invalid email or password");
     }
@@ -314,13 +314,13 @@ export const changePassword = mutation({
     }
 
     // Verify current password
-    const isValid = await verifyPassword(args.currentPassword, user.passwordHash);
+    const isValid = verifyPassword(args.currentPassword, user.passwordHash);
     if (!isValid) {
       throw new Error("Current password is incorrect");
     }
 
     // Hash new password
-    const newPasswordHash = await hashPassword(args.newPassword);
+    const newPasswordHash = hashPassword(args.newPassword);
 
     // Update password
     await ctx.db.patch(user._id, {
@@ -332,15 +332,16 @@ export const changePassword = mutation({
 });
 
 // Helper functions for password hashing and verification
-async function hashPassword(password: string): Promise<string> {
+// Helper functions for password hashing and verification
+function hashPassword(password: string): string {
   // Use bcrypt with salt rounds of 10 (industry standard)
   const saltRounds = 10;
-  return await bcrypt.hash(password, saltRounds);
+  return bcrypt.hashSync(password, saltRounds);
 }
 
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
+function verifyPassword(password: string, hash: string): boolean {
   // Verify password against bcrypt hash
-  return await bcrypt.compare(password, hash);
+  return bcrypt.compareSync(password, hash);
 }
 
 function generateToken(): string {

@@ -329,7 +329,7 @@ export const seedDatabase = mutation({
       startingBid: 8_500_000,
       reservePrice: 10_000_000,
       buyItNowPrice: 12_500_000,
-      status: "approved",
+      status: "in_auction",
       createdAt: now - 7 * 24 * 60 * 60 * 1000,
       updatedAt: now - 7 * 24 * 60 * 60 * 1000,
     });
@@ -367,7 +367,7 @@ export const seedDatabase = mutation({
       startingBid: 15_000_000,
       reservePrice: 17_500_000,
       buyItNowPrice: 20_000_000,
-      status: "approved",
+      status: "in_auction",
       createdAt: now - 6 * 24 * 60 * 60 * 1000,
       updatedAt: now - 6 * 24 * 60 * 60 * 1000,
     });
@@ -404,7 +404,7 @@ export const seedDatabase = mutation({
       },
       startingBid: 12_000_000,
       reservePrice: 14_000_000,
-      status: "approved",
+      status: "in_auction",
       createdAt: now - 5 * 24 * 60 * 60 * 1000,
       updatedAt: now - 5 * 24 * 60 * 60 * 1000,
     });
@@ -442,7 +442,7 @@ export const seedDatabase = mutation({
       startingBid: 18_000_000,
       reservePrice: 20_000_000,
       buyItNowPrice: 24_000_000,
-      status: "approved",
+      status: "in_auction",
       createdAt: now - 4 * 24 * 60 * 60 * 1000,
       updatedAt: now - 4 * 24 * 60 * 60 * 1000,
     });
@@ -516,7 +516,7 @@ export const seedDatabase = mutation({
       },
       startingBid: 14_000_000,
       reservePrice: 16_000_000,
-      status: "approved",
+      status: "in_auction",
       createdAt: now - 2 * 24 * 60 * 60 * 1000,
       updatedAt: now - 2 * 24 * 60 * 60 * 1000,
     });
@@ -607,61 +607,99 @@ export const seedDatabase = mutation({
       endsAt: now + 3 * 60 * 60 * 1000, // Ends in 3 hours
     });
 
-    // Lot 2 - BYD Atto 3 (Pending - next up)
+    // Lot 2 - BYD Atto 3 (Active)
     const lot2Id = await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle1Id,
       lotOrder: 2,
-      status: "pending",
-      currentBid: 8_500_000, // Starting bid
+      status: "active",
+      currentBid: 8_500_000,
       bidCount: 0,
       reserveMet: false,
-      // New required fields
       startingBid: 8_500_000,
       reservePrice: 10_000_000,
       buyItNowPrice: 12_500_000,
       bidIncrement: 100_000,
-      lotDuration: 24 * 60 * 60 * 1000, // 24 hours
-      estimatedStartTime: now + 3 * 60 * 60 * 1000, // Starts in 3 hours
-      startsAt: undefined, // Not started yet
+      lotDuration: 24 * 60 * 60 * 1000,
+      estimatedStartTime: now - 1 * 60 * 60 * 1000, // Started 1 hour ago
+      startsAt: now - 1 * 60 * 60 * 1000,
+      endsAt: now + 23 * 60 * 60 * 1000,
     });
 
-    // Lot 3 - BYD Seal (Pending)
+    // Lot 3 - BYD Seal (Active)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle2Id,
       lotOrder: 3,
-      status: "pending",
+      status: "active",
       currentBid: 15_000_000,
-      bidCount: 0,
+      bidCount: 2,
       reserveMet: false,
-      // New required fields
       startingBid: 15_000_000,
       reservePrice: 17_500_000,
       buyItNowPrice: 20_000_000,
       bidIncrement: 100_000,
-      lotDuration: 24 * 60 * 60 * 1000, // 24 hours
-      estimatedStartTime: now + 27 * 60 * 60 * 1000, // Starts in 27 hours
-      startsAt: undefined, // Not started yet
+      lotDuration: 24 * 60 * 60 * 1000,
+      estimatedStartTime: now - 30 * 60 * 1000, // Started 30 mins ago
+      startsAt: now - 30 * 60 * 1000,
+      endsAt: now + 23.5 * 60 * 60 * 1000,
     });
 
-    // Lot 4 - XPeng P7 (Pending)
+    // Lot 4 - XPeng P7 (Active)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle3Id,
       lotOrder: 4,
-      status: "pending",
-      currentBid: 12_000_000,
-      bidCount: 0,
+      status: "active",
+      currentBid: 12_500_000,
+      bidCount: 5,
       reserveMet: false,
-      // New required fields
       startingBid: 12_000_000,
       reservePrice: 14_000_000,
       buyItNowPrice: undefined,
       bidIncrement: 100_000,
-      lotDuration: 24 * 60 * 60 * 1000, // 24 hours
-      estimatedStartTime: now + 51 * 60 * 60 * 1000, // Starts in 51 hours
-      startsAt: undefined, // Not started yet
+      lotDuration: 24 * 60 * 60 * 1000,
+      estimatedStartTime: now - 15 * 60 * 1000, // Started 15 mins ago
+      startsAt: now - 15 * 60 * 1000,
+      endsAt: now + 23.75 * 60 * 60 * 1000,
+    });
+
+    // Lot 5 - XPeng G9 (Active)
+    await ctx.db.insert("auctionLots", {
+      auctionId,
+      vehicleId: vehicle4Id,
+      lotOrder: 5,
+      status: "active",
+      currentBid: 18_000_000,
+      bidCount: 0,
+      reserveMet: false,
+      startingBid: 18_000_000,
+      reservePrice: 20_000_000,
+      buyItNowPrice: 24_000_000,
+      bidIncrement: 100_000,
+      lotDuration: 24 * 60 * 60 * 1000,
+      estimatedStartTime: now - 10 * 60 * 1000,
+      startsAt: now - 10 * 60 * 1000,
+      endsAt: now + 23.8 * 60 * 60 * 1000,
+    });
+
+    // Lot 6 - NIO ES6 (Active)
+    await ctx.db.insert("auctionLots", {
+      auctionId,
+      vehicleId: vehicle6Id,
+      lotOrder: 6,
+      status: "active",
+      currentBid: 14_200_000,
+      bidCount: 3,
+      reserveMet: false,
+      startingBid: 14_000_000,
+      reservePrice: 16_000_000,
+      buyItNowPrice: undefined,
+      bidIncrement: 100_000,
+      lotDuration: 24 * 60 * 60 * 1000,
+      estimatedStartTime: now - 5 * 60 * 1000,
+      startsAt: now - 5 * 60 * 1000,
+      endsAt: now + 23.9 * 60 * 60 * 1000,
     });
 
     console.log("✓ Created 4 auction lots (1 active, 3 pending)");

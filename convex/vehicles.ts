@@ -610,10 +610,24 @@ export const updateVehicle = mutation({
       make: v.optional(v.string()),
       model: v.optional(v.string()),
       year: v.optional(v.number()),
+      vin: v.optional(v.string()), // Allow correcting VIN
+      lotNumber: v.optional(v.string()),
       odometer: v.optional(v.number()),
+      exteriorColor: v.optional(v.string()),
+      interiorColor: v.optional(v.string()),
+
+      // EV specs
+      batteryCapacity: v.optional(v.number()),
       batteryHealthPercent: v.optional(v.number()),
+      estimatedRange: v.optional(v.number()), // Note: Frontend might send 'range', map to 'estimatedRange'
+      batteryType: v.optional(v.string()),
+      chargingType: v.optional(v.array(v.string())),
+      motorPower: v.optional(v.number()),
+
       condition: v.optional(
         v.union(
+          v.literal("new"),
+          v.literal("like_new"),
           v.literal("excellent"),
           v.literal("good"),
           v.literal("fair"),
@@ -621,24 +635,79 @@ export const updateVehicle = mutation({
         )
       ),
       damageDescription: v.optional(v.string()),
+
+      // Pricing
+      startingBid: v.optional(v.number()),
+      reservePrice: v.optional(v.number()),
+      buyItNowPrice: v.optional(v.number()),
+
+      // Location
+      currentLocation: v.optional(
+        v.object({
+          facility: v.string(),
+          city: v.string(),
+          country: v.string(),
+        })
+      ),
+
       status: v.optional(
         v.union(
           v.literal("draft"),
+          v.literal("pending_inspection"), // Added missing status
           v.literal("pending_approval"),
           v.literal("approved"),
+          v.literal("ready_for_auction"), // Added missing status
           v.literal("scheduled"),
           v.literal("in_auction"),
           v.literal("sold"),
           v.literal("unsold"),
-          v.literal("withdrawn")
+          v.literal("withdrawn"),
+          v.literal("payment_pending"), // Added missing status
+          v.literal("in_transit"), // Added missing status
+          v.literal("delivered"), // Added missing status
+          v.literal("cancelled") // Added missing status
         )
       ),
+      // Images - Optional array of strings (URLs or Storage IDs)
+      imageUrls: v.optional(v.array(v.string())),
     }),
   },
   handler: async (ctx, args) => {
     // TODO: Add admin authentication check
 
-    await ctx.db.patch(args.vehicleId, args.updates);
+    const { vehicleId, updates } = args;
+
+    // 1. Update vehicle fields
+    // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
+    const { imageUrls, ...vehicleUpdates } = updates;
+
+    await ctx.db.patch(vehicleId, vehicleUpdates);
+
+    // 2. Update images if provided
+    if (imageUrls) {
+      // Delete existing images
+      const existingImages = await ctx.db
+        .query("vehicleImages")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicleId))
+        .collect();
+
+      await Promise.all(existingImages.map((img) => ctx.db.delete(img._id)));
+
+      // Insert new images
+      const now = Date.now();
+      await Promise.all(
+        imageUrls.map(async (url, index) => {
+          await ctx.db.insert("vehicleImages", {
+            vehicleId,
+            imageUrl: url,
+            thumbnailUrl: url,
+            imageType: index === 0 ? "hero" : "exterior", // Simple logic for type
+            order: index,
+            uploadedAt: now,
+          });
+        })
+      );
+    }
 
     return { success: true };
   },

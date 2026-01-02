@@ -156,13 +156,19 @@ export default defineSchema({
     buyItNowPrice: v.optional(v.number()),
     status: v.union(
       v.literal("draft"),
+      v.literal("pending_inspection"),
       v.literal("pending_approval"),
       v.literal("approved"),
+      v.literal("ready_for_auction"),
       v.literal("scheduled"),
       v.literal("in_auction"),
       v.literal("sold"),
       v.literal("unsold"),
-      v.literal("withdrawn")
+      v.literal("withdrawn"),
+      v.literal("payment_pending"),
+      v.literal("in_transit"),
+      v.literal("delivered"),
+      v.literal("cancelled")
     ),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -1,9 +1,10 @@
+"use client";
+
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap, TrendingUp, Building2 } from "lucide-react";
+import { Check, Zap, TrendingUp, Building2, Calculator, Info, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { ServiceFeeCalculator } from "@/components/pricing/service-fee-calculator";
@@ -21,8 +22,9 @@ const tiers = [
     ],
     dailyBids: 0,
     buyingPower: "₦0",
-    icon: Zap,
+    icon: <Zap className="h-6 w-6" />,
     popular: false,
+    color: "bg-muted"
   },
   {
     name: "Basic",
@@ -38,8 +40,9 @@ const tiers = [
     ],
     dailyBids: 3,
     buyingPower: "₦5M",
-    icon: Zap,
+    icon: <Zap className="h-6 w-6" />,
     popular: true,
+    color: "bg-electric-blue/10"
   },
   {
     name: "Premier",
@@ -57,8 +60,9 @@ const tiers = [
     ],
     dailyBids: 10,
     buyingPower: "₦50M",
-    icon: TrendingUp,
+    icon: <TrendingUp className="h-6 w-6" />,
     popular: false,
+    color: "bg-volt-green/10"
   },
   {
     name: "Business",
@@ -76,185 +80,189 @@ const tiers = [
     ],
     dailyBids: "Unlimited",
     buyingPower: "Unlimited",
-    icon: Building2,
+    icon: <Building2 className="h-6 w-6" />,
     popular: false,
+    color: "bg-primary/10"
   },
 ];
 
 export default function PricingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors selection:bg-electric-blue/30">
       <Header />
       <main className="flex-1">
-        {/* Hero Section */}
-        {/* Hero Section */}
-        <section className="relative py-24 md:py-32 overflow-hidden bg-slate-900 text-white">
-          <div className="absolute inset-0 z-0 opacity-20">
-            <Image
-              src="/images/pricing-bg.png"
-              alt="Pricing Background"
-              fill
-              className="object-cover"
-              priority
-            />
+        {/* HERO SECTION */}
+        <section className="relative pt-32 pb-24 md:pt-48 md:pb-32 overflow-hidden border-b border-border">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-electric-blue/10 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-volt-green/5 rounded-full blur-[120px]" />
           </div>
+
           <div className="container relative z-10 mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Membership & Pricing
+            <div className="max-w-4xl mx-auto text-center">
+              <Badge className="mb-8 px-4 py-1.5 rounded-full bg-primary/5 text-primary border-primary/10 backdrop-blur-md uppercase tracking-widest font-bold text-[10px]">
+                Membership Plans
+              </Badge>
+              <h1 className="text-5xl md:text-8xl font-black tracking-tight mb-8 leading-[1.05]">
+                Your Gateway <br />
+                <span className="text-gradient">to Premium EVs</span>
               </h1>
-              <p className="text-xl text-gray-300">
-                Choose the membership tier that fits your needs. All memberships
-                are annual and include tax benefits.
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Choose the annual membership tier that fits your bidding strategy.
+                Unlock lower fees, higher buying power, and direct access to global auctions.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Membership Tiers */}
-        <section className="py-16">
+        {/* PRICING GRID */}
+        <section className="py-32 bg-muted/20 relative">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {tiers.map((tier) => {
-                const Icon = tier.icon;
-                return (
-                  <Card
-                    key={tier.name}
-                    className={`p-6 relative ${tier.popular ? "border-electric-blue border-2" : ""
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {tiers.map((tier) => (
+                <div
+                  key={tier.name}
+                  className={`group flex flex-col p-8 rounded-[2.5rem] bg-card border border-border transition-all hover-lift relative overflow-hidden ${tier.popular ? "ring-2 ring-electric-blue ring-offset-4 ring-offset-background" : ""
+                    }`}
+                >
+                  {tier.popular && (
+                    <div className="absolute top-0 right-0 p-4">
+                      <Badge className="bg-electric-blue text-white border-0 font-black tracking-widest text-[10px] px-3">POPULAR</Badge>
+                    </div>
+                  )}
+
+                  <div className="mb-10">
+                    <div className={`w-14 h-14 rounded-2xl ${tier.color} flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform`}>
+                      {tier.icon}
+                    </div>
+                    <h3 className="text-2xl font-black mb-2">{tier.name}</h3>
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-4xl font-black">{tier.priceLabel}</span>
+                      {tier.price > 0 && <span className="text-muted-foreground text-sm font-bold">/year</span>}
+                    </div>
+                    <p className="text-muted-foreground text-xs font-medium">{tier.description}</p>
+                  </div>
+
+                  <div className="space-y-4 mb-10 py-6 border-y border-border/50">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-bold uppercase tracking-wider">Daily Bids</span>
+                      <span className="font-black text-foreground">{tier.dailyBids}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-bold uppercase tracking-wider">Buying Power</span>
+                      <span className="font-black text-foreground">{tier.buyingPower}</span>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-4 mb-12 flex-1">
+                    {tier.features.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3 text-sm">
+                        <div className="mt-1 flex-shrink-0 w-4 h-4 rounded-full bg-volt-green/20 flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-volt-green" strokeWidth={4} />
+                        </div>
+                        <span className="text-muted-foreground font-medium">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className={`h-14 rounded-2xl font-black tracking-tight text-lg shadow-xl transition-all ${tier.popular
+                        ? "bg-electric-blue hover:bg-electric-blue-dark text-white shadow-electric-blue/20"
+                        : "bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 shadow-none"
                       }`}
+                    asChild
                   >
-                    {tier.popular && (
-                      <Badge className="absolute top-4 right-4 bg-electric-blue">
-                        Most Popular
-                      </Badge>
-                    )}
-                    <div className="mb-4">
-                      <div className="w-12 h-12 rounded-full bg-electric-blue/10 flex items-center justify-center mb-3">
-                        <Icon className="h-6 w-6 text-electric-blue" />
+                    <Link href={tier.name === "Guest" ? "/vehicles" : "/register"}>
+                      {tier.name === "Guest" ? "Browse Marketplace" : "Choose Plan"}
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SERVICE FEE CALCULATOR SECTION */}
+        <section className="py-32 border-y border-border relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-electric-blue/5 blur-[120px] -z-10" />
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex flex-col md:flex-row gap-16 items-center">
+                <div className="w-full md:w-1/2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[10px] font-black uppercase tracking-widest text-primary mb-6">
+                    <Calculator className="h-3 w-3" /> Cost Transparency
+                  </div>
+                  <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight">No hidden fees, <br /> Just clear numbers.</h2>
+                  <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
+                    Our platform ensures complete visibility into landed costs.
+                    Use this calculator to estimate total charges including import duty and logistics.
+                  </p>
+                  <div className="p-6 rounded-3xl bg-muted/30 border border-border">
+                    <div className="flex gap-4 items-start">
+                      <div className="bg-primary/10 p-2 rounded-xl text-primary mt-1">
+                        <Info className="h-4 w-4" />
                       </div>
-                      <h3 className="text-2xl font-bold mb-1">{tier.name}</h3>
-                      <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-3xl font-bold">
-                          {tier.priceLabel}
-                        </span>
-                        {tier.price > 0 && (
-                          <span className="text-muted-foreground">/year</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {tier.description}
+                      <p className="text-xs text-muted-foreground font-medium italic">
+                        "Initial estimates may vary slightly based on final port of entry and current exchange rates."
                       </p>
                     </div>
-
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Daily Bids:
-                        </span>
-                        <span className="font-semibold">{tier.dailyBids}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Buying Power:
-                        </span>
-                        <span className="font-semibold">
-                          {tier.buyingPower}
-                        </span>
-                      </div>
-                    </div>
-
-                    <ul className="space-y-2 mb-6">
-                      {tier.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          <Check className="h-4 w-4 text-volt-green flex-shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Link href={tier.name === "Guest" ? "/vehicles" : "/register"}>
-                      <Button
-                        className="w-full"
-                        variant={tier.popular ? "default" : "outline"}
-                      >
-                        {tier.name === "Guest" ? "Browse Now" : "Get Started"}
-                      </Button>
-                    </Link>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Service Fee Calculator */}
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto">
-              <ServiceFeeCalculator />
-            </div>
-          </div>
-        </section>
-
-        {/* Additional Fees */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold mb-8 text-center">
-                Additional Fees
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="p-6">
-                  <h3 className="font-semibold mb-2">Documentation Fee</h3>
-                  <p className="text-2xl font-bold mb-2">₦25,000</p>
-                  <p className="text-sm text-muted-foreground">
-                    Covers all import documentation, SONCAP certification, and
-                    paperwork processing
-                  </p>
-                </Card>
-
-                <Card className="p-6">
-                  <h3 className="font-semibold mb-2">Inspection Report</h3>
-                  <p className="text-2xl font-bold mb-2">₦15,000</p>
-                  <p className="text-sm text-muted-foreground">
-                    Detailed vehicle inspection and battery health assessment
-                    report
-                  </p>
-                </Card>
-
-                <Card className="p-6">
-                  <h3 className="font-semibold mb-2">Port Handling</h3>
-                  <p className="text-2xl font-bold mb-2">₦35,000</p>
-                  <p className="text-sm text-muted-foreground">
-                    Port handling and container unloading fees
-                  </p>
-                </Card>
-
-                <Card className="p-6">
-                  <h3 className="font-semibold mb-2">Delivery Fee</h3>
-                  <p className="text-2xl font-bold mb-2">Variable</p>
-                  <p className="text-sm text-muted-foreground">
-                    Depends on delivery location within Nigeria. Calculated at
-                    checkout.
-                  </p>
-                </Card>
+                  </div>
+                </div>
+                <div className="w-full md:w-1/2">
+                  <div className="glass-morphism rounded-[2.5rem] p-4 border-primary/10">
+                    <ServiceFeeCalculator />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-16 bg-electric-blue text-white">
+        {/* ADDITIONAL FEES GRID */}
+        <section className="py-32">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-20 max-w-2xl mx-auto">
+              <span className="text-sm font-black tracking-[0.3em] uppercase text-primary block mb-4">Variable Costs</span>
+              <h2 className="text-4xl font-black mb-6">Service Transparency</h2>
+              <p className="text-muted-foreground font-medium">Clear breakdown of operational costs for every vehicle imported through VoltBid.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                { title: "Documentation", price: "₦25,000", desc: "SONCAP certs, Form M, and paperwork." },
+                { title: "Inspection", price: "₦15,000", desc: "150-point battery & electronics check." },
+                { title: "Port Handling", price: "₦35,000", desc: "Lagos/PH port unloading and sorting." },
+                { title: "Duty Advisory", price: "Variable", desc: "EV-specific duty calculation experts." }
+              ].map((f, i) => (
+                <div key={i} className="p-8 rounded-[2.5rem] bg-card border border-border group hover:border-primary/30 transition-all text-center">
+                  <h3 className="font-black text-muted-foreground/50 text-xs uppercase tracking-[0.2em] mb-4">{f.title}</h3>
+                  <div className="text-3xl font-black mb-4">{f.price}</div>
+                  <p className="text-muted-foreground text-sm font-medium">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL REDESIGNED CTA */}
+        <section className="py-32 relative overflow-hidden">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Bidding?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Join thousands of buyers finding their perfect electric vehicle
-            </p>
-            <Link href="/register">
-              <Button size="lg" variant="secondary">
-                Create Account
-              </Button>
-            </Link>
+            <div className="max-w-6xl mx-auto rounded-[3.5rem] bg-slate-900 p-12 md:p-24 text-white relative overflow-hidden group border border-white/5 shadow-2xl">
+              <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-volt-green/10 blur-[150px] rounded-full transition-transform group-hover:scale-110" />
+              <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] opacity-10" />
+
+              <div className="relative z-10">
+                <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1.1]">Ready to bid on <br />your first EV?</h2>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                  <Button size="lg" variant="secondary" className="h-16 px-12 text-lg rounded-full font-black hover:scale-105 transition-transform" asChild>
+                    <Link href="/register">Create Account</Link>
+                  </Button>
+                  <Button size="lg" variant="ghost" className="h-16 px-12 text-lg rounded-full border border-white/10 hover:bg-white/5 font-black" asChild>
+                    <Link href="/vehicles">View Live Auctions <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>

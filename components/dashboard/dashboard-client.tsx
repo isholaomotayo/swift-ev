@@ -14,7 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { UserBid, WatchlistItem, UserOrder } from "@/lib/types";
 import { RECENT_ITEMS_DISPLAY_COUNT } from "@/lib/constants";
 
@@ -69,83 +69,90 @@ export function DashboardClient({
   const recentWatchlist = (watchlist as WatchlistItem[] | undefined)?.slice(0, RECENT_ITEMS_DISPLAY_COUNT) || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {user.firstName}! Here's your activity overview.
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, <span className="font-semibold text-foreground">{user.firstName}</span>! Here's your activity overview.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/vehicles">
+            <Button className="bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-lg shadow-blue-500/20">
+              Browse Vehicles
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-electric-blue/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-electric-blue/10 transition-colors" />
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Active Bids
-              </p>
-              <p className="text-2xl font-bold">{activeBids.length}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Active Bids</p>
+              <p className="text-3xl font-bold tracking-tight text-electric-blue">{activeBids.length}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-electric-blue/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-electric-blue/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <Gavel className="h-6 w-6 text-electric-blue" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-volt-green/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-volt-green/10 transition-colors" />
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Total Bids
-              </p>
-              <p className="text-2xl font-bold">{totalBids}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Total Bids</p>
+              <p className="text-3xl font-bold tracking-tight text-volt-green">{totalBids}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-volt-green/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-volt-green/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <TrendingUp className="h-6 w-6 text-volt-green" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-error-red/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-error-red/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-error-red/10 transition-colors" />
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Watchlist
-              </p>
-              <p className="text-2xl font-bold">{watchlistCount}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Watchlist</p>
+              <p className="text-3xl font-bold tracking-tight text-error-red">{watchlistCount}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-error-red/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-error-red/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <Heart className="h-6 w-6 text-error-red" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-warning-amber/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-warning-amber/10 transition-colors" />
+          <div className="flex items-center justify-between relative z-10">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Active Orders
-              </p>
-              <p className="text-2xl font-bold">{activeOrders.length}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Active Orders</p>
+              <p className="text-3xl font-bold tracking-tight text-warning-amber">{activeOrders.length}</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-warning-amber/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-warning-amber/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <ShoppingBag className="h-6 w-6 text-warning-amber" />
             </div>
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Bids */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Gavel className="h-5 w-5" />
+        <Card className="p-6 h-full border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Gavel className="h-5 w-5 text-electric-blue" />
               Recent Bids
             </h2>
             <Link href="/my-bids">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="hover:text-electric-blue hover:bg-electric-blue/10">
                 View All
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -153,35 +160,35 @@ export function DashboardClient({
           </div>
 
           {recentBids.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Gavel className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No bids yet</p>
+            <div className="flex flex-col items-center justify-center h-[300px] text-center p-8 border-2 border-dashed border-muted rounded-xl">
+              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <Gavel className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-lg font-medium mb-1">No bids yet</p>
+              <p className="text-sm text-muted-foreground max-w-xs mb-4">Start bidding on premium EVs to see your activity here.</p>
               <Link href="/vehicles">
-                <Button variant="outline" className="mt-4">
-                  Browse Vehicles
-                </Button>
+                <Button variant="outline">Browse Vehicles</Button>
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {recentBids.map((bid) => (
                 <div
                   key={bid._id}
-                  className="flex items-center justify-between p-3 rounded-md hover:bg-muted/50"
+                  className="group flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-all duration-200"
                 >
                   <div className="flex-1">
-                    <p className="font-medium">
-                      {bid.vehicle.year} {bid.vehicle.make}{" "}
-                      {bid.vehicle.model}
+                    <p className="font-bold text-lg leading-none mb-1">
+                      {formatCurrency(bid.bid.amount)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                      {bid.vehicle.year} {bid.vehicle.make} {bid.vehicle.model}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
                       {new Date(bid.bid.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">
-                      {formatCurrency(bid.bid.amount)}
-                    </p>
                     <Badge
                       variant={
                         bid.bid.status === "winning"
@@ -190,7 +197,11 @@ export function DashboardClient({
                             ? "secondary"
                             : "outline"
                       }
-                      className="text-xs"
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs uppercase tracking-wide",
+                        bid.bid.status === "winning" && "bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20",
+                        bid.bid.status === "active" && "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20"
+                      )}
                     >
                       {bid.bid.status}
                     </Badge>
@@ -202,14 +213,14 @@ export function DashboardClient({
         </Card>
 
         {/* Watchlist Summary */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Heart className="h-5 w-5" />
+        <Card className="p-6 h-full border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Heart className="h-5 w-5 text-error-red" />
               Watchlist
             </h2>
             <Link href="/watchlist">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="hover:text-error-red hover:bg-error-red/10">
                 View All
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -217,50 +228,58 @@ export function DashboardClient({
           </div>
 
           {recentWatchlist.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No vehicles in watchlist</p>
+            <div className="flex flex-col items-center justify-center h-[300px] text-center p-8 border-2 border-dashed border-muted rounded-xl">
+              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <Heart className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-lg font-medium mb-1">Your watchlist is empty</p>
+              <p className="text-sm text-muted-foreground max-w-xs mb-4">Save items you're interested in to track them easily.</p>
               <Link href="/vehicles">
-                <Button variant="outline" className="mt-4">
-                  Browse Vehicles
-                </Button>
+                <Button variant="outline">Browse Vehicles</Button>
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {recentWatchlist.map((item) => (
                 <Link
                   key={item._id}
                   href={`/vehicles/${item.vehicle._id}`}
-                  className="block"
+                  className="block group"
                 >
-                  <div className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50">
-                    <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                  <div className="flex items-center gap-4 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/50 transition-all duration-200">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
                       {item.vehicle.image ? (
-                        <img
-                          src={item.vehicle.image}
-                          alt={`${item.vehicle.year} ${item.vehicle.make} ${item.vehicle.model}`}
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="w-full h-full relative">
+                          <img
+                            src={item.vehicle.image}
+                            alt={`${item.vehicle.year} ${item.vehicle.make} ${item.vehicle.model}`}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                        </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
                           <Zap className="h-6 w-6 text-muted-foreground" />
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">
+                    <div className="flex-1 min-w-0 py-1">
+                      <p className="font-bold text-foreground truncate group-hover:text-electric-blue transition-colors">
                         {item.vehicle.year} {item.vehicle.make}{" "}
                         {item.vehicle.model}
                       </p>
-                      {item.vehicle.auctionLot && (
-                        <p className="text-sm text-muted-foreground">
-                          Current Bid:{" "}
-                          {formatCurrency(
-                            item.vehicle.auctionLot.currentBid || 0
-                          )}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {item.vehicle.auctionLot ? (
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground font-normal">
+                            Current: <span className="font-bold ml-1 text-foreground">{formatCurrency(item.vehicle.auctionLot.currentBid || 0)}</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Upcoming</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="pr-2 text-muted-foreground group-hover:text-electric-blue group-hover:translate-x-1 transition-all">
+                      <ArrowRight className="h-5 w-5" />
                     </div>
                   </div>
                 </Link>
@@ -271,25 +290,40 @@ export function DashboardClient({
       </div>
 
       {/* Quick Actions */}
-      <Card className="p-6 mt-6">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+      <Card className="p-8 border-border/50 bg-gradient-to-r from-card to-muted/30">
+        <h2 className="text-xl font-bold mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link href="/vehicles">
-            <Button variant="outline" className="w-full justify-start">
-              <Zap className="h-4 w-4 mr-2" />
-              Browse Vehicles
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-electric-blue/50 hover:bg-electric-blue/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-electric-blue/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <Zap className="h-5 w-5 text-electric-blue" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-electric-blue transition-colors">Browse Vehicles</div>
+                <div className="text-xs text-muted-foreground">Find your next EV</div>
+              </div>
             </Button>
           </Link>
           <Link href="/auctions">
-            <Button variant="outline" className="w-full justify-start">
-              <Gavel className="h-4 w-4 mr-2" />
-              View Auctions
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-volt-green/50 hover:bg-volt-green/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-volt-green/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <Gavel className="h-5 w-5 text-volt-green" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-volt-green transition-colors">View Auctions</div>
+                <div className="text-xs text-muted-foreground">Participate in live bids</div>
+              </div>
             </Button>
           </Link>
           <Link href="/orders">
-            <Button variant="outline" className="w-full justify-start">
-              <ShoppingBag className="h-4 w-4 mr-2" />
-              My Orders
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-warning-amber/50 hover:bg-warning-amber/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-warning-amber/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <ShoppingBag className="h-5 w-5 text-warning-amber" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-warning-amber transition-colors">My Orders</div>
+                <div className="text-xs text-muted-foreground">Track shipments</div>
+              </div>
             </Button>
           </Link>
         </div>
