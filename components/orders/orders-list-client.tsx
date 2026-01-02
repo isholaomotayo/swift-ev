@@ -31,9 +31,8 @@ export function OrdersListClient({
   // Use useQuery for real-time updates
   const orders = useQuery(
     api.orders.getUserOrders,
-    token ? { token } : "skip",
-    initialOrders
-  );
+    token ? { token } : "skip"
+  ) ?? initialOrders;
 
   // Filter orders
   const filteredOrders = orders

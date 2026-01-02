@@ -74,8 +74,8 @@ export function VehiclesListClient({
     [selectedMakes, yearRange, priceRange, batteryHealthMin, selectedConditions, currentPage, sortBy]
   );
 
-  const vehicleData = useQuery(api.vehicles.listVehicles, queryParams, initialVehicleData);
-  const filterOptions = useQuery(api.vehicles.getFilterOptions, {}, initialFilterOptions);
+  const vehicleData = useQuery(api.vehicles.listVehicles, queryParams) ?? initialVehicleData;
+  const filterOptions = useQuery(api.vehicles.getFilterOptions, {}) ?? initialFilterOptions;
 
   const handleMakeToggle = (make: string) => {
     setSelectedMakes((prev) =>

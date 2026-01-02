@@ -25,9 +25,8 @@ export function WatchlistClient({
 
   const watchlist = useQuery(
     api.watchlist.getWatchlist,
-    token ? { token } : "skip",
-    initialWatchlist
-  );
+    token ? { token } : "skip"
+  ) ?? initialWatchlist;
 
   const removeFromWatchlist = useMutation(api.watchlist.removeFromWatchlist);
 

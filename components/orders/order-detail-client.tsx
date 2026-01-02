@@ -25,9 +25,8 @@ export function OrderDetailClient({
   // Use useQuery for real-time updates
   const orderDetails = useQuery(
     api.orders.getOrderDetails,
-    token && orderId ? { token, orderId } : "skip",
-    initialOrderDetails
-  );
+    token && orderId ? { token, orderId } : "skip"
+  ) ?? initialOrderDetails;
 
   if (!orderDetails) {
     return (

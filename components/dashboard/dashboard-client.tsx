@@ -38,19 +38,16 @@ export function DashboardClient({
   // Use useQuery for real-time updates
   const userBids = useQuery(
     api.bids.getUserBids,
-    token ? { token } : "skip",
-    initialUserBids
-  );
+    token ? { token } : "skip"
+  ) ?? initialUserBids;
   const watchlist = useQuery(
     api.watchlist.getWatchlist,
-    token ? { token } : "skip",
-    initialWatchlist
-  );
+    token ? { token } : "skip"
+  ) ?? initialWatchlist;
   const userOrders = useQuery(
     api.orders.getUserOrders,
-    token ? { token } : "skip",
-    initialUserOrders
-  );
+    token ? { token } : "skip"
+  ) ?? initialUserOrders;
 
   // Calculate stats
   const activeBids = (userBids as UserBid[] | undefined)?.filter(

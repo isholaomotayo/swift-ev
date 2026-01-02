@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -9,7 +10,7 @@ describe("Bids", () => {
   let adminToken: string;
   let buyerToken: string;
   let buyer2Token: string;
-  let activeLotId: string;
+  let activeLotId: Id<"auctionLots">;
 
   beforeAll(async () => {
     // Login as admin

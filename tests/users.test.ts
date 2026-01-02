@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -9,7 +10,7 @@ describe("Users", () => {
   let adminToken: string;
   let superadminToken: string;
   let buyerToken: string;
-  let testUserId: string;
+  let testUserId: Id<"users">;
 
   beforeAll(async () => {
     // Login as admin
@@ -236,7 +237,7 @@ describe("Users", () => {
         await expect(
           client.mutation(api.users.updateUserRole, {
             token: superadminToken,
-            userId: currentUser._id,
+            userId: currentUser.id,
             role: "buyer",
           })
         ).rejects.toThrow("Cannot change your own role");
@@ -294,7 +295,7 @@ describe("Users", () => {
         await expect(
           client.mutation(api.users.updateUserStatus, {
             token: adminToken,
-            userId: currentUser._id,
+            userId: currentUser.id,
             status: "suspended",
           })
         ).rejects.toThrow("Cannot change your own status");

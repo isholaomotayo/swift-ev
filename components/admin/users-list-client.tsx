@@ -57,15 +57,13 @@ export function UsersListClient({
           limit: pageSize,
           offset: page * pageSize,
         }
-      : "skip",
-    initialUsersData
-  );
+      : "skip"
+  ) ?? initialUsersData;
 
   const stats = useQuery(
     api.users.getUserStats,
-    token ? { token } : "skip",
-    initialStats
-  );
+    token ? { token } : "skip"
+  ) ?? initialStats;
 
   const handleExport = () => {
     // TODO: Implement CSV export

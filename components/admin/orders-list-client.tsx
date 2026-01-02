@@ -52,15 +52,13 @@ export function OrdersListClient({
           limit: pageSize,
           offset: page * pageSize,
         }
-      : "skip",
-    initialOrdersData
-  );
+      : "skip"
+  ) ?? initialOrdersData;
 
   const stats = useQuery(
     api.orders.getOrderStats,
-    token ? { token } : "skip",
-    initialStats
-  );
+    token ? { token } : "skip"
+  ) ?? initialStats;
 
   const getStatusColor = (status: string) => {
     switch (status) {

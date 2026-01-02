@@ -52,9 +52,8 @@ export function AnalyticsClient({
   // Use useQuery for real-time updates
   const platformStats = useQuery(
     api.analytics.getPlatformStats,
-    token ? { token, dateRange: { start, end: now } } : "skip",
-    initialPlatformStats
-  );
+    token ? { token, dateRange: { start, end: now } } : "skip"
+  ) ?? initialPlatformStats;
 
   const revenueMetrics = useQuery(
     api.analytics.getRevenueMetrics,
@@ -64,27 +63,23 @@ export function AnalyticsClient({
           dateRange: { start, end: now },
           groupBy: daysBack <= 7 ? "day" : daysBack <= 30 ? "day" : "month",
         }
-      : "skip",
-    initialRevenueMetrics
-  );
+      : "skip"
+  ) ?? initialRevenueMetrics;
 
   const vehicleMetrics = useQuery(
     api.analytics.getVehicleMetrics,
-    token ? { token } : "skip",
-    initialVehicleMetrics
-  );
+    token ? { token } : "skip"
+  ) ?? initialVehicleMetrics;
 
   const userMetrics = useQuery(
     api.analytics.getUserMetrics,
-    token ? { token, months: 6 } : "skip",
-    initialUserMetrics
-  );
+    token ? { token, months: 6 } : "skip"
+  ) ?? initialUserMetrics;
 
   const auctionMetrics = useQuery(
     api.analytics.getAuctionMetrics,
-    token ? { token } : "skip",
-    initialAuctionMetrics
-  );
+    token ? { token } : "skip"
+  ) ?? initialAuctionMetrics;
 
   return (
     <div className="p-8 space-y-6">

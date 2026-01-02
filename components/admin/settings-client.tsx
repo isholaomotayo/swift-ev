@@ -26,9 +26,8 @@ export function SettingsClient({
   // Use useQuery for real-time updates
   const settings = useQuery(
     api.settings.getSettings,
-    token ? { token } : "skip",
-    initialSettings
-  );
+    token ? { token } : "skip"
+  ) ?? initialSettings;
 
   // Mutations
   const bulkUpdateSettings = useMutation(api.settings.bulkUpdateSettings);

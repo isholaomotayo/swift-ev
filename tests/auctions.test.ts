@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL =
   process.env.NEXT_PUBLIC_CONVEX_URL ||
@@ -11,9 +12,9 @@ describe("Auctions", () => {
   let adminToken: string;
   let vendorToken: string;
   let buyerToken: string;
-  let testAuctionId: string;
-  let testVehicleId: string;
-  let testLotId: string;
+  let testAuctionId: Id<"auctions">;
+  let testVehicleId: Id<"vehicles">;
+  let testLotId: Id<"auctionLots">;
 
   beforeAll(async () => {
     // Login as admin
@@ -48,10 +49,10 @@ describe("Auctions", () => {
         expect(auction).toHaveProperty("_id");
         expect(auction).toHaveProperty("name");
         expect(auction).toHaveProperty("status");
-        expect(auction).toHaveProperty("lotCount");
-        expect(auction).toHaveProperty("activeLotCount");
-        expect(typeof auction.lotCount).toBe("number");
-        expect(typeof auction.activeLotCount).toBe("number");
+        expect(auction).toHaveProperty("totalLots");
+        expect(auction).toHaveProperty("soldLots");
+        expect(typeof auction.totalLots).toBe("number");
+        expect(typeof auction.soldLots).toBe("number");
       }
     });
 
@@ -79,10 +80,12 @@ describe("Auctions", () => {
         });
 
         expect(auction).not.toBeNull();
-        expect(auction).toHaveProperty("auction");
-        expect(auction).toHaveProperty("lots");
-        expect(Array.isArray(auction.lots)).toBe(true);
-        expect(auction.auction._id).toBe(auctionId);
+        if (auction) {
+          expect(auction).toHaveProperty("auction");
+          expect(auction).toHaveProperty("lots");
+          expect(Array.isArray(auction.lots)).toBe(true);
+          expect(auction.auction._id).toBe(auctionId);
+        }
       }
     });
 

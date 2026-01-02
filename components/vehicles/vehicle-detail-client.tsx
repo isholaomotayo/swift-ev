@@ -47,9 +47,8 @@ export function VehicleDetailClient({
   // Conditionally use real-time subscription ONLY if auction is active
   const realtimeVehicle = useQuery(
     api.vehicles.getVehicleById,
-    isActive ? { vehicleId } : "skip",
-    initialVehicle
-  );
+    isActive ? { vehicleId } : "skip"
+  ) ?? initialVehicle;
 
   // If real-time data shows auction ended, stop subscription
   useEffect(() => {

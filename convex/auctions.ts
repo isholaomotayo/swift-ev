@@ -450,7 +450,7 @@ async function generateUniqueOrderNumber(ctx: any): Promise<string> {
 
     const existing = await ctx.db
       .query("orders")
-      .withIndex("by_order_number", (q) => q.eq("orderNumber", orderNumber))
+      .withIndex("by_order_number", (q: any) => q.eq("orderNumber", orderNumber))
       .first();
 
     exists = !!existing;

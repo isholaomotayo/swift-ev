@@ -30,9 +30,8 @@ export function ProfileClient({
   // Use useQuery for real-time updates
   const orders = useQuery(
     api.orders.getUserOrders,
-    token ? { token } : "skip",
-    initialOrders
-  );
+    token ? { token } : "skip"
+  ) ?? initialOrders;
 
   // Profile state
   const [firstName, setFirstName] = useState(initialUser?.firstName || "");

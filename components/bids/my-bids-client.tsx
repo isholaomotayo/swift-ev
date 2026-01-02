@@ -33,9 +33,8 @@ export function MyBidsClient({
 
   const userBids = useQuery(
     api.bids.getUserBids,
-    token ? { token } : "skip",
-    initialUserBids
-  );
+    token ? { token } : "skip"
+  ) ?? initialUserBids;
 
   // Filter bids by status
   const filteredBids =

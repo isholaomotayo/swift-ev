@@ -21,15 +21,13 @@ export function VendorAnalyticsClient({
   // Use useQuery for real-time updates
   const stats = useQuery(
     api.vehicles.getVendorStats,
-    token ? { token } : "skip",
-    initialStats
-  );
+    token ? { token } : "skip"
+  ) ?? initialStats;
 
   const revenueHistory = useQuery(
     api.vehicles.getVendorRevenueHistory,
-    token ? { token, months: 6 } : "skip",
-    initialRevenueHistory
-  );
+    token ? { token, months: 6 } : "skip"
+  ) ?? initialRevenueHistory;
 
   return (
     <div className="p-8 space-y-6">
@@ -70,7 +68,7 @@ export function VendorAnalyticsClient({
                   {formatCurrency(stats.totalRevenue)}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  {stats.soldVehicles} vehicles sold
+                  {stats.sold} vehicles sold
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
@@ -84,11 +82,11 @@ export function VendorAnalyticsClient({
               <div>
                 <p className="text-sm text-gray-500">Average Sale Price</p>
                 <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(stats.avgSalePrice)}
+                  {formatCurrency(stats.averageSalePrice)}
                 </p>
                 <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
-                  {stats.sellThroughRate.toFixed(1)}% sell-through
+                  {stats.totalVehicles > 0 ? ((stats.sold / stats.totalVehicles) * 100).toFixed(1) : "0.0"}% sell-through
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">

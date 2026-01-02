@@ -44,14 +44,12 @@ export function LiveAuctionClient({
   // Real-time subscriptions
   const auctionData = useQuery(
     api.auctions.getAuctionById,
-    { auctionId },
-    initialAuctionData
-  );
+    { auctionId }
+  ) ?? initialAuctionData;
   const currentLotData = useQuery(
     api.auctions.getCurrentLot,
-    { auctionId },
-    initialCurrentLotData
-  );
+    { auctionId }
+  ) ?? initialCurrentLotData;
   const bids = useQuery(
     api.bids.getBidsForLot,
     currentLotData?.lot?._id ? { lotId: currentLotData.lot._id } : "skip"
@@ -61,7 +59,7 @@ export function LiveAuctionClient({
   useEffect(() => {
     if (auctionData && currentLotData?.lot) {
       const index = auctionData.lots.findIndex(
-        (l) => l?.lot?._id === currentLotData.lot._id
+        (l: any) => l?.lot?._id === currentLotData.lot._id
       );
       if (index !== -1) {
         setSelectedLotIndex(index);
@@ -91,7 +89,7 @@ export function LiveAuctionClient({
   const UPCOMING_LOTS_COUNT = 10;
   const upcomingLots = lots
     .slice(selectedLotIndex + 1, selectedLotIndex + 1 + UPCOMING_LOTS_COUNT)
-    .filter((l) => l !== null);
+    .filter((l: any) => l !== null);
 
   // Get bid history for current lot
   const bidHistory = bids || [];

@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -8,7 +9,7 @@ const client = new ConvexHttpClient(CONVEX_URL);
 describe("Orders", () => {
   let adminToken: string;
   let buyerToken: string;
-  let testOrderId: string;
+  let testOrderId: Id<"orders">;
 
   beforeAll(async () => {
     // Login as admin
@@ -82,7 +83,7 @@ describe("Orders", () => {
 
       expect(Array.isArray(result.orders)).toBe(true);
       result.orders.forEach((order) => {
-        expect(order.orderStatus).toBe("pending_payment");
+        expect(order.status).toBe("pending_payment");
       });
     });
 
@@ -157,7 +158,8 @@ describe("Orders", () => {
       });
 
       if (adminOrders.orders.length > 0) {
-        const otherUserId = adminOrders.orders.find((o) => o.userId !== (await client.query(api.auth.getCurrentUser, { token: buyerToken }))?._id)?.userId;
+        const currentUser = await client.query(api.auth.getCurrentUser, { token: buyerToken });
+        const otherUserId = adminOrders.orders.find((o) => o.userId !== currentUser?.id)?.userId;
 
         if (otherUserId) {
           await expect(
@@ -217,7 +219,8 @@ describe("Orders", () => {
       });
 
       if (adminOrders.orders.length > 0) {
-        const otherOrderId = adminOrders.orders.find((o) => o.userId !== (await client.query(api.auth.getCurrentUser, { token: buyerToken }))?._id)?._id;
+        const currentUser = await client.query(api.auth.getCurrentUser, { token: buyerToken });
+        const otherOrderId = adminOrders.orders.find((o) => o.userId !== currentUser?.id)?._id;
 
         if (otherOrderId) {
           await expect(

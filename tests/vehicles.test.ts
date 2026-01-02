@@ -202,16 +202,18 @@ describe("Vehicles", () => {
         });
 
         expect(vehicle).not.toBeNull();
-        expect(vehicle).toHaveProperty("_id");
-        expect(vehicle).toHaveProperty("make");
-        expect(vehicle).toHaveProperty("model");
-        expect(vehicle).toHaveProperty("year");
-        expect(vehicle).toHaveProperty("images");
-        expect(Array.isArray(vehicle.images)).toBe(true);
-        expect(vehicle).toHaveProperty("bids");
-        expect(Array.isArray(vehicle.bids)).toBe(true);
-        expect(vehicle).toHaveProperty("documents");
-        expect(Array.isArray(vehicle.documents)).toBe(true);
+        if (vehicle) {
+          expect(vehicle).toHaveProperty("_id");
+          expect(vehicle).toHaveProperty("make");
+          expect(vehicle).toHaveProperty("model");
+          expect(vehicle).toHaveProperty("year");
+          expect(vehicle).toHaveProperty("images");
+          expect(Array.isArray(vehicle.images)).toBe(true);
+          expect(vehicle).toHaveProperty("bids");
+          expect(Array.isArray(vehicle.bids)).toBe(true);
+          expect(vehicle).toHaveProperty("documents");
+          expect(Array.isArray(vehicle.documents)).toBe(true);
+        }
       }
     });
 
