@@ -37,7 +37,7 @@ const faqCategories: FAQCategory[] = [
             },
             {
                 q: "What types of vehicles are available?",
-                a: "We offer Japanese vehicles (Toyota, Honda, Nissan), German vehicles (BMW, Mercedes, Volkswagen), American vehicles (Ford, Chevrolet), Chinese vehicles (BYD, Geely), electric vehicles, hybrids, and traditional fuel vehicles. Conditions range from like-new to salvage."
+                a: "We offer Japanese vehicles (Toyota, Honda, Nissan), German vehicles (BMW, Mercedes, Volkswagen), American vehicles (Ford, Chevrolet), Chinese vehicles (BYD, Geely), vehicles, hybrids, and traditional fuel vehicles. Conditions range from like-new to salvage."
             },
             {
                 q: "Where are the vehicles located?",
@@ -216,7 +216,7 @@ export default function FAQPage() {
                             Knowledge <span className="text-gradient">Database</span>
                         </h1>
                         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-                            Find answers to common questions about buying, selling, and managing your electric vehicle imports.
+                            Find answers to common questions about buying, selling, and managing your vehicle imports.
                         </p>
 
                         {/* Search Bar - Sophisticated */}

@@ -81,7 +81,7 @@ export default async function Home() {
                   <div className="h-12 w-12 rounded-full bg-trust-blue/15 flex items-center justify-center font-black text-trust-blue text-xl">2</div>
                 </div>
                 <h3 className="text-2xl font-black text-foreground mb-2">Find</h3>
-                <p className="text-foreground/70 dark:text-muted-foreground text-sm mb-4 min-h-[40px]">Browse 10,000+ inspected EVs, sedans, SUVs, and commercial vehicles.</p>
+                <p className="text-foreground/70 dark:text-muted-foreground text-sm mb-4 min-h-[40px]">Browse 10,000+ inspected cars, sedans, SUVs, and commercial vehicles.</p>
                 <Link href="/vehicles" className="text-trust-blue font-bold text-sm uppercase tracking-wider flex items-center group-hover:gap-2 transition-all">
                   Search Vehicles <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
@@ -113,7 +113,7 @@ export default async function Home() {
             <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
               <div className="max-w-2xl">
                 <Badge className="mb-5 px-4 py-1.5 rounded-full bg-auction-gold text-deep-navy border-none uppercase tracking-widest font-black text-[11px] shadow-lg shadow-auction-gold/20">
-                  #1 EV Auction Platform in Africa
+                  #1 Car Auction Platform in Africa
                 </Badge>
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-5 leading-[1.05] text-foreground">
                   <span className="text-gradient">Bid. Win. Drive.</span>
@@ -123,7 +123,7 @@ export default async function Home() {
 
                 <p className="text-base md:text-lg text-foreground/70 dark:text-gray-300 mb-8 leading-relaxed font-medium max-w-xl border-l-4 border-auction-gold pl-6">
                   Over 10,000+ Used & Wholesale Vehicles. <br />
-                  Compete for quality EVs from China, Japan, Germany & USA.
+                  Compete for quality cars from China, Japan, Germany & USA.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -155,7 +155,7 @@ export default async function Home() {
                 <div className="relative aspect-[4/3] rounded-3xl border border-border bg-white shadow-2xl overflow-hidden dark:bg-white/5 dark:border-white/10">
                   <Image
                     src="/images/home-hero-clean.png"
-                    alt="Luxury Electric Vehicle"
+                    alt="Luxury Vehicle"
                     fill
                     className="object-cover object-center"
                     priority

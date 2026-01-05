@@ -8,17 +8,17 @@ import { api } from "@/convex/_generated/api";
 export const metadata: Metadata = {
   title: "Live Auctions | Auto Auctions Africa",
   description:
-    "Browse live, scheduled, and past electric vehicle auctions. Join live auctions and bid on quality EVs from Chinese manufacturers.",
+    "Browse live, scheduled, and past car auctions. Join live auctions and bid on quality cars from Chinese manufacturers.",
   keywords: [
-    "EV auctions",
+    "car auctions",
     "live auctions",
-    "electric vehicle auctions",
+    "car auctions",
     "Nigeria",
     "auction platform",
   ],
   openGraph: {
     title: "Live Auctions | Auto Auctions Africa",
-    description: "Browse live, scheduled, and past electric vehicle auctions.",
+    description: "Browse live, scheduled, and past car auctions.",
     type: "website",
   },
 };

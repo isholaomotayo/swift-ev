@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Register | Auto Auctions Africa",
-  description: "Create a free account on Auto Auctions Africa to start bidding on electric vehicles from Chinese manufacturers.",
+  description: "Create a free account on Auto Auctions Africa to start bidding on vehicles from Chinese manufacturers.",
   robots: {
     index: false,
     follow: false,

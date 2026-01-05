@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "membership",
     "fees",
     "costs",
-    "EV import costs",
+    "Car import costs",
     "Nigeria",
   ],
   openGraph: {

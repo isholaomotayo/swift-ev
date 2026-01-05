@@ -31,7 +31,7 @@ interface VehicleFormData {
   vin: string;
   lotNumber: string;
 
-  // EV Specs
+  // Car Specs
   batteryCapacity: number;
   batteryHealthPercent: number;
   range: number;
@@ -95,7 +95,7 @@ export default function VehicleUploadPage() {
   const steps: UploadStep[] = ["basic", "specs", "condition", "pricing", "images"];
   const stepTitles: Record<UploadStep, string> = {
     basic: "Basic Information",
-    specs: "EV Specifications",
+    specs: "Car Specifications",
     condition: "Condition & Details",
     pricing: "Pricing",
     images: "Upload Images",
@@ -224,11 +224,10 @@ export default function VehicleUploadPage() {
           >
             <div className="flex flex-col items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                  index <= currentStepIndex
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${index <= currentStepIndex
                     ? "bg-volt-green border-volt-green text-white"
                     : "bg-background border-muted-foreground/30 text-muted-foreground"
-                }`}
+                  }`}
               >
                 {index + 1}
               </div>
@@ -238,11 +237,10 @@ export default function VehicleUploadPage() {
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`h-0.5 flex-1 mx-4 ${
-                  index < currentStepIndex
+                className={`h-0.5 flex-1 mx-4 ${index < currentStepIndex
                     ? "bg-volt-green"
                     : "bg-muted-foreground/30"
-                }`}
+                  }`}
               />
             )}
           </div>
@@ -325,7 +323,7 @@ export default function VehicleUploadPage() {
 
         {currentStep === "specs" && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold mb-4">EV Specifications</h2>
+            <h2 className="text-xl font-semibold mb-4">Car Specifications</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

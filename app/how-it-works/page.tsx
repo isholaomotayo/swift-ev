@@ -26,7 +26,7 @@ const steps = [
     number: "01",
     title: "Browse Marketplace",
     description:
-      "Explore our catalog of quality electric vehicles from Chinese manufacturers. Use filters to find vehicles by battery health, and more.",
+      "Explore our catalog of quality vehicles from Chinese manufacturers. Use filters to find vehicles by condition, and more.",
     icon: Search,
     color: "bg-electric-blue/10 text-electric-blue"
   },
@@ -50,7 +50,7 @@ const steps = [
     number: "04",
     title: "Final Delivery",
     description:
-      "Receive your EV at your doorstep or specified location. Complete final inspection and start your green journey.",
+      "Receive your vehicle at your doorstep or specified location. Complete final inspection and start your green journey.",
     icon: CheckCircle2,
     color: "bg-electric-blue/10 text-electric-blue"
   },
@@ -83,9 +83,9 @@ const faqs = [
       "All vehicles come with detailed condition reports and battery health assessments. We provide inspection reports before shipping, and you can review all documentation before bidding."
   },
   {
-    question: "What are the import duties for EVs?",
+    question: "What are the import duties for cars?",
     answer:
-      "Electric vehicles enjoy reduced import duties (10-20%) and are exempt from VAT and IAT in many cases. We calculate all costs upfront so you know the total price before bidding."
+      "Vehicles enjoy reduced import duties (10-20%) and are exempt from VAT and IAT in many cases. We calculate all costs upfront so you know the total price before bidding."
   }
 ];
 
@@ -168,7 +168,7 @@ export default function HowItWorksPage() {
                   },
                   {
                     title: "Rigorous Inspection",
-                    desc: "Every EV undergoes a 150-point inspection, specifically focusing on battery health (SOH) and power electronics.",
+                    desc: "Every vehicle undergoes a 150-point inspection, specifically focusing on diagnostic health and electronics.",
                     icon: <Shield className="h-6 w-6" />,
                     align: "left"
                   },
@@ -186,7 +186,7 @@ export default function HowItWorksPage() {
                   },
                   {
                     title: "The Handover",
-                    desc: "Direct delivery to your Lagos, Abuja or Port Harcourt address, complete with a local orientation on your new EV.",
+                    desc: "Direct delivery to your Lagos, Abuja or Port Harcourt address, complete with a local orientation on your new vehicle.",
                     icon: <Zap className="h-6 w-6" />,
                     align: "right"
                   }
@@ -268,7 +268,7 @@ export default function HowItWorksPage() {
               <div className="relative z-10 max-w-2xl mx-auto">
                 <h2 className="text-4xl md:text-6xl font-black mb-8">Ready to start?</h2>
                 <p className="text-muted-foreground text-lg mb-12">
-                  Create an account today and browse thousands of electric vehicles
+                  Create an account today and browse thousands of vehicles
                   ready for import to Nigeria.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center">

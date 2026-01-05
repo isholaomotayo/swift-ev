@@ -105,7 +105,7 @@ export default function PricingPage() {
               </Badge>
               <h1 className="text-5xl md:text-8xl font-black tracking-tight mb-8 leading-[1.05]">
                 Your Gateway <br />
-                <span className="text-gradient">to Premium EVs</span>
+                <span className="text-gradient">to Premium Cars</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 Choose the annual membership tier that fits your bidding strategy.
@@ -252,7 +252,7 @@ export default function PricingPage() {
               <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] opacity-10" />
 
               <div className="relative z-10">
-                <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1.1]">Ready to bid on <br />your first EV?</h2>
+                <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1.1]">Ready to bid on <br />your first car?</h2>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                   <Button size="lg" variant="secondary" className="h-16 px-12 text-lg rounded-full font-black hover:scale-105 transition-transform" asChild>
                     <Link href="/register">Create Account</Link>

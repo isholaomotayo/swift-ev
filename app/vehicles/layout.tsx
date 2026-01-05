@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Browse Electric Vehicles | Auto Auctions Africa",
+  title: "Browse Vehicles | Auto Auctions Africa",
   description:
-    "Browse our selection of electric vehicles from Chinese manufacturers. Filter by make, model, year, price, and battery health.",
+    "Browse our selection of vehicles from Chinese manufacturers. Filter by make, model, year, and price.",
   keywords: [
-    "electric vehicles",
-    "EVs",
+    "vehicles",
+    "Cars",
     "BYD",
     "NIO",
     "XPeng",
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
     "Nigeria",
   ],
   openGraph: {
-    title: "Browse Electric Vehicles | Auto Auctions Africa",
-    description: "Browse our selection of electric vehicles from Chinese manufacturers.",
+    title: "Browse Vehicles | Auto Auctions Africa",
+    description: "Browse our selection of vehicles from Chinese manufacturers.",
     type: "website",
   },
 };

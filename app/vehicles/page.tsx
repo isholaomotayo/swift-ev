@@ -8,10 +8,10 @@ import { api } from "@/convex/_generated/api";
 export const metadata: Metadata = {
   title: "Browse Vehicles | Auto Auctions Africa",
   description:
-    "Browse our curated selection of electric vehicles from Chinese manufacturers. Filter by make, year, price, battery health, and more.",
+    "Browse our curated selection of vehicles from Chinese manufacturers. Filter by make, year, price, and more.",
   keywords: [
-    "electric vehicles",
-    "EV auction",
+    "vehicles",
+    "Car auction",
     "Nigeria",
     "BYD",
     "NIO",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Browse Vehicles | Auto Auctions Africa",
-    description: "Browse our curated selection of electric vehicles.",
+    description: "Browse our curated selection of vehicles.",
     type: "website",
   },
 };
@@ -59,7 +59,7 @@ export default async function VehiclesPage() {
               Browse Vehicles
             </h1>
             <p className="text-muted-foreground text-lg relative z-10 max-w-2xl">
-              Find your perfect electric vehicle from our curated selection of premium Chinese EVs.
+              Find your perfect vehicle from our curated selection of premium Chinese cars.
             </p>
           </div>
 

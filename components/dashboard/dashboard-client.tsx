@@ -207,7 +207,7 @@ export function DashboardClient({
                 <Gavel className="h-8 w-8 text-muted-foreground/50" />
               </div>
               <p className="text-lg font-medium mb-1">No bids yet</p>
-              <p className="text-sm text-muted-foreground max-w-xs mb-4">Start bidding on premium EVs to see your activity here.</p>
+              <p className="text-sm text-muted-foreground max-w-xs mb-4">Start bidding on premium cars to see your activity here.</p>
               <Link href="/vehicles">
                 <Button variant="outline">Browse Vehicles</Button>
               </Link>
@@ -342,7 +342,7 @@ export function DashboardClient({
               </div>
               <div className="text-left">
                 <div className="font-semibold text-foreground group-hover:text-electric-blue transition-colors">Browse Vehicles</div>
-                <div className="text-xs text-muted-foreground">Find your next EV</div>
+                <div className="text-xs text-muted-foreground">Find your next car</div>
               </div>
             </Button>
           </Link>

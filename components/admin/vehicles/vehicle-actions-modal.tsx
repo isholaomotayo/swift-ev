@@ -228,7 +228,7 @@ export function VehicleActionsModal({
                                     <Car className="w-4 h-4 mr-2" /> Details
                                 </TabsTrigger>
                                 <TabsTrigger value="specs" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
-                                    <Battery className="w-4 h-4 mr-2" /> EV Specs
+                                    <Battery className="w-4 h-4 mr-2" /> Car Specs
                                 </TabsTrigger>
                                 <TabsTrigger value="condition" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
                                     <FileText className="w-4 h-4 mr-2" /> Condition

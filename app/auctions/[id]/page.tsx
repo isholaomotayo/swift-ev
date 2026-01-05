@@ -29,7 +29,7 @@ export async function generateMetadata({
       description: auctionData.auction.description || `Live auction with ${auctionData.lots.length} lots`,
       openGraph: {
         title: auctionData.auction.name,
-        description: auctionData.auction.description || "Live electric vehicle auction",
+        description: auctionData.auction.description || "Live vehicle auction",
       },
     };
   } catch (error) {

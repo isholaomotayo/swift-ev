@@ -199,13 +199,12 @@ export default function CreateAuctionPage() {
         {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex items-center">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                s < step
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${s < step
                   ? "bg-primary text-white"
                   : s === step
-                  ? "bg-primary text-white"
-                  : "bg-gray-200 text-gray-500"
-              }`}
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 text-gray-500"
+                }`}
             >
               {s < step ? <Check className="w-5 h-5" /> : s}
             </div>
@@ -231,7 +230,7 @@ export default function CreateAuctionPage() {
                 id="auctionName"
                 value={auctionName}
                 onChange={(e) => setAuctionName(e.target.value)}
-                placeholder="Monthly EV Auction - January 2024"
+                placeholder="Monthly Car Auction - January 2024"
               />
             </div>
 
@@ -241,7 +240,7 @@ export default function CreateAuctionPage() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Premium selection of electric vehicles..."
+                placeholder="Premium selection of vehicles..."
                 rows={3}
               />
             </div>

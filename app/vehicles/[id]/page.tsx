@@ -29,7 +29,7 @@ export async function generateMetadata({
       description: `View details for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Battery health: ${vehicle.batteryHealthPercent}%, Range: ${vehicle.estimatedRange}km.`,
       openGraph: {
         title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-        description: `Electric vehicle auction listing - ${vehicle.batteryCapacity}kWh battery, ${vehicle.estimatedRange}km range`,
+        description: `Vehicle auction listing - ${vehicle.batteryCapacity}kWh capacity, ${vehicle.estimatedRange}km range`,
         images: vehicle.images && vehicle.images.length > 0 ? [vehicle.images[0]] : [],
       },
     };
