@@ -24,11 +24,16 @@ import {
   Battery,
   MapPin,
   Timer,
-  Car
+  Car,
+  Gauge,
+  Key,
+  FileText,
+  Plug,
 } from "lucide-react";
 import { formatCurrency, formatLotNumber, formatVIN, cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
+import { ImageCarousel } from "@/components/ui/image-carousel";
 
 interface LiveAuctionClientProps {
   initialAuctionData: any;
@@ -104,7 +109,16 @@ export function LiveAuctionClient({
   const isAuctionLive = auction.status === "live";
   const isLotActive = currentLot?.status === "active";
 
-  const heroImage = currentVehicle?.images && currentVehicle.images.length > 0 ? currentVehicle.images[0] : null;
+  // Prepare images for carousel
+  const carouselImages = (currentVehicle?.images || []).map((url: string, index: number) => {
+    // Determine type based on index or url pattern
+    let type = "exterior";
+    if (url.includes("interior")) type = "interior";
+    else if (url.includes("engine")) type = "engine";
+    else if (url.includes("boot") || url.includes("trunk")) type = "boot";
+    else if (index === 0) type = "hero";
+    return { url, type };
+  });
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
@@ -152,67 +166,125 @@ export function LiveAuctionClient({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full lg:h-[calc(100vh-140px)]">
 
               {/* Left: Main Visuals & Stats (7 cols) */}
-              <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-hidden">
-                {/* Hero Image / Stream Placeholder */}
-                <div className="relative rounded-2xl overflow-hidden bg-black aspect-video lg:flex-1 shadow-2xl border border-border/50 group">
-                  {heroImage ? (
-                    <Image
-                      src={heroImage}
-                      alt="Live View"
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                      <Car className="h-16 w-16 text-muted-foreground/50" />
-                    </div>
-                  )}
+              <div className="lg:col-span-8 flex flex-col gap-6 h-full overflow-y-auto">
+                {/* Image Carousel */}
+                <ImageCarousel
+                  images={carouselImages}
+                  vehicleName={`${currentVehicle.year} ${currentVehicle.make} ${currentVehicle.model}`}
+                />
 
-                  {/* Overlay Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-                  {/* Overlay Info */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge className="bg-electric-blue text-white border-none">Lot #{formatLotNumber(currentLot.lotOrder.toString())}</Badge>
-                        <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-md">{currentVehicle.year}</Badge>
-                      </div>
-                      <h2 className="text-3xl font-black text-white tracking-tight drop-shadow-md">
-                        {currentVehicle.make} {currentVehicle.model}
-                      </h2>
-                      <div className="flex items-center gap-4 text-white/80 text-sm mt-2">
-                        <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {currentVehicle.currentLocation.city}</span>
-                        <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-volt-green" /> {currentVehicle.estimatedRange} km</span>
-                      </div>
+                {/* Vehicle Info Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge className="bg-electric-blue text-white border-none">Lot #{formatLotNumber(currentLot.lotOrder.toString())}</Badge>
+                      <Badge variant="outline">{currentVehicle.year}</Badge>
+                      <Badge variant="secondary" className="capitalize">{currentVehicle.condition}</Badge>
                     </div>
+                    <h2 className="text-3xl font-black tracking-tight">
+                      {currentVehicle.make} {currentVehicle.model}
+                    </h2>
+                    {currentVehicle.trim && <p className="text-muted-foreground">{currentVehicle.trim}</p>}
                   </div>
                 </div>
 
-                {/* Specs & Secondary Info */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:h-48">
-                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center">
-                    <p className="text-muted-foreground text-xs uppercase font-bold mb-2">Battery Health</p>
-                    <div className="flex items-center justify-between">
-                      <BatteryHealthBadge healthPercent={currentVehicle.batteryHealthPercent || 0} />
-                      <span className="text-2xl font-bold">{currentVehicle.batteryCapacity} <span className="text-sm font-normal text-muted-foreground">kWh</span></span>
+                {/* Quick Specs Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-1">
+                      <Battery className="h-3.5 w-3.5" /> Battery
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold">{currentVehicle.batteryHealthPercent || 0}%</span>
+                      <span className="text-xs text-muted-foreground">health</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{currentVehicle.batteryCapacity} kWh</p>
+                  </Card>
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-1">
+                      <Zap className="h-3.5 w-3.5" /> Range
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold">{currentVehicle.estimatedRange}</span>
+                      <span className="text-xs text-muted-foreground">km</span>
                     </div>
                   </Card>
-                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center">
-                    <p className="text-muted-foreground text-xs uppercase font-bold mb-2">Mileage</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold">{currentVehicle.odometer?.toLocaleString()}</span>
-                      <span className="text-sm text-muted-foreground">km</span>
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-1">
+                      <Gauge className="h-3.5 w-3.5" /> Mileage
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-bold">{currentVehicle.odometer?.toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground">km</span>
                     </div>
                   </Card>
-                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50 flex flex-col justify-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/vehicles/${currentVehicle._id}`)}>
-                    <div className="flex flex-col items-center text-center">
-                      <span className="text-electric-blue font-semibold mb-1">View Full Details</span>
-                      <p className="text-xs text-muted-foreground">Open in new tab</p>
+                  <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-1">
+                      <MapPin className="h-3.5 w-3.5" /> Location
                     </div>
+                    <p className="text-sm font-medium truncate">{currentVehicle.currentLocation.city}</p>
+                    <p className="text-xs text-muted-foreground truncate">{currentVehicle.currentLocation.country}</p>
                   </Card>
                 </div>
+
+                {/* Full Vehicle Details */}
+                <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+                  <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-electric-blue" /> Vehicle Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">VIN</span>
+                        <span className="font-mono font-medium">{formatVIN(currentVehicle.vin)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Exterior Color</span>
+                        <span className="font-medium">{currentVehicle.exteriorColor}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Interior Color</span>
+                        <span className="font-medium">{currentVehicle.interiorColor || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Drivetrain</span>
+                        <span className="font-medium">{currentVehicle.drivetrain || "N/A"}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Title Type</span>
+                        <span className="font-medium capitalize">{currentVehicle.titleType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Has Keys</span>
+                        <span className="font-medium flex items-center gap-1">
+                          <Key className="h-3.5 w-3.5" /> {currentVehicle.hasKeys ? "Yes" : "No"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Motor Power</span>
+                        <span className="font-medium">{currentVehicle.motorPower || "N/A"} kW</span>
+                      </div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-muted-foreground">Charging</span>
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          {(currentVehicle.chargingType || []).map((type: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-xs flex items-center gap-1">
+                              <Plug className="h-3 w-3" /> {type}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {currentVehicle.damageDescription && (
+                    <div className="mt-4 p-3 bg-warning-amber/10 border border-warning-amber/30 rounded-lg">
+                      <p className="text-sm font-medium text-warning-amber">Damage Notes:</p>
+                      <p className="text-sm text-muted-foreground">{currentVehicle.damageDescription}</p>
+                    </div>
+                  )}
+                </Card>
               </div>
 
               {/* Right: Bidding Console (5 cols) */}
@@ -245,6 +317,9 @@ export function LiveAuctionClient({
                         lotId={currentLot._id}
                         currentBid={currentBid}
                         bidIncrement={currentLot.bidIncrement || 50000}
+                        buyNowPrice={currentLot.buyItNowPrice}
+                        buyNowEnabled={currentLot.buyItNowEnabled}
+                        status={currentLot.status}
                         className="w-full h-14 text-xl shadow-lg shadow-volt-green/20 bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green"
                       />
                       <p className="text-xs text-center text-muted-foreground">

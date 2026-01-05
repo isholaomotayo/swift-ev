@@ -43,12 +43,12 @@ export function Footer() {
                 <Zap className="h-5 w-5 text-white" fill="currentColor" />
               </div>
               <span className="font-bold text-xl">
-                VoltBid <span className="text-electric-blue">Africa</span>
+                Auto Auctions <span className="text-electric-blue">Africa</span>
               </span>
             </Link>
             <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-              Africa's premier electric vehicle auction platform. Bid on quality EVs
-              directly from Chinese manufacturers with complete import solutions.
+              Africa's premier vehicle auction platform. Bid on quality cars
+              directly from global manufacturers with complete import solutions.
             </p>
 
             {/* Contact Info */}
@@ -56,10 +56,10 @@ export function Footer() {
               <div className="flex items-center text-muted-foreground">
                 <Mail className="h-4 w-4 mr-2" />
                 <a
-                  href="mailto:support@voltbid.africa"
+                  href="mailto:support@autoauctions.africa"
                   className="hover:text-foreground transition-colors"
                 >
-                  support@voltbid.africa
+                  support@autoauctions.africa
                 </a>
               </div>
               <div className="flex items-center text-muted-foreground">
@@ -80,7 +80,7 @@ export function Footer() {
             {/* Social Media */}
             <div className="flex items-center space-x-4 mt-6">
               <a
-                href="https://twitter.com/voltbidafrica"
+                href="https://twitter.com/autoauctions"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-electric-blue transition-colors"
@@ -88,7 +88,7 @@ export function Footer() {
                 <Twitter className="h-5 w-5" />
               </a>
               <a
-                href="https://facebook.com/voltbidafrica"
+                href="https://facebook.com/autoauctions"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-electric-blue transition-colors"
@@ -96,7 +96,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://instagram.com/voltbidafrica"
+                href="https://instagram.com/autoauctions"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-electric-blue transition-colors"
@@ -104,7 +104,7 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://linkedin.com/company/voltbid-africa"
+                href="https://linkedin.com/company/auto-auctions-africa"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-electric-blue transition-colors"
@@ -184,9 +184,9 @@ export function Footer() {
 
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
-          <p>© {currentYear} VoltBid Africa. All rights reserved.</p>
+          <p>© {currentYear} Auto Auctions Africa. All rights reserved.</p>
           <p className="mt-2 md:mt-0">
-            Powering Africa's electric vehicle future
+            Powering Africa's vehicle auction future
           </p>
         </div>
       </div>

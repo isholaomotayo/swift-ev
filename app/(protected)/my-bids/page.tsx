@@ -5,7 +5,7 @@ import { MyBidsClient } from "@/components/bids/my-bids-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Bids | VoltBid Africa",
+  title: "My Bids | Auto Auctions Africa",
   description: "Track all your bidding activity",
   robots: {
     index: false,

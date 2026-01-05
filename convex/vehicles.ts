@@ -5,16 +5,15 @@ import { requireAuth, requireSeller } from "./lib/auth";
 
 /**
  * Get featured vehicles for homepage
- * Returns vehicles currently in auction, limited to 8
+ * Returns the 3 latest uploaded vehicles
  */
 export const getFeaturedVehicles = query({
   args: {},
   handler: async (ctx) => {
     const vehicles = await ctx.db
       .query("vehicles")
-      .filter((q) => q.eq(q.field("status"), "in_auction"))
       .order("desc")
-      .take(8);
+      .take(3);
 
     // Get images for each vehicle
     const vehiclesWithImages = await Promise.all(
@@ -493,6 +492,7 @@ export const createVehicle = mutation({
       startingBid: v.number(),
       reservePrice: v.number(),
       buyItNowPrice: v.optional(v.number()),
+      buyItNowEnabled: v.optional(v.boolean()),
 
       // Images
       imageUrls: v.array(v.string()),
@@ -578,6 +578,7 @@ export const createVehicle = mutation({
       startingBid: vehicleData.startingBid,
       reservePrice: vehicleData.reservePrice,
       buyItNowPrice: vehicleData.buyItNowPrice,
+      buyItNowEnabled: vehicleData.buyItNowEnabled ?? !!vehicleData.buyItNowPrice,
       status: "pending_approval",
       createdAt: now,
       updatedAt: now,
@@ -641,6 +642,7 @@ export const updateVehicle = mutation({
       startingBid: v.optional(v.number()),
       reservePrice: v.optional(v.number()),
       buyItNowPrice: v.optional(v.number()),
+      buyItNowEnabled: v.optional(v.boolean()),
 
       // Location
       currentLocation: v.optional(

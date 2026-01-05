@@ -6,7 +6,7 @@ import { ProfileClient } from "@/components/profile/profile-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Profile | VoltBid Africa",
+  title: "My Profile | Auto Auctions Africa",
   description: "Manage your account and view your activity",
   robots: {
     index: false,

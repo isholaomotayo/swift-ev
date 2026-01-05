@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   return {
-    title: "Order Details | VoltBid Africa",
+    title: "Order Details | Auto Auctions Africa",
     robots: {
       index: false,
       follow: false,

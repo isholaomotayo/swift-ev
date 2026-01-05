@@ -5,8 +5,8 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Dashboard | VoltBid Africa",
-  description: "Your VoltBid Africa dashboard - manage your bids, watchlist, orders, and profile.",
+  title: "Dashboard | Auto Auctions Africa",
+  description: "Your Auto Auctions Africa dashboard - manage your bids, watchlist, orders, and profile.",
   robots: {
     index: false,
     follow: false,

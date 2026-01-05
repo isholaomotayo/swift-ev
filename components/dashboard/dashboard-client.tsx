@@ -12,6 +12,9 @@ import {
   TrendingUp,
   ArrowRight,
   Zap,
+  Wallet,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -25,6 +28,7 @@ interface DashboardClientProps {
   token: string;
   user: {
     firstName: string;
+    kycStatus?: string;
   };
 }
 
@@ -48,6 +52,12 @@ export function DashboardClient({
     api.orders.getUserOrders,
     token ? { token } : "skip"
   ) ?? initialUserOrders;
+
+  // Wallet balance
+  const walletData = useQuery(
+    api.wallet.getWalletBalance,
+    token ? { token } : "skip"
+  );
 
   // Calculate stats
   const activeBids = (userBids as UserBid[] | undefined)?.filter(
@@ -79,7 +89,18 @@ export function DashboardClient({
             Welcome back, <span className="font-semibold text-foreground">{user.firstName}</span>! Here's your activity overview.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {user.kycStatus === "approved" ? (
+            <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+              <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+            </Badge>
+          ) : (
+            <Link href="/verify">
+              <Badge variant="outline" className="border-yellow-500 text-yellow-600 cursor-pointer hover:bg-yellow-50">
+                <AlertCircle className="h-3 w-3 mr-1" /> Complete KYC
+              </Badge>
+            </Link>
+          )}
           <Link href="/vehicles">
             <Button className="bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-lg shadow-blue-500/20">
               Browse Vehicles
@@ -89,7 +110,28 @@ export function DashboardClient({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Wallet Balance Card */}
+        <Card className="p-6 relative overflow-hidden group hover-lift border-auction-gold/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-auction-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-auction-gold/10 transition-colors" />
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Wallet Balance</p>
+              <p className="text-2xl font-bold tracking-tight text-auction-gold">
+                {walletData ? formatCurrency(walletData.available) : "—"}
+              </p>
+              {walletData && walletData.reserved > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">+{formatCurrency(walletData.reserved)} reserved</p>
+              )}
+            </div>
+            <Link href="/wallet">
+              <div className="w-12 h-12 rounded-2xl bg-auction-gold/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 cursor-pointer">
+                <Wallet className="h-6 w-6 text-auction-gold" />
+              </div>
+            </Link>
+          </div>
+        </Card>
+
         <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
           <div className="absolute top-0 right-0 w-32 h-32 bg-electric-blue/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-electric-blue/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
@@ -292,7 +334,7 @@ export function DashboardClient({
       {/* Quick Actions */}
       <Card className="p-8 border-border/50 bg-gradient-to-r from-card to-muted/30">
         <h2 className="text-xl font-bold mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/vehicles">
             <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-electric-blue/50 hover:bg-electric-blue/5 transition-all">
               <div className="w-10 h-10 rounded-full bg-electric-blue/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
@@ -323,6 +365,39 @@ export function DashboardClient({
               <div className="text-left">
                 <div className="font-semibold text-foreground group-hover:text-warning-amber transition-colors">My Orders</div>
                 <div className="text-xs text-muted-foreground">Track shipments</div>
+              </div>
+            </Button>
+          </Link>
+          <Link href="/wallet">
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-auction-gold/50 hover:bg-auction-gold/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-auction-gold/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <Wallet className="h-5 w-5 text-auction-gold" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-auction-gold transition-colors">My Wallet</div>
+                <div className="text-xs text-muted-foreground">Fund & manage balance</div>
+              </div>
+            </Button>
+          </Link>
+          <Link href="/verify">
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-trust-blue/50 hover:bg-trust-blue/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-trust-blue/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <ShieldCheck className="h-5 w-5 text-trust-blue" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-trust-blue transition-colors">Verification</div>
+                <div className="text-xs text-muted-foreground">Complete KYC</div>
+              </div>
+            </Button>
+          </Link>
+          <Link href="/disputes">
+            <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-error-red/50 hover:bg-error-red/5 transition-all">
+              <div className="w-10 h-10 rounded-full bg-error-red/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <AlertCircle className="h-5 w-5 text-error-red" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold text-foreground group-hover:text-error-red transition-colors">Disputes</div>
+                <div className="text-xs text-muted-foreground">File or track issues</div>
               </div>
             </Button>
           </Link>

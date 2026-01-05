@@ -169,6 +169,94 @@ export const getCurrentLot = query({
 });
 
 /**
+ * Purchase a vehicle via Buy It Now (FEAT-004)
+ */
+export const purchaseBuyItNow = mutation({
+  args: {
+    token: v.string(),
+    lotId: v.id("auctionLots"),
+  },
+  handler: async (ctx, args) => {
+    // 1. Get user from session
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!session) {
+      throw new Error("Unauthorized - please log in");
+    }
+
+    const user = await ctx.db.get(session.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // 2. Get lot and check if Buy It Now is available
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot) {
+      throw new Error("Lot not found");
+    }
+
+    if (!lot.buyItNowPrice || !lot.buyItNowEnabled) {
+      throw new Error("Buy It Now is not available for this vehicle");
+    }
+
+    if (lot.status !== "pending") {
+      throw new Error("Buy It Now is only available before the auction starts");
+    }
+
+    const auction = await ctx.db.get(lot.auctionId);
+    if (!auction || auction.status !== "scheduled") {
+      throw new Error("Buy It Now is only available for scheduled auctions");
+    }
+
+    // 3. Mark as sold
+    await ctx.db.patch(args.lotId, {
+      status: "sold",
+      buyItNowPurchasedAt: Date.now(),
+      buyItNowPurchasedBy: user._id,
+      winningBid: lot.buyItNowPrice,
+      winnerId: user._id,
+      soldAt: Date.now(),
+    });
+
+    await ctx.db.patch(lot.vehicleId, {
+      status: "sold",
+      buyItNowPurchasedAt: Date.now(),
+      buyItNowPurchasedBy: user._id,
+    });
+
+    // 4. Create Order
+    const orderNumber = await generateUniqueOrderNumber(ctx);
+    const serviceFee = calculateServiceFee(lot.buyItNowPrice);
+    const documentationFee = 50_000;
+    const totalAmount = lot.buyItNowPrice + serviceFee + documentationFee;
+
+    const orderId = await ctx.db.insert("orders", {
+      orderNumber,
+      userId: user._id,
+      vehicleId: lot.vehicleId,
+      auctionLotId: lot._id,
+      orderType: "buy_it_now",
+      winningBid: lot.buyItNowPrice,
+      serviceFee,
+      documentationFee,
+      subtotal: lot.buyItNowPrice,
+      totalAmount,
+      paidAmount: 0,
+      balanceDue: totalAmount,
+      status: "pending_payment",
+      paymentDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, orderId, orderNumber };
+  },
+});
+
+/**
  * Admin: Create a new auction
  */
 export const createAuction = mutation({
@@ -237,6 +325,7 @@ export const addLotToAuction = mutation({
     lotOrder: v.number(),
     estimatedStartTime: v.optional(v.number()),
     lotDuration: v.number(), // in milliseconds
+    buyItNowEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // TODO: Check admin authentication
@@ -277,6 +366,8 @@ export const addLotToAuction = mutation({
       reserveMet: false,
       estimatedStartTime: args.estimatedStartTime,
       lotDuration: args.lotDuration,
+      buyItNowPrice: vehicle.buyItNowPrice,
+      buyItNowEnabled: args.buyItNowEnabled ?? vehicle.buyItNowEnabled ?? false,
     });
 
     // Update vehicle status

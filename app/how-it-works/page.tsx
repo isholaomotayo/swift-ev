@@ -115,7 +115,7 @@ export default function HowItWorksPage() {
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 We've redesigned the path from global manufacturers to your driveway.
-                Experience a simplified, secure, and purely digital import process.
+                Experience a simplified, secure, and purely digital import process with Auto Auctions Africa.
               </p>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { UsersListClient } from "@/components/admin/users-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Users | Admin | VoltBid Africa",
+  title: "Manage Users | Admin | Auto Auctions Africa",
   description: "Manage all platform users",
   robots: {
     index: false,

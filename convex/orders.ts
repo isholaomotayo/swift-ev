@@ -81,20 +81,20 @@ export const listOrders = query({
           ...order,
           buyer: buyer
             ? {
-                _id: buyer._id,
-                firstName: buyer.firstName,
-                lastName: buyer.lastName,
-                email: buyer.email,
-              }
+              _id: buyer._id,
+              firstName: buyer.firstName,
+              lastName: buyer.lastName,
+              email: buyer.email,
+            }
             : null,
           vehicle: vehicle
             ? {
-                _id: vehicle._id,
-                year: vehicle.year,
-                make: vehicle.make,
-                model: vehicle.model,
-                vin: vehicle.vin,
-              }
+              _id: vehicle._id,
+              year: vehicle.year,
+              make: vehicle.make,
+              model: vehicle.model,
+              vin: vehicle.vin,
+            }
             : null,
         };
       })
@@ -150,30 +150,37 @@ export const getOrderDetails = query({
       .filter((q) => q.eq(q.field("orderId"), args.orderId))
       .collect();
 
+    // Get additional services
+    const additionalServices = await ctx.db
+      .query("additionalServices")
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
+      .collect();
+
     return {
       order,
       buyer: buyer
         ? {
-            _id: buyer._id,
-            firstName: buyer.firstName,
-            lastName: buyer.lastName,
-            email: buyer.email,
-            phone: buyer.phone,
-          }
+          _id: buyer._id,
+          firstName: buyer.firstName,
+          lastName: buyer.lastName,
+          email: buyer.email,
+          phone: buyer.phone,
+        }
         : null,
       vehicle: vehicle
         ? {
-            _id: vehicle._id,
-            year: vehicle.year,
-            make: vehicle.make,
-            model: vehicle.model,
-            vin: vehicle.vin,
-            lotNumber: vehicle.lotNumber,
-          }
+          _id: vehicle._id,
+          year: vehicle.year,
+          make: vehicle.make,
+          model: vehicle.model,
+          vin: vehicle.vin,
+          lotNumber: vehicle.lotNumber,
+        }
         : null,
       auctionLot,
       payments,
       shipments,
+      additionalServices,
     };
   },
 });
@@ -205,11 +212,11 @@ export const getUserOrders = query({
           ...order,
           vehicle: vehicle
             ? {
-                _id: vehicle._id,
-                year: vehicle.year,
-                make: vehicle.make,
-                model: vehicle.model,
-              }
+              _id: vehicle._id,
+              year: vehicle.year,
+              make: vehicle.make,
+              model: vehicle.model,
+            }
             : null,
         };
       })

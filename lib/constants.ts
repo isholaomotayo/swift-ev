@@ -1,5 +1,5 @@
 /**
- * VoltBid Africa Platform Constants
+ * Auto Auctions Africa Platform Constants
  */
 
 // UI Constants
@@ -360,7 +360,7 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "im
 
 // Contact Information
 export const CONTACT_INFO = {
-  EMAIL: "support@voltbid.africa",
+  EMAIL: "support@autoauctions.africa",
   PHONE: "+234 XXX XXX XXXX",
   ADDRESS: "Lagos, Nigeria",
   SUPPORT_HOURS: "Monday - Friday, 9AM - 6PM WAT",
@@ -368,10 +368,10 @@ export const CONTACT_INFO = {
 
 // Social Media
 export const SOCIAL_MEDIA = {
-  TWITTER: "https://twitter.com/voltbidafrica",
-  FACEBOOK: "https://facebook.com/voltbidafrica",
-  INSTAGRAM: "https://instagram.com/voltbidafrica",
-  LINKEDIN: "https://linkedin.com/company/voltbid-africa",
+  TWITTER: "https://twitter.com/autoauctions",
+  FACEBOOK: "https://facebook.com/autoauctions",
+  INSTAGRAM: "https://instagram.com/autoauctions",
+  LINKEDIN: "https://linkedin.com/company/auto-auctions-africa",
 } as const;
 
 // Government Incentives (Nigeria 2025)

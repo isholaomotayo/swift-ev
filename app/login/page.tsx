@@ -64,7 +64,7 @@ export default function LoginPage() {
                 <Zap className="h-7 w-7" fill="currentColor" />
               </div>
               <span className="font-black text-2xl tracking-tighter">
-                VoltBid <span className="text-gradient">Africa</span>
+                Auto Auctions <span className="text-gradient">Africa</span>
               </span>
             </Link>
           </div>
@@ -172,18 +172,18 @@ export default function LoginPage() {
           <Badge className="bg-white/10 text-white border-white/20 mb-6">Trusted by 10k+ Africans</Badge>
           <h2 className="text-6xl font-black leading-tight mb-8">
             Experience the <br />
-            <span className="text-gradient">EV Revolution</span>
+            <span className="text-gradient">Automotive Revolution</span>
           </h2>
           <p className="text-xl text-white/70 max-w-lg mb-12 font-medium">
-            Join the continent's most transparent and advanced platform for importing electric vehicles directly from manufacturers.
+            Join the continent's most transparent and advanced platform for importing quality vehicles directly from global manufacturers.
           </p>
         </div>
 
         {/* Feature List */}
         <div className="relative z-10 grid grid-cols-1 gap-8">
           {[
-            { icon: <CheckCircle2 className="text-volt-green" />, title: "Zero Emission", desc: "Contribute to a greener Africa" },
-            { icon: <CheckCircle2 className="text-volt-green" />, title: "Verified Health", desc: "Detailed battery certificates" },
+            { icon: <CheckCircle2 className="text-volt-green" />, title: "Wide Selection", desc: "Access global vehicle inventory" },
+            { icon: <CheckCircle2 className="text-volt-green" />, title: "Verified Quality", desc: "Detailed inspection reports" },
             { icon: <CheckCircle2 className="text-volt-green" />, title: "Doorstep Delivery", desc: "Full logistics handled by us" }
           ].map((f, i) => (
             <div key={i} className="flex items-center gap-6 p-6 rounded-[2rem] glass-morphism border-white/5 group hover:bg-white/10 transition-colors">
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
         {/* Bottom Credits */}
         <div className="relative z-10 flex items-center justify-between opacity-50 text-sm">
-          <span>&copy; 2026 VoltBid Africa</span>
+          <span>&copy; 2026 Auto Auctions Africa</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">Privacy</Link>
             <Link href="/terms" className="hover:underline">Terms</Link>

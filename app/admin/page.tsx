@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api";
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | VoltBid Africa",
-  description: "Admin dashboard for managing VoltBid Africa platform",
+  title: "Admin Dashboard | Auto Auctions Africa",
+  description: "Admin dashboard for managing Auto Auctions Africa platform",
   robots: {
     index: false,
     follow: false,

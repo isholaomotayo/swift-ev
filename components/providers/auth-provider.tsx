@@ -11,12 +11,15 @@ interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  accountType?: "individual" | "dealer" | "corporate" | "seller_individual" | "seller_dealer" | "seller_fleet";
   membershipTier: "guest" | "basic" | "premier" | "business";
   emailVerified: boolean;
-  kycStatus: "pending" | "in_progress" | "approved" | "rejected";
+  kycStatus: "not_started" | "pending" | "approved" | "rejected";
+  walletBalance?: number;
   buyingPower: number;
   status: "pending" | "active" | "suspended" | "banned";
-  role?: "user" | "seller" | "admin" | "superadmin";
+  role?: "buyer" | "seller" | "admin" | "superadmin";
+  verificationFeeStatus?: "not_paid" | "pending" | "paid";
   // Vendor-specific fields
   vendorCompany?: string;
   vendorLicense?: string;
@@ -39,6 +42,7 @@ interface RegisterData {
   lastName: string;
   phone?: string;
   password: string;
+  accountType?: "individual" | "dealer" | "corporate" | "seller_individual" | "seller_dealer" | "seller_fleet";
 }
 
 interface ProfileUpdates {

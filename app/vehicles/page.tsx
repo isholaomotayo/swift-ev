@@ -6,7 +6,7 @@ import { VehiclesListClient } from "@/components/vehicles/vehicles-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Browse Vehicles | VoltBid Africa",
+  title: "Browse Vehicles | Auto Auctions Africa",
   description:
     "Browse our curated selection of electric vehicles from Chinese manufacturers. Filter by make, year, price, battery health, and more.",
   keywords: [
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "auction platform",
   ],
   openGraph: {
-    title: "Browse Vehicles | VoltBid Africa",
+    title: "Browse Vehicles | Auto Auctions Africa",
     description: "Browse our curated selection of electric vehicles.",
     type: "website",
   },

@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorDashboardClient } from "@/components/vendor/vendor-dashboard-client";
 
 export const metadata: Metadata = {
-  title: "Vendor Dashboard | VoltBid Africa",
+  title: "Vendor Dashboard | Auto Auctions Africa",
   description: "Manage your vehicles and track your performance",
   robots: {
     index: false,

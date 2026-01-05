@@ -10,6 +10,7 @@ import { ArrowLeft, Package, CreditCard, Truck, FileText } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
+import { ServiceSelector } from "@/components/services/service-selector";
 
 interface OrderDetailClientProps {
   initialOrderDetails: any;
@@ -51,6 +52,9 @@ export function OrderDetailClient({
         return "secondary";
     }
   };
+
+  const additionalServicesCost = orderDetails.additionalServices?.reduce((acc: number, s: any) => acc + s.cost, 0) || 0;
+  const totalWithServices = order.totalAmount + additionalServicesCost;
 
   return (
     <div className="container mx-auto p-8 max-w-5xl">
@@ -122,9 +126,23 @@ export function OrderDetailClient({
                   <span className="font-medium">{formatCurrency(order.shippingCost)}</span>
                 </div>
               )}
+
+              {/* Additional Services Costs */}
+              {orderDetails.additionalServices && orderDetails.additionalServices.length > 0 && (
+                <div className="space-y-3 pt-3 border-t border-dashed">
+                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Additional Services</p>
+                  {orderDetails.additionalServices.map((service: any) => (
+                    <div key={service._id} className="flex justify-between text-sm">
+                      <span className="text-gray-600 capitalize">{service.serviceType.replace(/_/g, " ")}</span>
+                      <span className="font-medium">{formatCurrency(service.cost)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="border-t pt-3 flex justify-between">
                 <span className="font-semibold">Total</span>
-                <span className="text-xl font-bold">{formatCurrency(order.totalAmount)}</span>
+                <span className="text-xl font-bold">{formatCurrency(totalWithServices)}</span>
               </div>
             </div>
 
@@ -143,8 +161,8 @@ export function OrderDetailClient({
                           payment.status === "successful"
                             ? "default"
                             : payment.status === "failed"
-                            ? "destructive"
-                            : "secondary"
+                              ? "destructive"
+                              : "secondary"
                         }
                       >
                         {payment.status}
@@ -184,6 +202,9 @@ export function OrderDetailClient({
               </div>
             </Card>
           )}
+
+          {/* Additional Services Selection */}
+          <ServiceSelector orderId={orderId} token={token} />
         </div>
 
         {/* Sidebar */}
@@ -242,4 +263,3 @@ export function OrderDetailClient({
     </div>
   );
 }
-

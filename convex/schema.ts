@@ -13,6 +13,17 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     passwordHash: v.string(),
+    // Account type for buyer/seller classification (BUG-001 fix)
+    accountType: v.optional(
+      v.union(
+        v.literal("individual"),
+        v.literal("dealer"),
+        v.literal("corporate"),
+        v.literal("seller_individual"),
+        v.literal("seller_dealer"),
+        v.literal("seller_fleet")
+      )
+    ),
     status: v.union(
       v.literal("pending"),
       v.literal("active"),
@@ -38,6 +49,11 @@ export default defineSchema({
       v.literal("business")
     ),
     membershipExpiry: v.optional(v.number()),
+    // Wallet fields (FEAT-001)
+    walletBalance: v.optional(v.number()), // Available balance in kobo
+    pendingBalance: v.optional(v.number()), // Deposits in transit
+    reservedBalance: v.optional(v.number()), // Reserved for active bids
+    walletCurrency: v.optional(v.string()), // Default "NGN"
     depositAmount: v.number(),
     buyingPower: v.number(),
     dailyBidsUsed: v.number(),
@@ -51,12 +67,26 @@ export default defineSchema({
     // Vendor-specific fields
     vendorCompany: v.optional(v.string()),
     vendorLicense: v.optional(v.string()),
+    // KYC fields (FEAT-002)
     kycStatus: v.union(
       v.literal("not_started"),
       v.literal("pending"),
       v.literal("approved"),
       v.literal("rejected")
     ),
+    sumsubApplicantId: v.optional(v.string()),
+    kycSubmittedAt: v.optional(v.number()),
+    kycApprovedAt: v.optional(v.number()),
+    kycRejectionReason: v.optional(v.string()),
+    verificationFeeStatus: v.optional(
+      v.union(
+        v.literal("not_paid"),
+        v.literal("pending"),
+        v.literal("paid")
+      )
+    ),
+    verificationFeeReference: v.optional(v.string()),
+    verificationFeePaidAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
     lastLoginAt: v.optional(v.number()),
@@ -64,7 +94,9 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_phone", ["phone"])
     .index("by_status", ["status"])
-    .index("by_membership", ["membershipTier"]),
+    .index("by_membership", ["membershipTier"])
+    .index("by_kyc_status", ["kycStatus"])
+    .index("by_account_type", ["accountType"]),
 
   userDocuments: defineTable({
     userId: v.id("users"),
@@ -154,6 +186,9 @@ export default defineSchema({
     startingBid: v.number(),
     reservePrice: v.optional(v.number()),
     buyItNowPrice: v.optional(v.number()),
+    buyItNowEnabled: v.optional(v.boolean()),
+    buyItNowPurchasedAt: v.optional(v.number()),
+    buyItNowPurchasedBy: v.optional(v.id("users")),
     status: v.union(
       v.literal("draft"),
       v.literal("pending_inspection"),
@@ -211,6 +246,25 @@ export default defineSchema({
     uploadedAt: v.number(),
   }).index("by_vehicle", ["vehicleId"]),
 
+  spareParts: defineTable({
+    vehicleId: v.id("vehicles"),
+    partName: v.string(),
+    description: v.optional(v.string()),
+    condition: v.union(
+      v.literal("new"),
+      v.literal("used"),
+      v.literal("refurbished")
+    ),
+    estimatedCost: v.number(),
+    availabilityLocation: v.object({
+      storeName: v.string(),
+      address: v.string(),
+      contactPhone: v.optional(v.string()),
+      coordinates: v.optional(v.object({ lat: v.number(), lng: v.number() })),
+    }),
+    createdAt: v.number(),
+  }).index("by_vehicle", ["vehicleId"]),
+
   // ============================================
   // AUCTION TABLES
   // ============================================
@@ -265,6 +319,9 @@ export default defineSchema({
     startingBid: v.optional(v.number()),
     reservePrice: v.optional(v.number()),
     buyItNowPrice: v.optional(v.number()),
+    buyItNowEnabled: v.optional(v.boolean()),
+    buyItNowPurchasedAt: v.optional(v.number()),
+    buyItNowPurchasedBy: v.optional(v.id("users")),
     bidIncrement: v.optional(v.number()),
     // Timing fields
     estimatedStartTime: v.optional(v.number()),
@@ -499,6 +556,28 @@ export default defineSchema({
     ),
   }).index("by_shipment", ["shipmentId"]),
 
+  gatePasses: defineTable({
+    orderId: v.id("orders"),
+    code: v.string(), // Unique QR or text code
+    issuedAt: v.number(),
+    expiresAt: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("used"),
+      v.literal("expired"),
+      v.literal("cancelled")
+    ),
+    vehicleId: v.id("vehicles"),
+    userId: v.id("users"),
+    authorizedBy: v.optional(v.id("users")), // Admin who approved release
+    gateKeeperId: v.optional(v.id("users")), // Security person who scanned it
+    usedAt: v.optional(v.number()),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_code", ["code"])
+    .index("by_status", ["status"])
+    .index("by_user", ["userId"]),
+
   // ============================================
   // CUSTOMS & CLEARANCE TABLES
   // ============================================
@@ -643,4 +722,134 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_entity", ["entityType", "entityId"])
     .index("by_timestamp", ["timestamp"]),
+
+  // ============================================
+  // WALLET TRANSACTIONS (FEAT-001)
+  // ============================================
+
+  walletTransactions: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("deposit"),
+      v.literal("withdrawal"),
+      v.literal("bid_reserve"),
+      v.literal("bid_release"),
+      v.literal("payment"),
+      v.literal("refund"),
+      v.literal("fee")
+    ),
+    amount: v.number(), // in kobo
+    currency: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("reversed")
+    ),
+    reference: v.string(),
+    description: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+    relatedBidId: v.optional(v.id("bids")),
+    paymentProvider: v.optional(v.string()),
+    paymentReference: v.optional(v.string()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_reference", ["reference"])
+    .index("by_status", ["status"]),
+
+  // ============================================
+  // DISPUTES (FEAT-006)
+  // ============================================
+
+  disputes: defineTable({
+    orderId: v.id("orders"),
+    reporterId: v.id("users"),
+    respondentId: v.optional(v.id("users")),
+    disputeType: v.union(
+      v.literal("not_as_described"),
+      v.literal("documents_missing"),
+      v.literal("seller_failed_release"),
+      v.literal("shipping_delay"),
+      v.literal("damage_in_transit"),
+      v.literal("other")
+    ),
+    description: v.string(),
+    evidenceUrls: v.array(v.string()),
+    status: v.union(
+      v.literal("open"),
+      v.literal("under_review"),
+      v.literal("resolved"),
+      v.literal("rejected")
+    ),
+    resolution: v.optional(
+      v.union(
+        v.literal("full_refund"),
+        v.literal("partial_refund"),
+        v.literal("repair_credit"),
+        v.literal("rejected"),
+        v.literal("other")
+      )
+    ),
+    resolutionNotes: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id("users")),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_reporter", ["reporterId"])
+    .index("by_status", ["status"]),
+
+  // ============================================
+  // ADDITIONAL SERVICES (FEAT-005)
+  // ============================================
+
+  additionalServices: defineTable({
+    orderId: v.id("orders"),
+    userId: v.id("users"),
+    serviceType: v.union(
+      v.literal("shipping_container"),
+      v.literal("shipping_roro"),
+      v.literal("customs_clearing"),
+      v.literal("registration"),
+      v.literal("inspection"),
+      v.literal("insurance"),
+      v.literal("spare_parts"),
+      v.literal("financing")
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("cancelled")
+    ),
+    cost: v.number(),
+    currency: v.string(), // e.g., "NGN", "USD"
+    vendorId: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
+
+  // ============================================
+  // VEHICLE Q&A (for VDP)
+  // ============================================
+
+  vehicleQna: defineTable({
+    vehicleId: v.id("vehicles"),
+    askerId: v.id("users"),
+    question: v.string(),
+    answer: v.optional(v.string()),
+    answeredBy: v.optional(v.id("users")),
+    answeredAt: v.optional(v.number()),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_vehicle", ["vehicleId"])
+    .index("by_asker", ["askerId"]),
 });

@@ -43,13 +43,33 @@ export const placeBid = mutation({
       throw new Error("Auction lot not found");
     }
 
-    // Validate lot is active
-    if (lot.status !== "active") {
-      throw new Error("This auction is not currently active");
+    // Validate lot is active or pending (pre-bid)
+    if (lot.status !== "active" && lot.status !== "pending") {
+      throw new Error("This auction is not currently open for bidding");
     }
 
-    // Check if auction has ended
-    if (lot.endsAt && lot.endsAt < Date.now()) {
+    // Get vehicle to check restrictions
+    const vehicle = await ctx.db.get(lot.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    // 1. Role Restriction: Individual buyers cannot bid on salvage/damaged vehicles
+    const isIndividual = user.membershipTier === "guest" || user.membershipTier === "basic" || user.membershipTier === "premier"; // Assuming business is the only 'business' tier
+    const isDamaged =
+      vehicle.condition === "salvage" ||
+      vehicle.titleType === "salvage" ||
+      vehicle.titleType === "export_only" ||
+      vehicle.titleType === "rebuilt";
+
+    if (isIndividual && isDamaged) {
+      throw new Error(
+        "Restricted: Individual accounts cannot bid on salvage/export-only vehicles. Please upgrade to a Business account."
+      );
+    }
+
+    // Check if auction has ended (only for live auctions)
+    if (lot.status === "active" && lot.endsAt && lot.endsAt < Date.now()) {
       throw new Error("This auction has already ended");
     }
 
@@ -59,9 +79,18 @@ export const placeBid = mutation({
       throw new Error(`Bid must be at least ${minimumBid}`);
     }
 
-    // Check user's buying power
-    if (args.amount > user.buyingPower && user.membershipTier !== "business") {
-      throw new Error(`Bid exceeds your buying power of ${user.buyingPower}`);
+    // Check 10% wallet balance requirement (FEAT-001)
+    const walletBalance = user.walletBalance ?? 0;
+    const requiredBalance = Math.ceil(args.amount * 0.1);
+    if (walletBalance < requiredBalance) {
+      throw new Error(
+        `Insufficient wallet balance. Need ₦${(requiredBalance / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
+      );
+    }
+
+    // Check user's buying power (Enforce for ALL tiers to ensure deposit coverage)
+    if (args.amount > user.buyingPower) {
+      throw new Error(`Bid exceeds your buying power of ${user.buyingPower.toLocaleString()}`);
     }
 
     // Check daily bid limit
@@ -127,6 +156,22 @@ export const placeBid = mutation({
     await ctx.db.patch(session.userId, {
       dailyBidsUsed: currentDailyBids + 1,
     });
+
+    // 3. 60-Second Rule (Sniper Protection)
+    // If live auction and bid is within last 60 seconds, extend by 60 seconds from NOW
+    if (lot.status === "active" && lot.endsAt) {
+      const timeLeft = lot.endsAt - Date.now();
+      if (timeLeft < 60 * 1000) {
+        await ctx.db.patch(lot._id, {
+          endsAt: Date.now() + 60 * 1000,
+        });
+      }
+    } else if (lot.status === "pending") {
+      // Pre-bid logic: Mark as having bids
+      // We don't change status to active yet, that happens when admin starts auction
+      // But we might want to update startingBid if this pre-bid is higher?
+      // Actually, currentBid is already updated above.
+    }
 
     // TODO: Schedule proxy bid processing
     // TODO: Send outbid notifications
@@ -249,10 +294,10 @@ export const getBidsForLot = query({
         createdAt: bid._creationTime,
         user: user
           ? {
-              firstName: user.firstName,
-              lastName: user.lastName,
-              membershipTier: user.membershipTier,
-            }
+            firstName: user.firstName,
+            lastName: user.lastName,
+            membershipTier: user.membershipTier,
+          }
           : null,
       };
     });

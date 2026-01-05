@@ -5,7 +5,7 @@ import { WatchlistClient } from "@/components/watchlist/watchlist-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Watchlist | VoltBid Africa",
+  title: "My Watchlist | Auto Auctions Africa",
   description: "View and manage your saved vehicles",
   robots: {
     index: false,

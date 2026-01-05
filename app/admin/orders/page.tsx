@@ -5,7 +5,7 @@ import { OrdersListClient } from "@/components/admin/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Orders | Admin | VoltBid Africa",
+  title: "Manage Orders | Admin | Auto Auctions Africa",
   description: "Track and manage all orders",
   robots: {
     index: false,

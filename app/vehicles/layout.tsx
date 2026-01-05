@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Browse Electric Vehicles | VoltBid Africa",
+  title: "Browse Electric Vehicles | Auto Auctions Africa",
   description:
     "Browse our selection of electric vehicles from Chinese manufacturers. Filter by make, model, year, price, and battery health.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "Nigeria",
   ],
   openGraph: {
-    title: "Browse Electric Vehicles | VoltBid Africa",
+    title: "Browse Electric Vehicles | Auto Auctions Africa",
     description: "Browse our selection of electric vehicles from Chinese manufacturers.",
     type: "website",
   },

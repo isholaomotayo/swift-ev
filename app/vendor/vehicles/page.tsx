@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorVehiclesClient } from "@/components/vendor/vendor-vehicles-client";
 
 export const metadata: Metadata = {
-  title: "My Vehicles | Vendor | VoltBid Africa",
+  title: "My Vehicles | Vendor | Auto Auctions Africa",
   description: "Manage your vehicle listings",
   robots: {
     index: false,

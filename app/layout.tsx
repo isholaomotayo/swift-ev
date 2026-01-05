@@ -26,38 +26,35 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "VoltBid Africa - Premier Electric Vehicle Auction Platform",
+  title: "Auto Auctions Africa - Premier Vehicle Auction Platform",
   description:
-    "Bid on quality electric vehicles directly from Chinese manufacturers. Complete import solution from China to your doorstep in Nigeria.",
+    "100% Online Auto Auctions. Compete for quality vehicles from China, Japan, Germany & USA. Transparent, secure, and competitive.",
   keywords: [
-    "electric vehicles",
-    "EV auction",
-    "Nigeria",
-    "BYD",
-    "NIO",
-    "XPeng",
-    "vehicle import",
-    "auction platform",
-    "Africa",
+    "auto auction",
+    "vehicle auction",
+    "Nigeria cars",
+    "import cars",
+    "collision repair",
+    "salvage cars",
+    "used cars africa",
+    "Auto Auctions Africa",
   ],
-  authors: [{ name: "VoltBid Africa" }],
-  creator: "VoltBid Africa",
-  publisher: "VoltBid Africa",
+  authors: [{ name: "Auto Auctions Africa" }],
+  creator: "Auto Auctions Africa",
+  publisher: "Auto Auctions Africa",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
     type: "website",
     locale: "en_NG",
     url: "/",
-    title: "VoltBid Africa - Premier Electric Vehicle Auction Platform",
-    description:
-      "Bid on quality electric vehicles directly from Chinese manufacturers.",
-    siteName: "VoltBid Africa",
+    title: "Auto Auctions Africa - Premier Vehicle Auction Platform",
+    description: "Compete for quality vehicles from China, Japan, Germany & USA.",
+    siteName: "Auto Auctions Africa",
   },
   twitter: {
     card: "summary_large_image",
-    title: "VoltBid Africa - Premier Electric Vehicle Auction Platform",
-    description:
-      "Bid on quality electric vehicles directly from Chinese manufacturers.",
+    title: "Auto Auctions Africa - Premier Vehicle Auction Platform",
+    description: "Compete for quality vehicles from China, Japan, Germany & USA.",
   },
 };
 
@@ -68,11 +65,11 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get("voltbid-theme");
-  const initialTheme = (themeCookie?.value === "dark" || 
-                       themeCookie?.value === "light" || 
-                       themeCookie?.value === "system") 
-                       ? themeCookie.value as "dark" | "light" | "system"
-                       : undefined;
+  const initialTheme = (themeCookie?.value === "dark" ||
+    themeCookie?.value === "light" ||
+    themeCookie?.value === "system")
+    ? themeCookie.value as "dark" | "light" | "system"
+    : undefined;
 
   return (
     <html lang="en" suppressHydrationWarning>

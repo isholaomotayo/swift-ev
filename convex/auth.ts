@@ -13,6 +13,16 @@ export const register = mutation({
     lastName: v.string(),
     phone: v.optional(v.string()),
     password: v.string(),
+    accountType: v.optional(
+      v.union(
+        v.literal("individual"),
+        v.literal("dealer"),
+        v.literal("corporate"),
+        v.literal("seller_individual"),
+        v.literal("seller_dealer"),
+        v.literal("seller_fleet")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     // Check if email already exists
@@ -40,32 +50,45 @@ export const register = mutation({
     // Hash password using bcrypt
     const passwordHash = hashPassword(args.password);
 
-    // Create user
+    // Determine role based on account type
+    const isSeller = args.accountType?.startsWith("seller_");
+    const role = isSeller ? "seller" : "buyer";
+
+    // Create user with all new fields
     const userId = await ctx.db.insert("users", {
       email: args.email.toLowerCase(),
       phone: args.phone,
       firstName: args.firstName,
       lastName: args.lastName,
       passwordHash,
+      accountType: args.accountType ?? "individual",
       membershipTier: "guest",
       status: "pending",
       emailVerified: false,
       phoneVerified: false,
-      kycStatus: "pending",
+      kycStatus: "not_started",
+      // Wallet fields (FEAT-001)
+      walletBalance: 0,
+      pendingBalance: 0,
+      reservedBalance: 0,
+      walletCurrency: "NGN",
+      // KYC fields (FEAT-002)
+      verificationFeeStatus: "not_paid",
       buyingPower: 0,
       depositAmount: 0,
       dailyBidsUsed: 0,
       lastBidResetAt: Date.now(),
-      role: "buyer",
+      role,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
     // TODO: Send verification email via scheduler
 
-    return { userId, message: "Registration successful. Please check your email to verify your account." };
+    return { userId, message: "Registration successful. You can now log in." };
   },
 });
+
 
 /**
  * Login user
@@ -128,14 +151,17 @@ export const login = mutation({
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        accountType: user.accountType,
         membershipTier: user.membershipTier,
         emailVerified: user.emailVerified,
         kycStatus: user.kycStatus,
+        walletBalance: user.walletBalance ?? 0,
         buyingPower: user.buyingPower,
         status: user.status,
         role: user.role,
         vendorCompany: user.vendorCompany,
         vendorLicense: user.vendorLicense,
+        verificationFeeStatus: user.verificationFeeStatus,
       },
     };
   },

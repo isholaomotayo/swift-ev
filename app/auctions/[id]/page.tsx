@@ -20,12 +20,12 @@ export async function generateMetadata({
     const auctionData = await convex.query(api.auctions.getAuctionById, { auctionId });
     if (!auctionData) {
       return {
-        title: "Auction Not Found | VoltBid Africa",
+        title: "Auction Not Found | Auto Auctions Africa",
       };
     }
 
     return {
-      title: `${auctionData.auction.name} | VoltBid Africa`,
+      title: `${auctionData.auction.name} | Auto Auctions Africa`,
       description: auctionData.auction.description || `Live auction with ${auctionData.lots.length} lots`,
       openGraph: {
         title: auctionData.auction.name,
@@ -34,7 +34,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     return {
-      title: "Auction | VoltBid Africa",
+      title: "Auction | Auto Auctions Africa",
     };
   }
 }

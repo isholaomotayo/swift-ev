@@ -478,6 +478,7 @@ function EditModeContent({
                     <div className="space-y-2">
                         <Label htmlFor="buyItNowPrice">Buy Now Price</Label>
                         <Input id="buyItNowPrice" type="number" value={formData.buyItNowPrice || ""} onChange={(e) => handleInputChange("buyItNowPrice", e.target.value)} />
+                        <p className="text-xs text-muted-foreground">Leave empty to force Auction-Only (no Buy Now option).</p>
                     </div>
                 </div>
             </div>

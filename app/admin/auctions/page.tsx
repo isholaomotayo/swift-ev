@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { AdminAuctionsClient } from "@/components/admin/admin-auctions-client";
 
 export const metadata: Metadata = {
-  title: "Manage Auctions | Admin | VoltBid Africa",
+  title: "Manage Auctions | Admin | Auto Auctions Africa",
   description: "Manage all auction events and lots",
   robots: {
     index: false,

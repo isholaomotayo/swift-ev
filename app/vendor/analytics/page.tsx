@@ -5,7 +5,7 @@ import { VendorAnalyticsClient } from "@/components/vendor/analytics-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Analytics | Vendor | VoltBid Africa",
+  title: "Analytics | Vendor | Auto Auctions Africa",
   description: "Track your performance and sales",
   robots: {
     index: false,

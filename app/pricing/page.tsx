@@ -167,8 +167,8 @@ export default function PricingPage() {
 
                   <Button
                     className={`h-14 rounded-2xl font-black tracking-tight text-lg shadow-xl transition-all ${tier.popular
-                        ? "bg-electric-blue hover:bg-electric-blue-dark text-white shadow-electric-blue/20"
-                        : "bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 shadow-none"
+                      ? "bg-electric-blue hover:bg-electric-blue-dark text-white shadow-electric-blue/20"
+                      : "bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 shadow-none"
                       }`}
                     asChild
                   >
@@ -224,15 +224,15 @@ export default function PricingPage() {
             <div className="text-center mb-20 max-w-2xl mx-auto">
               <span className="text-sm font-black tracking-[0.3em] uppercase text-primary block mb-4">Variable Costs</span>
               <h2 className="text-4xl font-black mb-6">Service Transparency</h2>
-              <p className="text-muted-foreground font-medium">Clear breakdown of operational costs for every vehicle imported through VoltBid.</p>
+              <p className="text-muted-foreground font-medium">Clear breakdown of operational costs for every vehicle imported through Auto Auctions Africa.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { title: "Documentation", price: "₦25,000", desc: "SONCAP certs, Form M, and paperwork." },
-                { title: "Inspection", price: "₦15,000", desc: "150-point battery & electronics check." },
-                { title: "Port Handling", price: "₦35,000", desc: "Lagos/PH port unloading and sorting." },
-                { title: "Duty Advisory", price: "Variable", desc: "EV-specific duty calculation experts." }
+                { title: "Buyer's Premium", price: "5%", desc: "Standard service fee on winning bids." },
+                { title: "Security Deposit", price: "10%", desc: "Refundable deposit required to bid." },
+                { title: "Documentation", price: "₦50,000", desc: "Complete import paperwork & filing." },
+                { title: "Storage Fee", price: "₦10,000", desc: "Daily fee after free grace period." }
               ].map((f, i) => (
                 <div key={i} className="p-8 rounded-[2.5rem] bg-card border border-border group hover:border-primary/30 transition-all text-center">
                   <h3 className="font-black text-muted-foreground/50 text-xs uppercase tracking-[0.2em] mb-4">{f.title}</h3>

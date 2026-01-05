@@ -6,7 +6,7 @@ import { AuctionsList } from "@/components/auctions/auctions-list";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Live Auctions | VoltBid Africa",
+  title: "Live Auctions | Auto Auctions Africa",
   description:
     "Browse live, scheduled, and past electric vehicle auctions. Join live auctions and bid on quality EVs from Chinese manufacturers.",
   keywords: [
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "auction platform",
   ],
   openGraph: {
-    title: "Live Auctions | VoltBid Africa",
+    title: "Live Auctions | Auto Auctions Africa",
     description: "Browse live, scheduled, and past electric vehicle auctions.",
     type: "website",
   },

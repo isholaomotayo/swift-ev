@@ -56,6 +56,8 @@ export function VehicleCard({
   } = vehicle;
 
   const isInAuction = auctionLot?.status === "active";
+  const isPreBidding = auctionLot?.status === "pending";
+  const canBid = isInAuction || isPreBidding;
 
   return (
     <Card className={cn(
@@ -114,6 +116,13 @@ export function VehicleCard({
             </Badge>
           </div>
         )}
+        {isPreBidding && (
+          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2">
+            <Badge className="bg-electric-blue text-white border-0 shadow-lg shadow-electric-blue/20 px-3 py-1">
+              Pre-Bidding Open
+            </Badge>
+          </div>
+        )}
       </div>
 
       <CardHeader className="pb-2 pt-4 px-5">
@@ -148,7 +157,7 @@ export function VehicleCard({
           <div className="bg-muted/30 rounded-xl p-3 border border-border/50 group-hover:border-electric-blue/30 transition-colors">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {isInAuction ? "Current Bid" : "Starting Bid"}
+                {isInAuction ? "Current Bid" : isPreBidding ? "Current Pre-Bid" : "Starting Bid"}
               </span>
               <Badge variant="outline" className="text-xs bg-background">
                 {auctionLot.bidCount} {auctionLot.bidCount === 1 ? "bid" : "bids"}
@@ -159,7 +168,7 @@ export function VehicleCard({
               <PriceDisplay
                 amount={auctionLot.currentBid}
                 variant="large"
-                className={cn(isInAuction ? "text-volt-green" : "text-foreground")}
+                className={cn(isInAuction ? "text-volt-green" : isPreBidding ? "text-electric-blue" : "text-foreground")}
               />
 
               {isInAuction && auctionLot.endsAt && (
@@ -184,9 +193,17 @@ export function VehicleCard({
           <Button variant="outline" className="flex-1 font-semibold group-hover:border-electric-blue/50 group-hover:text-electric-blue hover:bg-electric-blue/5 transition-all" asChild>
             <Link href={`/vehicles/${_id}`}>View Details</Link>
           </Button>
-          {isInAuction && onBidClick && (
-            <Button className="flex-1 bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green text-white shadow-lg shadow-volt-green/20 hover:shadow-volt-green/40 transition-all font-semibold" onClick={onBidClick}>
-              Place Bid
+          {canBid && onBidClick && (
+            <Button
+              className={cn(
+                "flex-1 text-white shadow-lg transition-all font-semibold",
+                isInAuction
+                  ? "bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green shadow-volt-green/20 hover:shadow-volt-green/40"
+                  : "bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-electric-blue/20 hover:shadow-electric-blue/40"
+              )}
+              onClick={onBidClick}
+            >
+              {isInAuction ? "Place Bid" : "Pre-Bid"}
             </Button>
           )}
         </div>

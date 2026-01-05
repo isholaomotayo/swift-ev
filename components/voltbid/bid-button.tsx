@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { Gavel, TrendingUp } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { Gavel, TrendingUp, Wallet, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
@@ -31,6 +31,10 @@ interface BidButtonProps {
   disabled?: boolean;
   onSuccess?: () => void;
   className?: string;
+  label?: string;
+  buyNowPrice?: number;
+  buyNowEnabled?: boolean;
+  status?: string;
 }
 
 export function BidButton({
@@ -42,18 +46,34 @@ export function BidButton({
   disabled = false,
   onSuccess,
   className,
+  label,
+  buyNowPrice,
+  buyNowEnabled,
+  status,
 }: BidButtonProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customBid, setCustomBid] = useState<string>("");
   const [maxBid, setMaxBid] = useState<string>("");
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, token } = useAuth();
 
   const placeBidMutation = useMutation(api.bids.placeBid);
   const setMaxBidMutation = useMutation(api.bids.setMaxBid);
+  const purchaseMutation = useMutation(api.auctions.purchaseBuyItNow);
+
+  // Get Wallet Info
+  const walletData = useQuery(
+    api.wallet.getWalletBalance,
+    token ? { token } : "skip"
+  );
+
+  const availableBalance = walletData?.available ?? 0;
+  const biddingPower = walletData?.biddingPower ?? 0;
 
   const quickBidAmount = currentBid + bidIncrement;
+  const requireDeposit = Math.ceil(quickBidAmount * 0.1);
+  const hasEnoughDeposit = availableBalance >= requireDeposit;
 
   const handleQuickBid = async () => {
     if (!isAuthenticated) {
@@ -66,13 +86,13 @@ export function BidButton({
       return;
     }
 
-    const token = localStorage.getItem("voltbid_token");
     if (!token) {
       toast({
         title: "Authentication Error",
         description: "Please log in again",
         variant: "destructive",
       });
+      window.location.href = "/login";
       return;
     }
 
@@ -124,8 +144,10 @@ export function BidButton({
       return;
     }
 
-    const token = localStorage.getItem("voltbid_token");
-    if (!token) return;
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
 
     setLoading(true);
     try {
@@ -176,8 +198,10 @@ export function BidButton({
       return;
     }
 
-    const token = localStorage.getItem("voltbid_token");
-    if (!token) return;
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
 
     setLoading(true);
     try {
@@ -206,12 +230,34 @@ export function BidButton({
     }
   };
 
+  const handleBuyNow = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const result = await purchaseMutation({ token, lotId });
+      toast({
+        title: "Purchase Successful!",
+        description: `Order Created: ${result.orderNumber}`,
+      });
+      setOpen(false);
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Purchase Failed",
+        description: error instanceof Error ? error.message : "Error processing purchase",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button disabled={disabled} className={className}>
           <Gavel className="mr-2 h-4 w-4" />
-          Place Bid
+          {label || "Place Bid"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
@@ -253,27 +299,81 @@ export function BidButton({
                 placeholder={`Min: ${formatCurrency(quickBidAmount)}`}
                 value={customBid}
                 onChange={(e) => setCustomBid(e.target.value)}
-                className="font-mono"
+                className="font-mono h-12 text-lg"
               />
             </div>
 
-            <DialogFooter className="flex gap-2">
-              {customBid ? (
-                <Button
-                  onClick={handleCustomBid}
-                  disabled={loading}
-                  className="w-full"
-                >
-                  {loading ? "Placing Bid..." : `Bid ${formatCurrency(parseFloat(customBid) || 0)}`}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleQuickBid}
-                  disabled={loading}
-                  className="w-full"
-                >
-                  {loading ? "Placing Bid..." : `Quick Bid ${formatCurrency(quickBidAmount)}`}
-                </Button>
+            {/* Wallet Integration Info */}
+            <div className={`
+              p-4 rounded-xl border-2 space-y-3
+              ${hasEnoughDeposit
+                ? "bg-volt-green/5 border-volt-green/20"
+                : "bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-900/30"}
+            `}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Wallet className={`h-4 w-4 ${hasEnoughDeposit ? "text-volt-green" : "text-red-500"}`} />
+                  Available Wallet Balance
+                </div>
+                <span className={`font-mono font-bold ${hasEnoughDeposit ? "text-volt-green" : "text-red-500"}`}>
+                  {formatCurrency(availableBalance / 100)}
+                </span>
+              </div>
+
+              <div className="h-px bg-border/50" />
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Required 10% Deposit</span>
+                <span className="font-bold">{formatCurrency((customBid ? parseFloat(customBid) : quickBidAmount) * 0.1)}</span>
+              </div>
+
+              {!hasEnoughDeposit && (
+                <div className="flex items-start gap-2 pt-1">
+                  <ShieldCheck className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium leading-tight">
+                    Insufficient funds. Your bidding power is {formatCurrency(biddingPower / 100)}. Please fund your wallet.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex flex-col gap-3">
+              <div className="flex gap-2 w-full">
+                {customBid ? (
+                  <Button
+                    onClick={handleCustomBid}
+                    disabled={loading || !hasEnoughDeposit}
+                    className="flex-1 h-12 rounded-xl text-lg font-bold"
+                  >
+                    {loading ? "Placing Bid..." : `Bid ${formatCurrency(parseFloat(customBid) || 0)}`}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleQuickBid}
+                    disabled={loading || !hasEnoughDeposit}
+                    className="flex-1 h-12 rounded-xl text-lg font-bold"
+                  >
+                    {loading ? "Placing Bid..." : `Quick Bid ${formatCurrency(quickBidAmount)}`}
+                  </Button>
+                )}
+              </div>
+
+              {/* Buy Now Option */}
+              {buyNowEnabled && buyNowPrice && status === "pending" && (
+                <div className="pt-2 border-t mt-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleBuyNow}
+                    disabled={loading}
+                    className="w-full h-12 rounded-xl border-volt-green/50 text-volt-green hover:bg-volt-green hover:text-white transition-all font-bold gap-2"
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    Buy Now for {formatCurrency(buyNowPrice)}
+                  </Button>
+                  <p className="text-[10px] text-center text-muted-foreground mt-2 uppercase tracking-widest font-bold">
+                    Skip the auction & win instantly
+                  </p>
+                </div>
               )}
             </DialogFooter>
           </TabsContent>
@@ -309,7 +409,7 @@ export function BidButton({
                 type="number"
                 placeholder={`Min: ${formatCurrency(quickBidAmount)}`}
                 value={maxBid}
-                onChange={(e) => setMaxBid(e.target.value)}
+                onChange={(e) => setCustomBid(e.target.value)}
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">

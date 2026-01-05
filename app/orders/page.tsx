@@ -6,7 +6,7 @@ import { OrdersListClient } from "@/components/orders/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Orders | VoltBid Africa",
+  title: "My Orders | Auto Auctions Africa",
   description: "Track your vehicle purchases",
   robots: {
     index: false,
