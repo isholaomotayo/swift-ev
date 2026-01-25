@@ -42,7 +42,7 @@ export function QuickLogin() {
     const ROLES = [
         {
             name: "Admin",
-            email: "admin@voltbid.africa",
+            email: "admin@autoexports.live",
             icon: <Shield className="w-4 h-4 mr-2" />,
             color: "bg-red-500/10 text-red-500 border-red-500/20",
         },

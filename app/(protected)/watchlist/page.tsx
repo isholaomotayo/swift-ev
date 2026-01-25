@@ -5,7 +5,7 @@ import { WatchlistClient } from "@/components/watchlist/watchlist-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Watchlist | Auto Auctions Africa",
+  title: "My Watchlist | autoexports.live",
   description: "View and manage your saved vehicles",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function WatchlistPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

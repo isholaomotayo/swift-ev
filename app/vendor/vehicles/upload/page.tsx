@@ -145,7 +145,7 @@ export default function VehicleUploadPage() {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("voltbid_token");
+      const token = localStorage.getItem("autoexports_token");
       if (!token) {
         throw new Error("No authentication token found");
       }

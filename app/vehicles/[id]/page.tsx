@@ -20,12 +20,12 @@ export async function generateMetadata({
     const vehicle = await convex.query(api.vehicles.getVehicleById, { vehicleId });
     if (!vehicle) {
       return {
-        title: "Vehicle Not Found | Auto Auctions Africa",
+        title: "Vehicle Not Found | autoexports.live",
       };
     }
 
     return {
-      title: `${vehicle.year} ${vehicle.make} ${vehicle.model} | Auto Auctions Africa`,
+      title: `${vehicle.year} ${vehicle.make} ${vehicle.model} | autoexports.live`,
       description: `View details for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Battery health: ${vehicle.batteryHealthPercent}%, Range: ${vehicle.estimatedRange}km.`,
       openGraph: {
         title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
@@ -35,7 +35,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     return {
-      title: "Vehicle | Auto Auctions Africa",
+      title: "Vehicle | autoexports.live",
     };
   }
 }

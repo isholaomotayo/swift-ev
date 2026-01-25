@@ -95,7 +95,7 @@ export const seedDatabase = mutation({
     let adminId;
     const existingAdmin = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", "admin@voltbid.africa"))
+      .withIndex("by_email", (q) => q.eq("email", "admin@autoexports.live"))
       .first();
 
     if (existingAdmin) {
@@ -103,7 +103,7 @@ export const seedDatabase = mutation({
       console.log("✓ Admin user already exists, skipping creation");
     } else {
       adminId = await ctx.db.insert("users", {
-        email: "admin@voltbid.africa",
+        email: "admin@autoexports.live",
         firstName: "System",
         lastName: "Administrator",
         passwordHash: "$2a$10$guhGBa7/c2jbqJt9i8gkrOKyueMx6CpCg6IZAfSJBTjN/UhJOG88K", // admin123
@@ -569,7 +569,7 @@ export const seedDatabase = mutation({
 
     // Create a live auction
     const auctionId = await ctx.db.insert("auctions", {
-      name: "VoltBid Weekly EV Auction - January 2026",
+      name: "AutoExports Weekly EV Auction - January 2026",
       description: "Premium electric vehicles from top Chinese manufacturers. All vehicles inspected and certified with battery health reports.",
       auctionType: "timed",
       status: "live",
@@ -836,7 +836,7 @@ export const seedDatabase = mutation({
         watchlist: 4,
       },
       credentials: {
-        admin: { email: "admin@voltbid.africa", password: "admin123" },
+        admin: { email: "admin@autoexports.live", password: "admin123" },
         vendor1: { email: "vendor@bydnigeria.com", password: "vendor123" },
         vendor2: { email: "sales@xpeng-ng.com", password: "vendor456" },
         buyer1: { email: "john.doe@example.com", password: "buyer123" },

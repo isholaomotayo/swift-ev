@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-    title: "My Disputes | Auto Auctions Africa",
+    title: "My Disputes | autoexports.live",
     description: "View and manage your dispute cases",
 };
 
 export default async function DisputesPage() {
     const cookieStore = await cookies();
-    const token = cookieStore.get("voltbid_token")?.value;
+    const token = cookieStore.get("autoexports_token")?.value;
 
     if (!token) {
         redirect("/login");

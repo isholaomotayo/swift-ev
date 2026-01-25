@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Car, Battery, MapPin, Gavel, FileText, ImageIcon, X, Upload } from "lucide-react";
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
 import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS, VEHICLE_MAKES } from "@/lib/constants";
-import { ImageGallery } from "@/components/voltbid/image-gallery";
+import { ImageGallery } from "@/components/autoexports/image-gallery";
 
 interface VehicleActionsModalProps {
     vehicle: any;

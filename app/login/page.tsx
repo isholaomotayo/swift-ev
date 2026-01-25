@@ -64,7 +64,7 @@ export default function LoginPage() {
                 <Zap className="h-7 w-7" fill="currentColor" />
               </div>
               <span className="font-black text-2xl tracking-tighter">
-                Auto Auctions <span className="text-gradient">Africa</span>
+                autoexports <span className="text-gradient">.live</span>
               </span>
             </Link>
           </div>
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
         {/* Bottom Credits */}
         <div className="relative z-10 flex items-center justify-between opacity-50 text-sm">
-          <span>&copy; 2026 Auto Auctions Africa</span>
+          <span>&copy; 2026 autoexports.live</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">Privacy</Link>
             <Link href="/terms" className="hover:underline">Terms</Link>

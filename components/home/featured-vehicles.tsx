@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { VehicleCard } from "@/components/voltbid/vehicle-card";
+import { VehicleCard } from "@/components/autoexports/vehicle-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

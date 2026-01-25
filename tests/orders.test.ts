@@ -14,7 +14,7 @@ describe("Orders", () => {
   beforeAll(async () => {
     // Login as admin
     const adminLogin = await client.mutation(api.auth.login, {
-      email: "admin@voltbid.africa",
+      email: "admin@autoexports.live",
       password: "admin123",
     });
     adminToken = adminLogin.token;

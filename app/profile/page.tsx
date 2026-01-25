@@ -6,7 +6,7 @@ import { ProfileClient } from "@/components/profile/profile-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Profile | Auto Auctions Africa",
+  title: "My Profile | autoexports.live",
   description: "Manage your account and view your activity",
   robots: {
     index: false,
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login");

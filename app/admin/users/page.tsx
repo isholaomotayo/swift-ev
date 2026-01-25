@@ -5,7 +5,7 @@ import { UsersListClient } from "@/components/admin/users-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Users | Admin | Auto Auctions Africa",
+  title: "Manage Users | Admin | autoexports.live",
   description: "Manage all platform users",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminUsersPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

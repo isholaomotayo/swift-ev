@@ -1,4 +1,4 @@
-# VoltBid Africa - Database Seeding Guide
+# autoexports.live - Database Seeding Guide
 
 ## User Types Available
 
@@ -38,7 +38,7 @@ The platform supports **4 user roles**:
 The seed data creates:
 - ✅ **6 Users**: 1 admin, 2 vendors, 3 buyers
 - ✅ **6 Vehicles**: From BYD, XPeng, and NIO
-- ✅ **1 Live Auction**: "VoltBid Weekly EV Auction"
+- ✅ **1 Live Auction**: "AutoExports Weekly EV Auction"
 - ✅ **4 Auction Lots**: 1 active (with live bidding), 3 pending
 - ✅ **8 Bids**: Real bidding activity on active lot
 - ✅ **2 Max Bids**: Proxy bidding setup
@@ -97,7 +97,7 @@ After seeding, you can log in with these accounts:
 
 ### Admin Account
 ```
-Email: admin@voltbid.africa
+Email: admin@autoexports.live
 Password: admin123
 ```
 
@@ -251,7 +251,7 @@ After seeding, you can test:
 
 ## Current Auction Status
 
-**VoltBid Weekly EV Auction - January 2026**
+**AutoExports Weekly EV Auction - January 2026**
 - Status: 🟢 LIVE
 - Started: 2 hours ago
 - Ends: In 22 hours
@@ -365,4 +365,4 @@ After seeding:
 
 ---
 
-Enjoy testing VoltBid Africa! ⚡🚗
+Enjoy testing autoexports.live! ⚡🚗

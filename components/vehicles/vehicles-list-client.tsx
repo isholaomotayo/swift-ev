@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
-import { VehicleCard } from "@/components/voltbid/vehicle-card";
+import { VehicleCard } from "@/components/autoexports/vehicle-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

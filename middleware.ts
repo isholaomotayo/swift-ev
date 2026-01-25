@@ -1,29 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Get token from cookie
-  const token = request.cookies.get("voltbid_token")?.value;
-
-  // Public paths that don't require authentication
-  const publicPaths = [
-    "/",
-    "/vehicles",
-    "/auctions",
-    "/how-it-works",
-    "/pricing",
-    "/login",
-    "/register",
-    "/api",
-  ];
-
-  // Check if path is public
-  const isPublicPath =
-    publicPaths.some((path) => pathname === path || pathname.startsWith(path + "/")) ||
-    pathname.startsWith("/vehicles/") ||
-    pathname.startsWith("/auctions/");
+  const token = request.cookies.get("autoexports_token")?.value;
 
   // Protected paths
   const isProtectedPath =

@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api";
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | Auto Auctions Africa",
-  description: "Admin dashboard for managing Auto Auctions Africa platform",
+  title: "Admin Dashboard | autoexports.live",
+  description: "Admin dashboard for managing autoexports.live platform",
   robots: {
     index: false,
     follow: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminDashboard() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

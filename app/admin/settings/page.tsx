@@ -5,7 +5,7 @@ import { SettingsClient } from "@/components/admin/settings-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "System Settings | Admin | Auto Auctions Africa",
+  title: "System Settings | Admin | autoexports.live",
   description: "Configure platform-wide settings",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminSettingsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

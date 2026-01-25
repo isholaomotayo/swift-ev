@@ -28,8 +28,8 @@ const faqCategories: FAQCategory[] = [
         title: "General",
         questions: [
             {
-                q: "What is Auto Auctions Africa?",
-                a: "Auto Auctions Africa is a competitive vehicle auction platform that allows buyers to bid transparently on quality vehicles sourced primarily from China, Japan, Germany, and the USA. Unlike traditional marketplaces with fixed prices, we create a competitive auction environment where buyers compete in real-time for vehicles."
+                q: "What is autoexports.live?",
+                a: "autoexports.live is a competitive vehicle auction platform that allows buyers to bid transparently on quality vehicles sourced primarily from China, Japan, Germany, and the USA. Unlike traditional marketplaces with fixed prices, we create a competitive auction environment where buyers compete in real-time for vehicles."
             },
             {
                 q: "Is this a marketplace or an auction?",

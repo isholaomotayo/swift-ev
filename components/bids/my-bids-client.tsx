@@ -17,7 +17,7 @@ import { api } from "@/convex/_generated/api";
 import { Gavel } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { BidStatusBadge } from "@/components/voltbid/bid-status-badge";
+import { BidStatusBadge } from "@/components/autoexports/bid-status-badge";
 import { UserBid } from "@/lib/types";
 
 interface MyBidsClientProps {

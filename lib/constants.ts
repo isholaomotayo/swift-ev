@@ -1,6 +1,10 @@
 /**
- * Auto Auctions Africa Platform Constants
+ * autoexports.live Platform Constants
  */
+
+export const SITE_NAME = "autoexports.live";
+export const BRAND_TAGLINE = "Bid. Win. Export.";
+export const SUPPORT_EMAIL = "hello@autoexports.live";
 
 // UI Constants
 export const UPCOMING_LOTS_DISPLAY_COUNT = 10; // Number of upcoming lots to show in auction room
@@ -360,7 +364,7 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "im
 
 // Contact Information
 export const CONTACT_INFO = {
-  EMAIL: "support@autoauctions.africa",
+  EMAIL: "support@autoexports.live",
   PHONE: "+234 XXX XXX XXXX",
   ADDRESS: "Lagos, Nigeria",
   SUPPORT_HOURS: "Monday - Friday, 9AM - 6PM WAT",

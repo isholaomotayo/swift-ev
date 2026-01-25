@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Pricing & Membership | Auto Auctions Africa",
+  title: "Pricing & Membership | autoexports.live",
   description:
     "View our transparent pricing structure and membership tiers. No hidden fees - see all costs upfront including duties, taxes, and shipping.",
   keywords: [
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "Nigeria",
   ],
   openGraph: {
-    title: "Pricing & Membership | Auto Auctions Africa",
+    title: "Pricing & Membership | autoexports.live",
     description: "View our transparent pricing structure and membership tiers.",
     type: "website",
   },

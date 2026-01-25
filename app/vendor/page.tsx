@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorDashboardClient } from "@/components/vendor/vendor-dashboard-client";
 
 export const metadata: Metadata = {
-  title: "Vendor Dashboard | Auto Auctions Africa",
+  title: "Vendor Dashboard | autoexports.live",
   description: "Manage your vehicles and track your performance",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function VendorDashboard() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

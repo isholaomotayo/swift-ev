@@ -5,8 +5,8 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Auto Auctions Africa",
-  description: "Your Auto Auctions Africa dashboard - manage your bids, watchlist, orders, and profile.",
+  title: "Dashboard | autoexports.live",
+  description: "Your autoexports.live dashboard - manage your bids, watchlist, orders, and profile.",
   robots: {
     index: false,
     follow: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

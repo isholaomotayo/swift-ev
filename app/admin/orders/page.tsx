@@ -5,7 +5,7 @@ import { OrdersListClient } from "@/components/admin/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Orders | Admin | Auto Auctions Africa",
+  title: "Manage Orders | Admin | autoexports.live",
   description: "Track and manage all orders",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminOrdersPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

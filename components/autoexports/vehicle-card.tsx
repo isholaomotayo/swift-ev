@@ -3,7 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Zap, Battery, Timer } from "lucide-react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AuctionTimer } from "./auction-timer";
@@ -60,11 +65,13 @@ export function VehicleCard({
   const canBid = isInAuction || isPreBidding;
 
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-border/50 bg-card/50 backdrop-blur-sm hover:-translate-y-1",
-      isInAuction ? "hover:shadow-volt-green/20" : "hover:shadow-primary/20",
-      className
-    )}>
+    <Card
+      className={cn(
+        "group relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-border/50 bg-card/50 backdrop-blur-sm hover:-translate-y-1",
+        isInAuction ? "hover:shadow-volt-green/20" : "hover:shadow-primary/20",
+        className,
+      )}
+    >
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {heroImage ? (
@@ -72,6 +79,7 @@ export function VehicleCard({
             src={heroImage}
             alt={`${year} ${make} ${model}`}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
           />
         ) : (
@@ -84,7 +92,10 @@ export function VehicleCard({
 
         {/* Lot Number Badge */}
         <div className="absolute top-3 left-3 z-10">
-          <Badge variant="secondary" className="font-mono bg-black/60 text-white border-white/10 backdrop-blur-md shadow-sm">
+          <Badge
+            variant="secondary"
+            className="font-mono bg-black/60 text-white border-white/10 backdrop-blur-md shadow-sm"
+          >
             LOT #{lotNumber}
           </Badge>
         </div>
@@ -102,7 +113,7 @@ export function VehicleCard({
           <Heart
             className={cn(
               "h-5 w-5 transition-colors duration-300",
-              isWatchlisted ? "fill-error-red text-error-red" : "text-white"
+              isWatchlisted ? "fill-error-red text-error-red" : "text-white",
             )}
           />
         </Button>
@@ -157,10 +168,15 @@ export function VehicleCard({
           <div className="bg-muted/30 rounded-xl p-3 border border-border/50 group-hover:border-electric-blue/30 transition-colors">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {isInAuction ? "Current Bid" : isPreBidding ? "Current Pre-Bid" : "Starting Bid"}
+                {isInAuction
+                  ? "Current Bid"
+                  : isPreBidding
+                    ? "Current Pre-Bid"
+                    : "Starting Bid"}
               </span>
               <Badge variant="outline" className="text-xs bg-background">
-                {auctionLot.bidCount} {auctionLot.bidCount === 1 ? "bid" : "bids"}
+                {auctionLot.bidCount}{" "}
+                {auctionLot.bidCount === 1 ? "bid" : "bids"}
               </Badge>
             </div>
 
@@ -168,7 +184,13 @@ export function VehicleCard({
               <PriceDisplay
                 amount={auctionLot.currentBid}
                 variant="large"
-                className={cn(isInAuction ? "text-volt-green" : isPreBidding ? "text-electric-blue" : "text-foreground")}
+                className={cn(
+                  isInAuction
+                    ? "text-volt-green"
+                    : isPreBidding
+                      ? "text-electric-blue"
+                      : "text-foreground",
+                )}
               />
 
               {isInAuction && auctionLot.endsAt && (
@@ -190,7 +212,11 @@ export function VehicleCard({
 
       <CardFooter className="pt-2 px-5 pb-5">
         <div className="flex w-full gap-3">
-          <Button variant="outline" className="flex-1 font-semibold group-hover:border-electric-blue/50 group-hover:text-electric-blue hover:bg-electric-blue/5 transition-all" asChild>
+          <Button
+            variant="outline"
+            className="flex-1 font-semibold group-hover:border-electric-blue/50 group-hover:text-electric-blue hover:bg-electric-blue/5 transition-all"
+            asChild
+          >
             <Link href={`/vehicles/${_id}`}>View Details</Link>
           </Button>
           {canBid && onBidClick && (
@@ -199,7 +225,7 @@ export function VehicleCard({
                 "flex-1 text-white shadow-lg transition-all font-semibold",
                 isInAuction
                   ? "bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green shadow-volt-green/20 hover:shadow-volt-green/40"
-                  : "bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-electric-blue/20 hover:shadow-electric-blue/40"
+                  : "bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-electric-blue/20 hover:shadow-electric-blue/40",
               )}
               onClick={onBidClick}
             >

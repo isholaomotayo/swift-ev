@@ -74,7 +74,7 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
             </div>
             <div>
               <span className="font-bold text-xl tracking-tight block leading-none">
-                VoltBid
+                AutoExports
               </span>
               <span className="text-xs font-bold text-volt-green uppercase tracking-widest">
                 Vendor Portal

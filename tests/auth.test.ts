@@ -9,13 +9,13 @@ describe("Authentication", () => {
   describe("Login", () => {
     test("admin can login with correct credentials", async () => {
       const result = await client.mutation(api.auth.login, {
-        email: "admin@voltbid.africa",
+        email: "admin@autoexports.live",
         password: "admin123",
       });
 
       expect(result.token).toBeDefined();
       expect(result.token).toStartWith("token_");
-      expect(result.user.email).toBe("admin@voltbid.africa");
+      expect(result.user.email).toBe("admin@autoexports.live");
       expect(result.user.role).toBe("superadmin");
       expect(result.user.firstName).toBe("System");
       expect(result.user.lastName).toBe("Administrator");

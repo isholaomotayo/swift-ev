@@ -134,7 +134,7 @@ export default function RegisterPage() {
             <span className="text-gradient">Future of Mobility</span>
           </h2>
           <p className="text-xl text-white/70 max-w-lg mb-12 font-medium">
-            Join Auto Auctions Africa and get access to exclusive vehicle auctions from leading manufacturers worldwide.
+            Join autoexports.live and get access to exclusive vehicle auctions from leading manufacturers worldwide.
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between opacity-50 text-sm font-medium">
-          <span>&copy; 2026 Auto Auctions Africa</span>
+          <span>&copy; 2026 autoexports.live</span>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
             <Link href="/terms" className="hover:underline">Terms of Use</Link>
@@ -184,7 +184,7 @@ export default function RegisterPage() {
                 <Zap className="h-7 w-7" />
               </div>
               <span className="font-black text-2xl tracking-tighter">
-                Auto Auctions <span className="text-gradient">Africa</span>
+                autoexports <span className="text-gradient">.live</span>
               </span>
             </Link>
           </div>

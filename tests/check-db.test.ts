@@ -9,7 +9,7 @@ describe("Database Check", () => {
   test("check what password hashes are actually stored", async () => {
     // Login as admin to get a token
     const loginResult = await client.mutation(api.auth.login, {
-      email: "admin@voltbid.africa",
+      email: "admin@autoexports.live",
       password: "admin123",
     });
 
@@ -20,6 +20,6 @@ describe("Database Check", () => {
     console.log("Passwords are now properly hashed using bcryptjs with 10 salt rounds.");
 
     expect(loginResult.token).toBeDefined();
-    expect(loginResult.user.email).toBe("admin@voltbid.africa");
+    expect(loginResult.user.email).toBe("admin@autoexports.live");
   });
 });

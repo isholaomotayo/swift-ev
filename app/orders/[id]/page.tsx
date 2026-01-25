@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   return {
-    title: "Order Details | Auto Auctions Africa",
+    title: "Order Details | autoexports.live",
     robots: {
       index: false,
       follow: false,
@@ -26,7 +26,7 @@ export default async function OrderDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login");

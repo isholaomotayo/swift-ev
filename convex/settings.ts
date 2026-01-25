@@ -237,8 +237,8 @@ export const initializeDefaultSettings = mutation({
       // Platform settings
       { key: "platform.serviceFeePercent", value: "5", description: "Service fee percentage" },
       { key: "platform.documentationFee", value: "500", description: "Documentation fee" },
-      { key: "platform.companyName", value: "VoltBid Africa", description: "Company name" },
-      { key: "platform.supportEmail", value: "support@voltbid.africa", description: "Support email" },
+      { key: "platform.companyName", value: "autoexports.live", description: "Company name" },
+      { key: "platform.supportEmail", value: "support@autoexports.live", description: "Support email" },
 
       // Membership settings
       { key: "membership.basic.price", value: "0", description: "Basic membership price" },

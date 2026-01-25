@@ -1,6 +1,6 @@
 # Implementation Plan - Platform Redesign
 
-Refine the visual identity of the VoltBid Africa platform, focusing on the Homepage, Auth pages, and other static pages to achieve a "Premium," "Dynamic," and "Modern" aesthetic.
+Refine the visual identity of the autoexports.live platform, focusing on the Homepage, Auth pages, and other static pages to achieve a "Premium," "Dynamic," and "Modern" aesthetic.
 
 ## User Review Required
 

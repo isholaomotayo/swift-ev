@@ -5,7 +5,7 @@ import { VendorAnalyticsClient } from "@/components/vendor/analytics-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Analytics | Vendor | Auto Auctions Africa",
+  title: "Analytics | Vendor | autoexports.live",
   description: "Track your performance and sales",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function VendorAnalyticsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { AdminAuctionsClient } from "@/components/admin/admin-auctions-client";
 
 export const metadata: Metadata = {
-  title: "Manage Auctions | Admin | Auto Auctions Africa",
+  title: "Manage Auctions | Admin | autoexports.live",
   description: "Manage all auction events and lots",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminAuctionsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

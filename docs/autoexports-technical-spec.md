@@ -1,8 +1,8 @@
-# VoltBid Africa — Technical Specification & Feature Plan
+# autoexports.live — Technical Specification & Feature Plan
 
 ## Document Overview
 
-This document provides a complete technical roadmap for building the VoltBid Africa electric vehicle auction platform. The platform is modeled on Copart's proven auction mechanics while adding specialized features for EV imports to Nigeria and the African market, with deep integration for Chinese manufacturer partnerships.
+This document provides a complete technical roadmap for building the autoexports.live electric vehicle auction platform. The platform is modeled on Copart's proven auction mechanics while adding specialized features for EV imports to Nigeria and the African market, with deep integration for Chinese manufacturer partnerships.
 
 **Technology Stack:**
 - **Frontend:** Next.js 14+ (App Router)
@@ -96,7 +96,7 @@ This document provides a complete technical roadmap for building the VoltBid Afr
 ### 1.2 Directory Structure
 
 ```
-voltbid-africa/
+autoexports.live/
 ├── app/                          # Next.js App Router
 │   ├── (public)/                 # Public routes
 │   │   ├── page.tsx              # Homepage
@@ -937,7 +937,7 @@ The bidding system supports multiple bid types modeled after Copart:
 
 ```env
 # App
-NEXT_PUBLIC_APP_URL=https://voltbid.africa
+NEXT_PUBLIC_APP_URL=https://autoexports.live
 
 # Convex
 CONVEX_DEPLOYMENT=your-deployment
@@ -983,4 +983,4 @@ TERMII_API_KEY=xxx
 
 *Document Version: 1.0*
 *Last Updated: December 2025*
-*Prepared for: VoltBid Africa Platform Development*
+*Prepared for: autoexports.live Platform Development*

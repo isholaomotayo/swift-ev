@@ -1,228 +1,253 @@
-import type { Metadata } from "next";
-import { Shield, Lock, CheckCircle, AlertTriangle, Users, FileCheck, Scale, HeadphonesIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-    title: "Trust & Safety | Auto Auctions Africa",
-    description: "Learn how Auto Auctions Africa protects buyers and sellers with escrow, verification, and fraud prevention.",
-};
+import { Shield, Lock, AlertTriangle, HeadphonesIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { SITE_NAME } from "@/lib/constants";
 
 export default function TrustSafetyPage() {
-    return (
-        <div className="min-h-screen">
-            {/* Hero */}
-            <section className="bg-gradient-to-br from-deep-navy via-trust-blue to-electric-blue text-white py-20">
-                <div className="container mx-auto px-4 text-center">
-                    <Shield className="h-16 w-16 mx-auto mb-6 text-auction-gold" />
-                    <h1 className="text-4xl md:text-5xl font-black mb-4">Trust & Safety</h1>
-                    <p className="text-xl text-white/80 max-w-2xl mx-auto">
-                        Your security is our priority. Learn how we protect every transaction on Auto Auctions Africa.
-                    </p>
+  return (
+    <div className="flex min-h-screen flex-col bg-slate-50 text-brand-primary">
+      <Header />
+      <main className="flex-1">
+        {/* Hero - REBUILT FOR DEPTH */}
+        <section className="bg-brand-primary text-white py-24 md:py-32 relative overflow-hidden">
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <Badge className="mb-8 px-6 py-2 rounded-none bg-brand-gold text-brand-primary border-none uppercase tracking-[0.4em] font-black text-[10px]">
+              Security Protocol
+            </Badge>
+            <h1 className="text-5xl md:text-8xl font-black mb-6 uppercase italic tracking-tighter">
+              Armor <span className="text-brand-gold not-italic">Plated.</span>
+            </h1>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
+              Global trade requires absolute trust. We&apos;ve built the
+              industry&apos;s most robust verification and escrow infrastructure
+              for {SITE_NAME}.
+            </p>
+          </div>
+        </section>
+
+        <div className="container mx-auto px-4 py-24 max-w-6xl">
+          {/* Escrow Protection - SOLID DESIGN */}
+          <section className="mb-24">
+            <div className="grid lg:grid-cols-[1fr_2fr] gap-12 items-start">
+              <div className="bg-white p-12 border-4 border-brand-primary shadow-[12px_12px_0px_0px_rgba(15,23,42,0.1)]">
+                <div className="h-16 w-16 bg-brand-success text-white flex items-center justify-center mb-8 shadow-lg">
+                  <Lock className="h-8 w-8" />
                 </div>
-            </section>
+                <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-6 leading-none">
+                  Escrow <br />
+                  Protected.
+                </h2>
+                <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                  Your capital never touches the seller until the vehicle is
+                  inspected and cleared for export.
+                </p>
+                <Button className="w-full h-14 bg-brand-primary text-white font-black uppercase tracking-widest rounded-none">
+                  Read Policy
+                </Button>
+              </div>
 
-            <div className="container mx-auto px-4 py-16 max-w-5xl">
-                {/* Escrow Protection */}
-                <section className="mb-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="h-12 w-12 rounded-full bg-success-green/10 flex items-center justify-center">
-                            <Lock className="h-6 w-6 text-success-green" />
-                        </div>
-                        <h2 className="text-3xl font-bold">Escrow Protection</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {[
+                  {
+                    step: "01",
+                    title: "Capital Injection",
+                    desc: "Funds are locked in a Tier-1 multi-sig custodial account.",
+                  },
+                  {
+                    step: "02",
+                    title: "Asset Verification",
+                    desc: "Independent 180-point onsite inspection complete.",
+                  },
+                  {
+                    step: "03",
+                    title: "Export Transit",
+                    desc: "Bill of Lading issued and title transfer initiated.",
+                  },
+                  {
+                    step: "04",
+                    title: "Success Release",
+                    desc: "Capital released to seller upon terminal arrival.",
+                  },
+                ].map((step, i) => (
+                  <div
+                    key={i}
+                    className="bg-white p-8 border border-slate-200 hover:border-brand-primary transition-colors"
+                  >
+                    <div className="text-brand-gold font-black text-xs tracking-widest uppercase mb-4">
+                      {step.step} • Milestone
                     </div>
-                    <Card className="p-8 bg-success-green/5 border-success-green/20">
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div>
-                                <h3 className="font-bold text-lg mb-3">How It Works</h3>
-                                <ol className="space-y-3 text-muted-foreground">
-                                    <li className="flex gap-3">
-                                        <span className="h-6 w-6 rounded-full bg-success-green text-white flex items-center justify-center text-sm font-bold shrink-0">1</span>
-                                        Buyer pays into Auto Auctions Africa escrow account
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="h-6 w-6 rounded-full bg-success-green text-white flex items-center justify-center text-sm font-bold shrink-0">2</span>
-                                        Seller ships vehicle with tracking
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="h-6 w-6 rounded-full bg-success-green text-white flex items-center justify-center text-sm font-bold shrink-0">3</span>
-                                        Buyer inspects and confirms delivery
-                                    </li>
-                                    <li className="flex gap-3">
-                                        <span className="h-6 w-6 rounded-full bg-success-green text-white flex items-center justify-center text-sm font-bold shrink-0">4</span>
-                                        Funds released to seller
-                                    </li>
-                                </ol>
-                            </div>
-                            <div className="bg-white dark:bg-card rounded-lg p-6 border">
-                                <h3 className="font-bold text-lg mb-3">Your Protection</h3>
-                                <ul className="space-y-2 text-sm">
-                                    <li className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-success-green" />
-                                        100% of funds held securely until delivery
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-success-green" />
-                                        Full refund if vehicle doesn't arrive
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-success-green" />
-                                        48-hour inspection window
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-success-green" />
-                                        Dispute resolution support
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </Card>
-                </section>
-
-                {/* Verification Badges */}
-                <section className="mb-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="h-12 w-12 rounded-full bg-electric-blue/10 flex items-center justify-center">
-                            <FileCheck className="h-6 w-6 text-electric-blue" />
-                        </div>
-                        <h2 className="text-3xl font-bold">Verification Badges</h2>
-                    </div>
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <Card className="p-6 text-center">
-                            <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/20 mx-auto mb-4 flex items-center justify-center">
-                                <CheckCircle className="h-8 w-8 text-blue-600" />
-                            </div>
-                            <h3 className="font-bold mb-2">Verified Seller</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Business license verified, minimum 10 successful sales, 4.5+ rating
-                            </p>
-                        </Card>
-                        <Card className="p-6 text-center">
-                            <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/20 mx-auto mb-4 flex items-center justify-center">
-                                <Shield className="h-8 w-8 text-green-600" />
-                            </div>
-                            <h3 className="font-bold mb-2">Top Rated</h3>
-                            <p className="text-sm text-muted-foreground">
-                                50+ sales, 4.8+ rating, zero disputes in last 90 days
-                            </p>
-                        </Card>
-                        <Card className="p-6 text-center">
-                            <div className="h-16 w-16 rounded-full bg-yellow-100 dark:bg-yellow-900/20 mx-auto mb-4 flex items-center justify-center">
-                                <Users className="h-8 w-8 text-yellow-600" />
-                            </div>
-                            <h3 className="font-bold mb-2">KYC Verified</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Identity verified, linked bank account, phone verified
-                            </p>
-                        </Card>
-                    </div>
-                </section>
-
-                {/* Fraud Prevention */}
-                <section className="mb-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="h-12 w-12 rounded-full bg-error-red/10 flex items-center justify-center">
-                            <AlertTriangle className="h-6 w-6 text-error-red" />
-                        </div>
-                        <h2 className="text-3xl font-bold">Fraud Prevention</h2>
-                    </div>
-                    <Card className="p-8">
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div>
-                                <h3 className="font-bold text-lg mb-4">We Protect Against</h3>
-                                <ul className="space-y-3">
-                                    <li className="flex items-start gap-3">
-                                        <AlertTriangle className="h-5 w-5 text-error-red mt-0.5" />
-                                        <div>
-                                            <p className="font-medium">Shill Bidding</p>
-                                            <p className="text-sm text-muted-foreground">AI monitors for artificial bid inflation</p>
-                                        </div>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <AlertTriangle className="h-5 w-5 text-error-red mt-0.5" />
-                                        <div>
-                                            <p className="font-medium">Misrepresentation</p>
-                                            <p className="text-sm text-muted-foreground">All vehicles inspected before listing</p>
-                                        </div>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <AlertTriangle className="h-5 w-5 text-error-red mt-0.5" />
-                                        <div>
-                                            <p className="font-medium">Non-Delivery</p>
-                                            <p className="text-sm text-muted-foreground">Escrow holds funds until confirmed</p>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg mb-4">Stay Safe</h3>
-                                <ul className="space-y-2 text-sm text-muted-foreground">
-                                    <li>✓ Never pay outside of Auto Auctions Africa platform</li>
-                                    <li>✓ Check seller verification badges</li>
-                                    <li>✓ Review vehicle inspection reports</li>
-                                    <li>✓ Use our secure messaging system</li>
-                                    <li>✓ Report suspicious activity immediately</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </Card>
-                </section>
-
-                {/* Dispute Resolution */}
-                <section className="mb-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="h-12 w-12 rounded-full bg-trust-blue/10 flex items-center justify-center">
-                            <Scale className="h-6 w-6 text-trust-blue" />
-                        </div>
-                        <h2 className="text-3xl font-bold">Dispute Resolution</h2>
-                    </div>
-                    <Card className="p-8">
-                        <div className="grid md:grid-cols-4 gap-6 text-center">
-                            <div>
-                                <div className="text-3xl font-black text-trust-blue mb-2">24-48h</div>
-                                <p className="text-sm text-muted-foreground">Initial response time</p>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-black text-trust-blue mb-2">7 days</div>
-                                <p className="text-sm text-muted-foreground">Average resolution</p>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-black text-trust-blue mb-2">95%</div>
-                                <p className="text-sm text-muted-foreground">Resolved amicably</p>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-black text-trust-blue mb-2">100%</div>
-                                <p className="text-sm text-muted-foreground">Cases reviewed</p>
-                            </div>
-                        </div>
-                        <div className="mt-8 text-center">
-                            <Button asChild>
-                                <Link href="/disputes">File a Dispute</Link>
-                            </Button>
-                        </div>
-                    </Card>
-                </section>
-
-                {/* Contact */}
-                <section className="text-center">
-                    <div className="h-16 w-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                        <HeadphonesIcon className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">Need Help?</h2>
-                    <p className="text-muted-foreground mb-6">
-                        Our trust & safety team is available 24/7 to assist you.
+                    <h3 className="text-xl font-black uppercase italic mb-3">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                      {step.desc}
                     </p>
-                    <div className="flex justify-center gap-4">
-                        <Button variant="outline" asChild>
-                            <Link href="/faq">View FAQ</Link>
-                        </Button>
-                        <Button asChild>
-                            <Link href="mailto:safety@voltbid.africa">Contact Safety Team</Link>
-                        </Button>
-                    </div>
-                </section>
+                  </div>
+                ))}
+              </div>
             </div>
+          </section>
+
+          {/* Fraud Prevention - HIGH CONTRAST */}
+          <section className="mb-24 py-24 bg-slate-900 text-white rounded-[2rem] px-12 overflow-hidden relative">
+            <div className="grid lg:grid-cols-2 gap-20 items-center">
+              <div>
+                <Badge className="mb-6 px-4 py-1 bg-white/10 text-brand-accent border-none font-black text-[10px] uppercase tracking-widest">
+                  Counter-Fraud
+                </Badge>
+                <h2 className="text-4xl md:text-5xl font-black mb-8 uppercase italic tracking-tighter">
+                  Anti-Corruption <br />
+                  Systems.
+                </h2>
+                <div className="space-y-6">
+                  {[
+                    {
+                      title: "Shill Bid Monitoring",
+                      desc: "AI-driven behavioral analysis prevents artificial inflation.",
+                    },
+                    {
+                      title: "Asset Authentication",
+                      desc: "VIN analysis against 12 global databases for accident history.",
+                    },
+                    {
+                      title: "Verified Identity",
+                      desc: "Mandatory Tier-2 KYC for all buyers and sellers.",
+                    },
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-6 group">
+                      <div className="mt-1 transition-transform group-hover:scale-110">
+                        <AlertTriangle className="h-6 w-6 text-brand-accent" />
+                      </div>
+                      <div>
+                        <h4 className="font-black uppercase text-lg italic tracking-tight mb-1">
+                          {item.title}
+                        </h4>
+                        <p className="text-slate-400 text-sm font-medium">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="relative">
+                <div className="absolute -inset-10 bg-brand-gold/5 rounded-full blur-3xl" />
+                <div className="relative bg-white/5 border border-white/10 p-10 rounded-xl space-y-6">
+                  <div className="flex justify-between items-center border-b border-white/10 pb-6">
+                    <span className="font-black uppercase tracking-widest text-xs text-slate-500">
+                      Security Pulse
+                    </span>
+                    <span className="flex items-center gap-2 text-brand-success font-black text-xs uppercase tracking-widest">
+                      <div className="h-2 w-2 rounded-full bg-brand-success animate-pulse" />{" "}
+                      Live Protection
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full w-[98%] bg-brand-gold" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      System Integrity: 99.98%
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium italic">
+                    &quot;Our systems analyze over 4.2 million data points daily
+                    to ensure every bid is authentic and every seller is
+                    legitimate.&quot;
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Dispute Resolution - SOLID BLOCKS */}
+          <section className="mb-24">
+            <div className="text-center mb-16">
+              <div className="h-12 w-12 bg-brand-primary text-white flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Shield className="h-6 w-6" />
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">
+                Arbitration Framework.
+              </h2>
+            </div>
+            <div className="grid md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Response",
+                  val: "24-48H",
+                  desc: "Official acknowledgement",
+                },
+                {
+                  label: "Resolution",
+                  val: "7 Days",
+                  desc: "Average case closing",
+                },
+                {
+                  label: "Amicable",
+                  val: "95%",
+                  desc: "Bilateral agreement rate",
+                },
+                { label: "Reviewed", val: "100%", desc: "Human oversight" },
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  className="bg-white p-10 border border-slate-200 text-center hover:border-brand-primary transition-all"
+                >
+                  <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 italic">
+                    {stat.label}
+                  </div>
+                  <div className="text-4xl font-black text-brand-primary mb-2 italic">
+                    {stat.val}
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {stat.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Contact Support - GROUNDED FINAL SECTION */}
+          <section className="py-20 bg-brand-gold text-brand-primary text-center">
+            <div className="max-w-2xl mx-auto px-4">
+              <div className="h-16 w-16 bg-brand-primary text-white flex items-center justify-center mx-auto mb-8 shadow-xl rotate-3">
+                <HeadphonesIcon className="h-8 w-8" />
+              </div>
+              <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-4">
+                Immediate Assistance.
+              </h2>
+              <p className="text-brand-primary/70 font-bold mb-10 max-w-sm mx-auto uppercase tracking-tighter">
+                Our trust & safety team is deployed 24/7 across three timezones.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Button
+                  size="lg"
+                  className="h-16 px-10 bg-brand-primary text-white font-black uppercase tracking-widest rounded-none shadow-2xl"
+                  asChild
+                >
+                  <Link href="mailto:safety@autoexports.live">
+                    E-Mail Direct
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-16 px-10 border-2 border-brand-primary text-brand-primary font-black uppercase tracking-widest rounded-none hover:bg-brand-primary hover:text-white transition-all"
+                  asChild
+                >
+                  <Link href="/faq">Review Database</Link>
+                </Button>
+              </div>
+            </div>
+          </section>
         </div>
-    );
+      </main>
+      <Footer />
+    </div>
+  );
 }

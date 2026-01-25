@@ -5,7 +5,7 @@ import { AnalyticsClient } from "@/components/admin/analytics-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Analytics | Admin | Auto Auctions Africa",
+  title: "Analytics | Admin | autoexports.live",
   description: "Platform performance metrics",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AdminAnalyticsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

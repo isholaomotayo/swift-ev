@@ -6,7 +6,7 @@ import { OrdersListClient } from "@/components/orders/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Orders | Auto Auctions Africa",
+  title: "My Orders | autoexports.live",
   description: "Track your vehicle purchases",
   robots: {
     index: false,
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function OrdersPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login");

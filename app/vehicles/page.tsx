@@ -6,7 +6,7 @@ import { VehiclesListClient } from "@/components/vehicles/vehicles-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Browse Vehicles | Auto Auctions Africa",
+  title: "Browse Vehicles | autoexports.live",
   description:
     "Browse our curated selection of vehicles from Chinese manufacturers. Filter by make, year, price, and more.",
   keywords: [
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "auction platform",
   ],
   openGraph: {
-    title: "Browse Vehicles | Auto Auctions Africa",
+    title: "Browse Vehicles | autoexports.live",
     description: "Browse our curated selection of vehicles.",
     type: "website",
   },

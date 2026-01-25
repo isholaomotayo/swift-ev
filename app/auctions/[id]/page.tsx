@@ -20,12 +20,12 @@ export async function generateMetadata({
     const auctionData = await convex.query(api.auctions.getAuctionById, { auctionId });
     if (!auctionData) {
       return {
-        title: "Auction Not Found | Auto Auctions Africa",
+        title: "Auction Not Found | autoexports.live",
       };
     }
 
     return {
-      title: `${auctionData.auction.name} | Auto Auctions Africa`,
+      title: `${auctionData.auction.name} | autoexports.live`,
       description: auctionData.auction.description || `Live auction with ${auctionData.lots.length} lots`,
       openGraph: {
         title: auctionData.auction.name,
@@ -34,7 +34,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     return {
-      title: "Auction | Auto Auctions Africa",
+      title: "Auction | autoexports.live",
     };
   }
 }

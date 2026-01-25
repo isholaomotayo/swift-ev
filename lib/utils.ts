@@ -132,7 +132,7 @@ export function getBatteryHealthBadge(healthPercent: number): {
 }
 
 /**
- * Calculate service fee based on VoltBid fee structure
+ * Calculate service fee based on AutoExports fee structure
  */
 export function calculateServiceFee(bidAmount: number): number {
   if (bidAmount <= 1_000_000) {

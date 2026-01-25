@@ -6,7 +6,7 @@ import { AuctionsList } from "@/components/auctions/auctions-list";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Live Auctions | Auto Auctions Africa",
+  title: "Live Auctions | autoexports.live",
   description:
     "Browse live, scheduled, and past car auctions. Join live auctions and bid on quality cars from Chinese manufacturers.",
   keywords: [
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "auction platform",
   ],
   openGraph: {
-    title: "Live Auctions | Auto Auctions Africa",
+    title: "Live Auctions | autoexports.live",
     description: "Browse live, scheduled, and past car auctions.",
     type: "website",
   },

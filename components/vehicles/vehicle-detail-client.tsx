@@ -1,31 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import {
   Heart,
-  Share2,
   FileText,
   MapPin,
-  Battery,
   Zap,
   ArrowLeft,
-  Calendar,
   Gauge,
   Info,
   ShieldCheck,
   Timer,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
-import { ImageGallery } from "@/components/voltbid/image-gallery";
-import { BatteryHealthBadge } from "@/components/voltbid/battery-health-badge";
-import { AuctionTimer } from "@/components/voltbid/auction-timer";
-import { BidButton } from "@/components/voltbid/bid-button";
-import { PriceDisplay } from "@/components/voltbid/price-display";
+import { ImageGallery } from "@/components/autoexports/image-gallery";
+import { BatteryHealthBadge } from "@/components/autoexports/battery-health-badge";
+import { AuctionTimer } from "@/components/autoexports/auction-timer";
+import { BidButton } from "@/components/autoexports/bid-button";
+import { PriceDisplay } from "@/components/autoexports/price-display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -35,16 +30,78 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { formatCurrency, formatVIN, formatLotNumber, formatRelativeTime, cn } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatVIN,
+  formatLotNumber,
+  formatRelativeTime,
+  cn,
+} from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
-import { LandedCostCalculator } from "@/components/voltbid/landed-cost-calculator";
+import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
+
+interface Bid {
+  _id: string;
+  amount: number;
+  createdAt: number;
+  userId: string;
+  type: string;
+}
+
+interface AuctionLot {
+  _id: Id<"auctionLots">;
+  currentBid: number;
+  bidCount: number;
+  status: string;
+  bidIncrement: number;
+  buyItNowPrice?: number;
+  buyItNowEnabled?: boolean;
+  endsAt?: number;
+}
+
+interface Vehicle {
+  _id: Id<"vehicles">;
+  lotNumber: string;
+  vin: string;
+  make: string;
+  model: string;
+  year: number;
+  batteryCapacity: number;
+  estimatedRange: number;
+  batteryHealthPercent?: number;
+  odometer: number;
+  currentLocation: {
+    city: string;
+    country: string;
+  };
+  startingBid?: number;
+  status: string;
+  images: Array<{
+    url: string;
+    alt: string;
+    type:
+      | "hero"
+      | "exterior"
+      | "interior"
+      | "damage"
+      | "document"
+      | "vin_plate";
+  }>;
+  heroImage?: string;
+  auctionLot?: AuctionLot;
+  bids: Bid[];
+  damageDescription?: string;
+  bodyType?: string;
+  transmission?: string;
+  drivetrain?: string;
+  motorPower?: number;
+}
 
 interface VehicleDetailClientProps {
-  initialVehicle: any;
+  initialVehicle: Vehicle;
   vehicleId: Id<"vehicles">;
 }
 
@@ -53,29 +110,13 @@ export function VehicleDetailClient({
   vehicleId,
 }: VehicleDetailClientProps) {
   const router = useRouter();
-  const [isActive, setIsActive] = useState(
-    initialVehicle?.auctionLot?.status === "active" || initialVehicle?.auctionLot?.status === "pending"
-  );
 
-  // Conditionally use real-time subscription ONLY if auction is active
-  const realtimeVehicle = useQuery(
-    api.vehicles.getVehicleById,
-    isActive ? { vehicleId } : "skip"
-  ) ?? initialVehicle;
+  // Use real-time data if available, otherwise use initial data
+  const realtimeVehicle =
+    (useQuery(api.vehicles.getVehicleById, { vehicleId }) as Vehicle | null) ??
+    initialVehicle;
 
-  // If real-time data shows auction ended, stop subscription
-  useEffect(() => {
-    if (
-      realtimeVehicle?.auctionLot?.status !== "active" &&
-      realtimeVehicle?.auctionLot?.status !== "pending" &&
-      isActive
-    ) {
-      setIsActive(false);
-    }
-  }, [realtimeVehicle?.auctionLot?.status, isActive]);
-
-  // Use real-time data if available and active, otherwise use initial data
-  const vehicle = isActive && realtimeVehicle !== undefined ? realtimeVehicle : initialVehicle;
+  const vehicle = realtimeVehicle;
 
   if (!vehicle) {
     return (
@@ -85,7 +126,7 @@ export function VehicleDetailClient({
         </div>
         <h1 className="text-3xl font-bold mb-2">Vehicle Not Found</h1>
         <p className="text-muted-foreground mb-8 max-w-md">
-          The vehicle you're looking for differs or has been removed.
+          The vehicle you&apos;re looking for differs or has been removed.
         </p>
         <Button onClick={() => router.push("/vehicles")} size="lg">
           Browse All Vehicles
@@ -94,7 +135,7 @@ export function VehicleDetailClient({
     );
   }
 
-  const { auctionLot, images, bids, documents } = vehicle;
+  const { auctionLot, images, bids } = vehicle;
   const currentBid = auctionLot?.currentBid || vehicle.startingBid || 0;
   const bidCount = auctionLot?.bidCount || 0;
   const isLive = auctionLot?.status === "active";
@@ -102,18 +143,20 @@ export function VehicleDetailClient({
   const canBid = isLive || isPreBid;
 
   // Hero Image Handling
-  const heroImage = images && images.length > 0 ? images[0] : null;
+  const heroImageUrl =
+    vehicle.heroImage || (images && images.length > 0 ? images[0].url : null);
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       {/* Immersive Hero Section */}
       <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden bg-muted">
-        {heroImage ? (
+        {heroImageUrl ? (
           <>
             <Image
-              src={heroImage}
+              src={heroImageUrl}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               fill
+              sizes="100vw"
               className="object-cover"
               priority
             />
@@ -129,7 +172,11 @@ export function VehicleDetailClient({
         {/* Back Button */}
         <div className="absolute top-6 left-4 md:left-8 z-10">
           <Link href="/vehicles">
-            <Button variant="outline" size="sm" className="bg-black/30 md:bg-black/50 hover:bg-black/70 text-white border-white/20 backdrop-blur-md">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-black/30 md:bg-black/50 hover:bg-black/70 text-white border-white/20 backdrop-blur-md"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Listings
             </Button>
@@ -146,7 +193,9 @@ export function VehicleDetailClient({
                     {vehicle.year}
                   </Badge>
                   {vehicle.batteryHealthPercent && (
-                    <BatteryHealthBadge healthPercent={vehicle.batteryHealthPercent} />
+                    <BatteryHealthBadge
+                      healthPercent={vehicle.batteryHealthPercent}
+                    />
                   )}
                 </div>
                 <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight drop-shadow-lg">
@@ -159,7 +208,8 @@ export function VehicleDetailClient({
                   </div>
                   <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
                     <MapPin className="h-4 w-4 text-error-red" />
-                    {vehicle.currentLocation.city}, {vehicle.currentLocation.country}
+                    {vehicle.currentLocation.city},{" "}
+                    {vehicle.currentLocation.country}
                   </div>
                 </div>
               </div>
@@ -185,11 +235,36 @@ export function VehicleDetailClient({
             <div className="bg-card rounded-2xl border border-border/50 shadow-xl overflow-hidden">
               <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="w-full justify-start rounded-none border-b h-auto p-0 bg-muted/30 scrollbar-hide overflow-x-auto">
-                  <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold">Overview</TabsTrigger>
-                  <TabsTrigger value="inspection" className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold">Inspection</TabsTrigger>
-                  <TabsTrigger value="documents" className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold">Documents</TabsTrigger>
-                  <TabsTrigger value="seller" className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold">Seller</TabsTrigger>
-                  <TabsTrigger value="bids" className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold">Bid History ({bidCount})</TabsTrigger>
+                  <TabsTrigger
+                    value="overview"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold"
+                  >
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="inspection"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold"
+                  >
+                    Inspection
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="documents"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold"
+                  >
+                    Documents
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="seller"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold"
+                  >
+                    Seller
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="bids"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-electric-blue data-[state=active]:bg-transparent py-4 px-6 font-semibold"
+                  >
+                    Bid History ({bidCount})
+                  </TabsTrigger>
                 </TabsList>
 
                 <div className="p-6">
@@ -199,34 +274,51 @@ export function VehicleDetailClient({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">VIN</p>
-                        <p className="font-mono font-medium">{formatVIN(vehicle.vin)}</p>
+                        <p className="font-mono font-medium">
+                          {formatVIN(vehicle.vin)}
+                        </p>
                       </div>
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Mileage</p>
-                        <p className="font-medium">{vehicle.odometer.toLocaleString()} km</p>
+                        <p className="font-medium">
+                          {vehicle.odometer.toLocaleString()} km
+                        </p>
                       </div>
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Body Type</p>
-                        <p className="font-medium">{vehicle.bodyType || "SUV"}</p>
+                        <p className="font-medium">
+                          {vehicle.bodyType || "SUV"}
+                        </p>
                       </div>
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Transmission</p>
-                        <p className="font-medium">{vehicle.transmission || "Automatic"}</p>
+                        <p className="font-medium">
+                          {vehicle.transmission || "Automatic"}
+                        </p>
                       </div>
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Drive Type</p>
-                        <p className="font-medium">{vehicle.drivetrain || "AWD"}</p>
+                        <p className="font-medium">
+                          {vehicle.drivetrain || "AWD"}
+                        </p>
                       </div>
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Engine/Motor</p>
-                        <p className="font-medium">{vehicle.motorPower ? `${vehicle.motorPower} kW` : "2.0L 4-Cyl"}</p>
+                        <p className="font-medium">
+                          {vehicle.motorPower
+                            ? `${vehicle.motorPower} kW`
+                            : "2.0L 4-Cyl"}
+                        </p>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="font-bold mb-4 text-deep-navy">Condition & Features</h3>
+                      <h3 className="font-bold mb-4 text-deep-navy">
+                        Condition & Features
+                      </h3>
                       <p className="text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg">
-                        {vehicle.damageDescription || "Overall Condition: Excellent. Run & Drive: Yes. Keys Available: Yes (2 sets). Title Status: Clean. Export Eligible: Yes."}
+                        {vehicle.damageDescription ||
+                          "Overall Condition: Excellent. Run & Drive: Yes. Keys Available: Yes (2 sets). Title Status: Clean. Export Eligible: Yes."}
                       </p>
                     </div>
                   </TabsContent>
@@ -237,28 +329,51 @@ export function VehicleDetailClient({
                       <div className="flex items-center gap-3">
                         <ShieldCheck className="h-8 w-8 text-green-600" />
                         <div>
-                          <h4 className="font-bold text-green-800">Inspection Passed</h4>
-                          <p className="text-sm text-green-700">Verified by AutoCheck Guangzhou on Jan 10, 2026</p>
+                          <h4 className="font-bold text-green-800">
+                            Inspection Passed
+                          </h4>
+                          <p className="text-sm text-green-700">
+                            Verified by AutoCheck Guangzhou on Jan 10, 2026
+                          </p>
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-green-800">92/100</div>
+                      <div className="text-2xl font-black text-green-800">
+                        92/100
+                      </div>
                     </div>
 
                     <div className="grid gap-4">
                       <div className="p-4 border rounded-lg">
-                        <div className="flex justify-between font-bold mb-2"><span>Exterior</span> <span>94/100</span></div>
-                        <p className="text-sm text-muted-foreground">✓ Body panels: No dents. ⚠️ Minor: Small scratch on rear bumper.</p>
+                        <div className="flex justify-between font-bold mb-2">
+                          <span>Exterior</span> <span>94/100</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ✓ Body panels: No dents. ⚠️ Minor: Small scratch on
+                          rear bumper.
+                        </p>
                       </div>
                       <div className="p-4 border rounded-lg">
-                        <div className="flex justify-between font-bold mb-2"><span>Interior</span> <span>95/100</span></div>
-                        <p className="text-sm text-muted-foreground">✓ Seats: Excellent. ✓ Dashboard: No cracks. ✓ Electronics: All functioning.</p>
+                        <div className="flex justify-between font-bold mb-2">
+                          <span>Interior</span> <span>95/100</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ✓ Seats: Excellent. ✓ Dashboard: No cracks. ✓
+                          Electronics: All functioning.
+                        </p>
                       </div>
                       <div className="p-4 border rounded-lg">
-                        <div className="flex justify-between font-bold mb-2"><span>Mechanical</span> <span>90/100</span></div>
-                        <p className="text-sm text-muted-foreground">✓ Engine: Runs smoothly. ✓ Transmission: Shifts smoothly.</p>
+                        <div className="flex justify-between font-bold mb-2">
+                          <span>Mechanical</span> <span>90/100</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ✓ Engine: Runs smoothly. ✓ Transmission: Shifts
+                          smoothly.
+                        </p>
                       </div>
                     </div>
-                    <Button variant="outline" className="w-full">Download Full Inspection Report (PDF)</Button>
+                    <Button variant="outline" className="w-full">
+                      Download Full Inspection Report (PDF)
+                    </Button>
                   </TabsContent>
 
                   {/* DOCUMENTS TAB */}
@@ -281,7 +396,9 @@ export function VehicleDetailClient({
                         <span>Service History Records</span>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-4">All documents provided to winning bidder upon payment.</p>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      All documents provided to winning bidder upon payment.
+                    </p>
                   </TabsContent>
 
                   {/* SELLER TAB */}
@@ -291,9 +408,16 @@ export function VehicleDetailClient({
                         GAE
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg">Guangzhou Auto Export Ltd.</h4>
+                        <h4 className="font-bold text-lg">
+                          Guangzhou Auto Export Ltd.
+                        </h4>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">Verified Dealer</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          >
+                            Verified Dealer
+                          </Badge>
                           <span>• Member since Mar 2024</span>
                         </div>
                       </div>
@@ -301,15 +425,21 @@ export function VehicleDetailClient({
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <div className="font-black text-xl">234</div>
-                        <div className="text-xs text-muted-foreground uppercase">Total Sales</div>
+                        <div className="text-xs text-muted-foreground uppercase">
+                          Total Sales
+                        </div>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <div className="font-black text-xl">4.8/5</div>
-                        <div className="text-xs text-muted-foreground uppercase">Rating</div>
+                        <div className="text-xs text-muted-foreground uppercase">
+                          Rating
+                        </div>
                       </div>
                       <div className="p-4 bg-muted/30 rounded-lg">
                         <div className="font-black text-xl">100%</div>
-                        <div className="text-xs text-muted-foreground uppercase">Response Rate</div>
+                        <div className="text-xs text-muted-foreground uppercase">
+                          Response Rate
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
@@ -318,8 +448,12 @@ export function VehicleDetailClient({
                   <TabsContent value="bids" className="mt-0">
                     {bids.length === 0 ? (
                       <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed border-border">
-                        <p className="text-muted-foreground font-medium">No bids yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">Be the first to place a bid on this vehicle.</p>
+                        <p className="text-muted-foreground font-medium">
+                          No bids yet
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Be the first to place a bid on this vehicle.
+                        </p>
                       </div>
                     ) : (
                       <Table>
@@ -331,8 +465,11 @@ export function VehicleDetailClient({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {bids.map((bid: any) => (
-                            <TableRow key={bid._id} className="hover:bg-muted/30">
+                          {bids.map((bid: Bid) => (
+                            <TableRow
+                              key={bid._id}
+                              className="hover:bg-muted/30"
+                            >
                               <TableCell className="font-medium text-foreground">
                                 User {bid.userId.slice(-4)}
                               </TableCell>
@@ -362,20 +499,32 @@ export function VehicleDetailClient({
                 <div className="relative z-10">
                   <div className="flex justify-between items-center mb-6">
                     <div>
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Lot Number</p>
-                      <p className="font-mono font-bold text-lg">{formatLotNumber(vehicle.lotNumber)}</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                        Lot Number
+                      </p>
+                      <p className="font-mono font-bold text-lg">
+                        {formatLotNumber(vehicle.lotNumber)}
+                      </p>
                     </div>
                     <div className="text-right">
                       {isLive && (
                         <div className="flex flex-col items-end">
-                          <Badge variant="outline" className="bg-volt-green/10 text-volt-green border-volt-green/20 animate-pulse px-3 py-1 mb-1">
+                          <Badge
+                            variant="outline"
+                            className="bg-volt-green/10 text-volt-green border-volt-green/20 animate-pulse px-3 py-1 mb-1"
+                          >
                             • Live Auction
                           </Badge>
-                          <span className="text-xs text-muted-foreground font-mono flex items-center gap-1"><Heart className="h-3 w-3" /> 156 Watchers</span>
+                          <span className="text-xs text-muted-foreground font-mono flex items-center gap-1">
+                            <Heart className="h-3 w-3" /> 156 Watchers
+                          </span>
                         </div>
                       )}
                       {isPreBid && (
-                        <Badge variant="outline" className="bg-electric-blue/10 text-electric-blue border-electric-blue/20 px-3 py-1">
+                        <Badge
+                          variant="outline"
+                          className="bg-electric-blue/10 text-electric-blue border-electric-blue/20 px-3 py-1"
+                        >
                           • Pre-Bidding Open
                         </Badge>
                       )}
@@ -390,9 +539,17 @@ export function VehicleDetailClient({
 
                 <div className="text-center mb-8 border-y border-dashed border-border/50 py-6">
                   <p className="text-sm text-muted-foreground mb-1 font-medium tracking-wide uppercase">
-                    {isLive ? "Current Highest Bid" : isPreBid ? "Current Pre-Bid" : "Starting Price"}
+                    {isLive
+                      ? "Current Highest Bid"
+                      : isPreBid
+                        ? "Current Pre-Bid"
+                        : "Starting Price"}
                   </p>
-                  <PriceDisplay amount={currentBid} variant="large" className="text-5xl justify-center font-black tracking-tight text-deep-navy dark:text-white" />
+                  <PriceDisplay
+                    amount={currentBid}
+                    variant="large"
+                    className="text-5xl justify-center font-black tracking-tight text-deep-navy dark:text-white"
+                  />
                   <div className="flex justify-center gap-4 mt-2 text-xs font-mono text-muted-foreground">
                     <span>{bidCount} Bids</span>
                     <span>|</span>
@@ -404,14 +561,15 @@ export function VehicleDetailClient({
                   // ... Timer ...
                   <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 mb-6 border border-red-100 dark:border-red-900/30">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Time Remaining</span>
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-widest">
+                        Time Remaining
+                      </span>
                       <Timer className="h-4 w-4 text-red-600 animate-pulse" />
                     </div>
                     <AuctionTimer
                       endsAt={auctionLot.endsAt}
                       variant="large"
                       className="justify-center text-3xl font-mono text-red-600 font-black"
-                      onExpire={() => setIsActive(false)}
                     />
                   </div>
                 )}
@@ -421,7 +579,7 @@ export function VehicleDetailClient({
                     <BidButton
                       lotId={auctionLot._id}
                       currentBid={currentBid}
-                      bidIncrement={auctionLot.bidIncrement}
+                      bidIncrement={auctionLot?.bidIncrement || 50000}
                       buyNowPrice={auctionLot.buyItNowPrice}
                       buyNowEnabled={auctionLot.buyItNowEnabled}
                       status={auctionLot.status}
@@ -429,7 +587,7 @@ export function VehicleDetailClient({
                         "w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full",
                         isLive
                           ? "shadow-success-green/20 bg-success-green hover:bg-emerald-600 text-white"
-                          : "shadow-trust-blue/20 bg-trust-blue hover:bg-blue-700 text-white"
+                          : "shadow-trust-blue/20 bg-trust-blue hover:bg-blue-700 text-white",
                       )}
                       label={isPreBid ? "Place Pre-Bid" : "Place Bid Now"}
                     />
@@ -440,11 +598,18 @@ export function VehicleDetailClient({
                   )}
 
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="w-full rounded-full hover:bg-alert-red/5 hover:text-alert-red hover:border-alert-red/20 transition-colors">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full hover:bg-alert-red/5 hover:text-alert-red hover:border-alert-red/20 transition-colors"
+                    >
                       <Heart className="h-4 w-4 mr-2" />
                       Watch
                     </Button>
-                    <Button variant="outline" className="w-full rounded-full" onClick={() => router.push("/faq#buy-now")}>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full"
+                      onClick={() => router.push("/faq#buy-now")}
+                    >
                       <Info className="h-4 w-4 mr-2" />
                       How it works
                     </Button>
@@ -454,7 +619,6 @@ export function VehicleDetailClient({
 
               {/* Landed Cost Calculator */}
               <LandedCostCalculator currentBid={currentBid} />
-
             </div>
           </div>
         </div>
@@ -462,4 +626,3 @@ export function VehicleDetailClient({
     </div>
   );
 }
-

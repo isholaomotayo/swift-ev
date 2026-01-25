@@ -192,7 +192,7 @@ const guideSections = [
         items: [
           {
             title: "Wallet Balance",
-            description: "Pay directly with funds already in your Auto Auctions Africa wallet.",
+            description: "Pay directly with funds already in your autoexports.live wallet.",
             icon: <Wallet className="h-4 w-4" />,
           },
           {

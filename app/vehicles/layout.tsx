@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Browse Vehicles | Auto Auctions Africa",
+  title: "Browse Vehicles | autoexports.live",
   description:
     "Browse our selection of vehicles from Chinese manufacturers. Filter by make, model, year, and price.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "Nigeria",
   ],
   openGraph: {
-    title: "Browse Vehicles | Auto Auctions Africa",
+    title: "Browse Vehicles | autoexports.live",
     description: "Browse our selection of vehicles from Chinese manufacturers.",
     type: "website",
   },

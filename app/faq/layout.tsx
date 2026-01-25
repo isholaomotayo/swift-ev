@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "FAQ | Auto Auctions Africa",
+    title: "FAQ | autoexports.live",
     description:
-        "Find answers to common questions about buying, selling, and using Auto Auctions Africa - Nigeria's premier vehicle auction platform.",
+        "Find answers to common questions about buying, selling, and using autoexports.live - Nigeria's premier vehicle auction platform.",
     keywords: [
         "FAQ",
         "frequently asked questions",

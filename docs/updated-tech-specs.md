@@ -9,7 +9,7 @@
 
 This document outlines the technical requirements, bug fixes, new features, and edge cases for the AutoAuctions Africa platform update. It serves as a specification for developers to implement the required changes.
 
-**Platform Rebrand:** VoltBid Africa → AutoAuctions Africa
+**Platform Rebrand:** autoexports.live → AutoAuctions Africa
 
 ---
 
@@ -689,7 +689,7 @@ Auction End:
 
 Upon completion, the following documentation should be available:
 
-- **Brand & Copy Guide:** `/docs/autoauctions-africa-brand-copy-guide.md`
+- **Brand & Copy Guide:** `/docs/autoexports.live-brand-copy-guide.md`
 - **Technical Requirements:** This document
 - **API Documentation:** Auto-generated from Convex schema
 - **User Guides:** Member Guide page on website

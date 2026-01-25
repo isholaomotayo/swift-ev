@@ -454,7 +454,7 @@ export function SettingsClient({
                         companyName: e.target.value,
                       }))
                     }
-                    placeholder="VoltBid Africa"
+                    placeholder="autoexports.live"
                   />
                 </div>
 
@@ -470,7 +470,7 @@ export function SettingsClient({
                         supportEmail: e.target.value,
                       }))
                     }
-                    placeholder="support@voltbid.africa"
+                    placeholder="support@autoexports.live"
                   />
                 </div>
               </div>

@@ -1,15 +1,15 @@
-# VoltBid Africa — Brand, Copy & Design Specification
+# autoexports.live — Brand, Copy & Design Specification
 
 ## Executive Summary
 
-VoltBid Africa is a pioneering electric vehicle auction and import platform designed to connect African buyers (with initial focus on Nigeria) with Chinese EV manufacturers and dealers. The platform combines the proven auction mechanics of Copart with specialized services for EV imports including customs clearance, shipping logistics, and compliance documentation support.
+autoexports.live is a pioneering electric vehicle auction and import platform designed to connect African buyers (with initial focus on Nigeria) with Chinese EV manufacturers and dealers. The platform combines the proven auction mechanics of Copart with specialized services for EV imports including customs clearance, shipping logistics, and compliance documentation support.
 
 ---
 
 ## 1. Brand Identity
 
 ### 1.1 Brand Name
-**VoltBid Africa**
+**autoexports.live**
 
 The name combines "Volt" (representing electric power and energy) with "Bid" (the auction mechanism), clearly communicating the platform's dual value proposition: electric vehicles acquired through competitive bidding.
 
@@ -19,7 +19,7 @@ The name combines "Volt" (representing electric power and energy) with "Bid" (th
 - **Tertiary:** "From China to Your Driveway — Electrified"
 
 ### 1.3 Brand Voice & Tone
-The VoltBid brand speaks with authority on EV technology while remaining approachable and accessible to first-time importers. The voice balances professionalism with the excitement of auction participation.
+The AutoExports brand speaks with authority on EV technology while remaining approachable and accessible to first-time importers. The voice balances professionalism with the excitement of auction participation.
 
 **Voice Characteristics:**
 - **Trustworthy:** We handle complex import processes so buyers don't have to
@@ -52,10 +52,10 @@ The VoltBid brand speaks with authority on EV technology while remaining approac
 
 ### 1.6 Logo Specification
 
-The VoltBid logo combines a stylized lightning bolt integrated into the letter "V" with clean, modern typography. The logo should work in the following variants:
+The AutoExports logo combines a stylized lightning bolt integrated into the letter "V" with clean, modern typography. The logo should work in the following variants:
 
-- **Full Logo:** Icon + "VoltBid Africa" wordmark
-- **Compact Logo:** Icon + "VoltBid" wordmark
+- **Full Logo:** Icon + "autoexports.live" wordmark
+- **Compact Logo:** Icon + "AutoExports" wordmark
 - **Icon Only:** Lightning bolt V mark (for favicon, app icon)
 - **Monochrome:** Single color version for limited print applications
 
@@ -125,7 +125,7 @@ charging specifications, high-resolution photos, and full vehicle history.
 
 **Step 2: Register & Verify**
 ```
-Create your VoltBid account and complete verification. Choose your 
+Create your AutoExports account and complete verification. Choose your 
 membership tier based on your buying needs. Upload required documents 
 including government ID and proof of address.
 ```
@@ -180,7 +180,7 @@ more accessible than ever:
 
 By 2033, Nigeria targets 30% of all vehicles sold to be locally 
 manufactured EVs. Get ahead of the transition — start your EV journey 
-with VoltBid today.
+with AutoExports today.
 ```
 
 ---
@@ -196,7 +196,7 @@ Building Africa's Electric Future, One Vehicle at a Time
 
 **Our Story:**
 ```
-VoltBid Africa was founded with a clear mission: to democratize access 
+autoexports.live was founded with a clear mission: to democratize access 
 to electric vehicles across Africa. We recognized that while the world 
 was rapidly transitioning to electric mobility, African buyers faced 
 significant barriers — limited inventory, complex import procedures, 
@@ -208,7 +208,7 @@ with Chinese EV manufacturers and developed streamlined processes that
 turn the complex journey of importing an electric vehicle into a 
 seamless experience.
 
-Today, VoltBid is the trusted platform for buyers across Nigeria and 
+Today, AutoExports is the trusted platform for buyers across Nigeria and 
 growing markets in Ghana, Kenya, and South Africa. We're not just 
 selling vehicles — we're powering Africa's sustainable mobility revolution.
 ```
@@ -236,7 +236,7 @@ our platform is designed to serve buyers at every level.
 
 ### 3.2 Membership Page
 
-**Page Title:** "Choose Your VoltBid Membership"
+**Page Title:** "Choose Your AutoExports Membership"
 
 **Guest (Free)**
 ```
@@ -305,7 +305,7 @@ Perfect for: Dealers, fleet operators, import businesses
 
 **Buyer Fees:**
 ```
-VoltBid operates on a transparent fee structure. All fees are displayed 
+AutoExports operates on a transparent fee structure. All fees are displayed 
 before you bid, so you know exactly what you'll pay when you win.
 
 SERVICE FEES (Based on winning bid amount)
@@ -363,7 +363,7 @@ Origin from CCPIT, Commercial Invoice, and Packing List.
 STEP 3: OCEAN TRANSIT (Days 10-45)
 Your vehicle ships from major Chinese ports (Shenzhen, Shanghai, 
 or Ningbo) to Lagos Port. Track your shipment in real-time through 
-your VoltBid dashboard.
+your AutoExports dashboard.
 
 Major Route: Shenzhen → Singapore → Lagos (35-40 days)
 
@@ -410,7 +410,7 @@ WHAT TO LOOK FOR:
 • 70-84% SoH: Fair condition, noticeable range reduction
 • Below 70%: Consider battery replacement costs
 
-Every VoltBid listing includes a certified battery health report 
+Every AutoExports listing includes a certified battery health report 
 from our inspection partners.
 ```
 
@@ -440,7 +440,7 @@ Current networks include:
 • Private installations at select malls and hotels
 • Corporate fleet charging hubs
 
-VoltBid partners with certified electricians for home charger 
+AutoExports partners with certified electricians for home charger 
 installation across Lagos.
 ```
 
@@ -450,13 +450,13 @@ installation across Lagos.
 
 ### 4.1 Welcome Email
 
-**Subject:** Welcome to VoltBid Africa — Your EV Journey Starts Now
+**Subject:** Welcome to autoexports.live — Your EV Journey Starts Now
 
 **Body:**
 ```
 Hello [First Name],
 
-Welcome to VoltBid Africa — you've just joined thousands of Nigerians 
+Welcome to autoexports.live — you've just joined thousands of Nigerians 
 embracing the electric vehicle revolution.
 
 Here's what you can do right now:
@@ -480,7 +480,7 @@ the bidding process, import procedures, or vehicle specifications.
 Reply to this email or call us at +234 XXX XXX XXXX
 
 Power your future,
-The VoltBid Africa Team
+The autoexports.live Team
 ```
 
 ### 4.2 Outbid Notification
@@ -512,7 +512,7 @@ current inventory.
 [VIEW SIMILAR Button]
 
 Good luck,
-VoltBid Africa
+autoexports.live
 ```
 
 ### 4.3 Auction Won
@@ -529,7 +529,7 @@ YOUR WINNING DETAILS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Lot Number: VB-[XXXXX]
 Winning Bid: ₦[amount]
-VoltBid Service Fee: ₦[amount]
+AutoExports Service Fee: ₦[amount]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 NEXT STEPS
@@ -553,7 +553,7 @@ Questions? Your account manager [Name] is available at
 [email] or [phone].
 
 Congratulations on your new EV,
-VoltBid Africa
+autoexports.live
 ```
 
 ---
@@ -713,12 +713,12 @@ suspension from the platform.
 
 VEHICLE CONDITION
 All vehicles are sold "as-is" based on the provided description and 
-inspection reports. VoltBid facilitates the transaction but does not 
+inspection reports. AutoExports facilitates the transaction but does not 
 guarantee vehicle condition beyond the information provided.
 
 IMPORT COMPLIANCE
 Buyers are responsible for ensuring imported vehicles meet local 
-registration requirements. VoltBid provides documentation support 
+registration requirements. AutoExports provides documentation support 
 but final compliance responsibility rests with the buyer.
 ```
 
@@ -761,7 +761,7 @@ through your account settings or by contacting support.
 
 **LinkedIn:**
 ```
-VoltBid Africa is transforming how Nigerians access electric vehicles. 
+autoexports.live is transforming how Nigerians access electric vehicles. 
 Our platform connects African buyers directly with Chinese EV 
 manufacturers through transparent auctions and comprehensive import 
 services. From bid to delivery, we handle shipping, customs clearance, 
@@ -782,7 +782,7 @@ Auction goes live in 2 hours!
 
 Register now → [link]
 
-#VoltBidAfrica #ElectricVehicles #EVNigeria
+#AutoExportsAfrica #ElectricVehicles #EVNigeria
 ```
 
 **Educational Post:**
@@ -797,7 +797,7 @@ Combined with reduced import duties (10-20% vs 35%),
 there's never been a better time to go electric.
 
 Ready to make the switch?
-Start at VoltBid → [link]
+Start at AutoExports → [link]
 
 #EVIncentives #NigeriaEV #SustainableMobility
 ```
@@ -811,11 +811,11 @@ brand new BYD Dolphin!
 
 From auction win to doorstep in just 52 days.
 
-"The process was seamless. VoltBid handled everything."
+"The process was seamless. AutoExports handled everything."
 
 Your EV journey starts at → [link]
 
-#VoltBidWinner #EVNigeria #CustomerSuccess
+#AutoExportsWinner #EVNigeria #CustomerSuccess
 ```
 
 ---
@@ -848,4 +848,4 @@ Your EV journey starts at → [link]
 
 *Document Version: 1.0*
 *Last Updated: December 2025*
-*Prepared for: VoltBid Africa Platform Development*
+*Prepared for: autoexports.live Platform Development*

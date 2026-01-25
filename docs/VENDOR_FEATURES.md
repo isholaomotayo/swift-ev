@@ -1,4 +1,4 @@
-# VoltBid Africa - Vendor Features
+# autoexports.live - Vendor Features
 
 ## Overview
 
@@ -355,4 +355,4 @@ Company: XPeng Motors Nigeria
 
 ---
 
-Built with ❤️ for VoltBid Africa vendors! ⚡🚗
+Built with ❤️ for autoexports.live vendors! ⚡🚗

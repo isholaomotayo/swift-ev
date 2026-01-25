@@ -1,8 +1,8 @@
-# VoltBid Africa
+# autoexports.live
 
 **Africa's Premier Electric Vehicle Auction Platform**
 
-VoltBid Africa is an electric vehicle auction platform connecting African buyers (with initial focus on Nigeria) with Chinese EV manufacturers and dealers. The platform combines proven auction mechanics with specialized services for EV imports including customs clearance, shipping logistics, and compliance documentation support.
+autoexports.live is an electric vehicle auction platform connecting African buyers (with initial focus on Nigeria) with Chinese EV manufacturers and dealers. The platform combines proven auction mechanics with specialized services for EV imports including customs clearance, shipping logistics, and compliance documentation support.
 
 **Tagline:** "Power Your Future. Bid Smart."
 
@@ -23,7 +23,7 @@ VoltBid Africa is an electric vehicle auction platform connecting African buyers
 
 ## Overview
 
-VoltBid Africa enables buyers to:
+autoexports.live enables buyers to:
 
 - **Browse & Bid** on quality electric vehicles directly from Chinese manufacturers (BYD, NIO, XPeng, Geely, etc.)
 - **Complete Import Solution** - We handle shipping, SONCAP certification, customs clearance, and delivery
@@ -56,7 +56,7 @@ All core functionality is implemented and working. Remaining items are medium-pr
 - **Phase 0: Foundation Setup (100%)**
   - Package manager migration to pnpm
   - Complete Convex database schema (24 tables)
-  - VoltBid brand colors and design system
+  - AutoExports brand colors and design system
   - Utility functions and constants
   - Environment configuration
 
@@ -94,7 +94,7 @@ All core functionality is implemented and working. Remaining items are medium-pr
 
 ### 🚧 In Progress / Pending
 
-- VoltBid-specific components (vehicle cards, auction timers, bid buttons)
+- AutoExports-specific components (vehicle cards, auction timers, bid buttons)
 - Public vehicle listing pages with filters
 - Vehicle detail pages
 - User dashboard
@@ -191,7 +191,7 @@ The seed data includes test users for all roles:
 
 ### Admin
 
-- **Email:** `admin@voltbid.africa`
+- **Email:** `admin@autoexports.live`
 - **Password:** `admin123`
 - **Access:** Full admin dashboard, vehicle approval, auction management
 
@@ -234,7 +234,7 @@ The database has been seeded with:
 
 - **6 Users:** 1 admin, 2 vendors, 3 buyers
 - **6 Vehicles:** All from vendors (BYD, XPeng, NIO)
-- **1 Live Auction:** "VoltBid Weekly EV Auction - January 2026"
+- **1 Live Auction:** "AutoExports Weekly EV Auction - January 2026"
 - **4 Auction Lots:** 1 active (BYD Tang), 3 pending
 - **8 Bids:** On the active lot (BYD Tang)
 - **2 Max Bids:** Proxy bidding set up
@@ -254,7 +254,7 @@ The database has been seeded with:
    - Place a bid or set a max bid
 
 3. **Test Admin Approval:**
-   - Login as admin (`admin@voltbid.africa` / `admin123`)
+   - Login as admin (`admin@autoexports.live` / `admin123`)
    - Navigate to `/admin/vehicles`
    - Approve pending vehicles
 
@@ -273,7 +273,7 @@ swiftEv/
 ├── components/
 │   ├── layout/                  # Header, Footer
 │   ├── ui/                      # shadcn/ui components
-│   ├── voltbid/                 # VoltBid-specific components
+│   ├── autoexports/                 # AutoExports-specific components
 │   └── providers/               # Context providers
 ├── convex/                      # Convex backend
 │   ├── schema.ts                # Database schema
@@ -288,8 +288,8 @@ swiftEv/
 ├── docs/                        # Documentation
 │   ├── dev-plan.md              # Implementation plan
 │   ├── dev-progress.md          # Development progress
-│   ├── voltbid-technical-spec.md # Technical specification
-│   └── voltbid-brand-copy-guide.md # Brand guidelines
+│   ├── autoexports-technical-spec.md # Technical specification
+│   └── autoexports-brand-copy-guide.md # Brand guidelines
 └── tests/                       # Test files
 ```
 
@@ -300,8 +300,8 @@ swiftEv/
 Comprehensive documentation is available in the `/docs` directory:
 
 - **[Current Status](./CURRENT_STATUS.md)** ⭐ - **Latest implementation status (updated Jan 2026)**
-- **[Technical Specification](./voltbid-technical-spec.md)** - Complete technical architecture, database schema, and API design
-- **[Brand & Copy Guide](./voltbid-brand-copy-guide.md)** - Brand identity, copy guidelines, and design specifications
+- **[Technical Specification](./autoexports-technical-spec.md)** - Complete technical architecture, database schema, and API design
+- **[Brand & Copy Guide](./autoexports-brand-copy-guide.md)** - Brand identity, copy guidelines, and design specifications
 - **[Vendor Features](./VENDOR_FEATURES.md)** - Vendor portal documentation
 - **[Seeding Guide](./SEEDING_GUIDE.md)** - Database seeding instructions
 
@@ -376,6 +376,6 @@ Private project - All rights reserved
 
 For questions or support, refer to the documentation in `/docs` or contact the development team.
 
-**Platform:** VoltBid Africa  
+**Platform:** autoexports.live  
 **Target Market:** Nigeria (expanding to Africa)  
 **Mission:** Powering Africa's sustainable mobility revolution ⚡🚗

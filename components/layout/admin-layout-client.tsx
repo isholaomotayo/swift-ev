@@ -80,7 +80,7 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
             </div>
             <div>
               <span className="font-bold text-xl tracking-tight block leading-none">
-                VoltBid
+                AutoExports
               </span>
               <span className="text-xs font-bold text-electric-blue uppercase tracking-widest">
                 Admin Portal

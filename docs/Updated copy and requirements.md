@@ -1,7 +1,7 @@
 # AutoAuctions Africa — Brand, Copy & Content Specification
 
 ## Document Version: 2.0
-## Platform Rebrand: VoltBid Africa → AutoAuctions Africa
+## Platform Rebrand: autoexports.live → AutoAuctions Africa
 
 ---
 

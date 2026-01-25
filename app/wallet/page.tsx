@@ -21,7 +21,7 @@ export default function WalletPage() {
                             <Zap className="h-5 w-5" />
                         </div>
                         <span className="font-black text-lg tracking-tighter">
-                            Auto Auctions <span className="text-gradient">Africa</span>
+                            autoexports <span className="text-gradient">.live</span>
                         </span>
                     </Link>
                 </div>

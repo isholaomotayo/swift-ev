@@ -21,7 +21,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
             Admin Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Overview of your VoltBid Africa platform performance and activity.
+            Overview of your autoexports.live platform performance and activity.
           </p>
         </div>
         <div className="flex gap-2">

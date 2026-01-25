@@ -1,4 +1,4 @@
-# VoltBid Africa - Current Implementation Status
+# autoexports.live - Current Implementation Status
 
 **Last Updated:** January 2, 2026  
 **Status:** Comprehensive audit of actual codebase state
@@ -37,7 +37,7 @@
 | Package Manager   | ✅     | `package.json`     | pnpm configured                  |
 | Dependencies      | ✅     | `package.json`     | All required packages installed  |
 | Convex Schema     | ✅     | `convex/schema.ts` | 24 tables with indexes           |
-| Design System     | ✅     | `app/globals.css`  | VoltBid colors, fonts, dark mode |
+| Design System     | ✅     | `app/globals.css`  | AutoExports colors, fonts, dark mode |
 | Utility Functions | ✅     | `lib/utils.ts`     | 25+ utility functions            |
 | Constants         | ✅     | `lib/constants.ts` | Platform constants               |
 
@@ -51,12 +51,12 @@
 | ------------------ | ------ | --------------------------------------------- | ---------------------- |
 | Header             | ✅     | `components/layout/header.tsx`                | Responsive, auth-aware |
 | Footer             | ✅     | `components/layout/footer.tsx`                | Complete with links    |
-| VehicleCard        | ✅     | `components/voltbid/vehicle-card.tsx`         | Full featured          |
-| AuctionTimer       | ✅     | `components/voltbid/auction-timer.tsx`        | Real-time countdown    |
-| BidButton          | ✅     | `components/voltbid/bid-button.tsx`           | Manual & proxy bidding |
-| BatteryHealthBadge | ✅     | `components/voltbid/battery-health-badge.tsx` | Color-coded            |
-| PriceDisplay       | ✅     | `components/voltbid/price-display.tsx`        | NGN formatting         |
-| ImageGallery       | ✅     | `components/voltbid/image-gallery.tsx`        | Zoom, thumbnails       |
+| VehicleCard        | ✅     | `components/autoexports/vehicle-card.tsx`         | Full featured          |
+| AuctionTimer       | ✅     | `components/autoexports/auction-timer.tsx`        | Real-time countdown    |
+| BidButton          | ✅     | `components/autoexports/bid-button.tsx`           | Manual & proxy bidding |
+| BatteryHealthBadge | ✅     | `components/autoexports/battery-health-badge.tsx` | Color-coded            |
+| PriceDisplay       | ✅     | `components/autoexports/price-display.tsx`        | NGN formatting         |
+| ImageGallery       | ✅     | `components/autoexports/image-gallery.tsx`        | Zoom, thumbnails       |
 | Image Upload       | ✅     | `components/upload/image-upload.tsx`          | Cloudinary ready       |
 | Document Upload    | ✅     | `components/upload/document-upload.tsx`       | File handling          |
 
@@ -384,7 +384,7 @@ swiftEv/
 │   ├── layout/             ✅ Complete
 │   ├── providers/          ✅ Complete
 │   ├── ui/                 ✅ Complete
-│   ├── voltbid/            ✅ Complete
+│   ├── autoexports/            ✅ Complete
 │   └── upload/             ✅ Complete
 ├── convex/
 │   ├── schema.ts           ✅ Complete

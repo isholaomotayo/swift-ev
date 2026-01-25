@@ -224,7 +224,7 @@ export default function PricingPage() {
             <div className="text-center mb-20 max-w-2xl mx-auto">
               <span className="text-sm font-black tracking-[0.3em] uppercase text-primary block mb-4">Variable Costs</span>
               <h2 className="text-4xl font-black mb-6">Service Transparency</h2>
-              <p className="text-muted-foreground font-medium">Clear breakdown of operational costs for every vehicle imported through Auto Auctions Africa.</p>
+              <p className="text-muted-foreground font-medium">Clear breakdown of operational costs for every vehicle imported through autoexports.live.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

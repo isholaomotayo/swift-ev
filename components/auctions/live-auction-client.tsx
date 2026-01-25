@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ImageGallery } from "@/components/voltbid/image-gallery";
-import { AuctionTimer } from "@/components/voltbid/auction-timer";
-import { BidButton } from "@/components/voltbid/bid-button";
-import { PriceDisplay } from "@/components/voltbid/price-display";
-import { BatteryHealthBadge } from "@/components/voltbid/battery-health-badge";
+import { ImageGallery } from "@/components/autoexports/image-gallery";
+import { AuctionTimer } from "@/components/autoexports/auction-timer";
+import { BidButton } from "@/components/autoexports/bid-button";
+import { PriceDisplay } from "@/components/autoexports/price-display";
+import { BatteryHealthBadge } from "@/components/autoexports/battery-health-badge";
 import { api } from "@/convex/_generated/api";
 import {
   ArrowLeft,

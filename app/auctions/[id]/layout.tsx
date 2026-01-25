@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Live Auction | Auto Auctions Africa",
+  title: "Live Auction | autoexports.live",
   description:
     "Join the live auction and bid on vehicles in real-time. View current lots, place bids, and track auction progress.",
   openGraph: {
-    title: "Live Auction | Auto Auctions Africa",
+    title: "Live Auction | autoexports.live",
     description: "Join the live auction and bid on vehicles in real-time.",
     type: "website",
   },

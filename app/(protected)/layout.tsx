@@ -6,8 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { ProtectedLayoutClient } from "@/components/layout/protected-layout-client";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Auto Auctions Africa",
-  description: "Your Auto Auctions Africa dashboard - manage your bids, watchlist, orders, and profile.",
+  title: "Dashboard | autoexports.live",
+  description: "Your autoexports.live dashboard - manage your bids, watchlist, orders, and profile.",
   robots: {
     index: false,
     follow: false,
@@ -20,7 +20,7 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login");

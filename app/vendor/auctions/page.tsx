@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorAuctionsClient } from "@/components/vendor/vendor-auctions-client";
 
 export const metadata: Metadata = {
-  title: "My Auctions | Vendor | Auto Auctions Africa",
+  title: "My Auctions | Vendor | autoexports.live",
   description: "Track your vehicles in auctions",
   robots: {
     index: false,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function VendorAuctionsPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     return null; // Layout will handle redirect

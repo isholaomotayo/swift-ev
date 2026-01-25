@@ -6,8 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { VendorLayoutClient } from "@/components/layout/vendor-layout-client";
 
 export const metadata: Metadata = {
-  title: "Vendor | Auto Auctions Africa",
-  description: "Vendor dashboard for managing your vehicles and auctions on Auto Auctions Africa",
+  title: "Vendor | autoexports.live",
+  description: "Vendor dashboard for managing your vehicles and auctions on autoexports.live",
   robots: {
     index: false,
     follow: false,
@@ -20,7 +20,7 @@ export default async function VendorLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login?redirect=/vendor");

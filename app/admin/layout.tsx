@@ -6,8 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { AdminLayoutClient } from "@/components/layout/admin-layout-client";
 
 export const metadata: Metadata = {
-  title: "Admin | Auto Auctions Africa",
-  description: "Admin dashboard for managing Auto Auctions Africa platform",
+  title: "Admin | autoexports.live",
+  description: "Admin dashboard for managing autoexports.live platform",
   robots: {
     index: false,
     follow: false,
@@ -20,7 +20,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const token = cookieStore.get("voltbid_token")?.value;
+  const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
     redirect("/login?redirect=/admin");

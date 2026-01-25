@@ -40,7 +40,7 @@ function setCookie(name: string, value: string, days = 365) {
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  cookieName = "voltbid-theme",
+  cookieName = "autoexports-theme",
   initialTheme,
 }: ThemeProviderProps) {
   // Initialize theme from cookie or prop, fallback to default

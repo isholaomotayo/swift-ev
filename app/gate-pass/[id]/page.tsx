@@ -53,7 +53,7 @@ export default function GatePassPage() {
                         <QrCode className="h-6 w-6 text-electric-blue" />
                     </div>
                     <CardTitle className="text-2xl font-black uppercase tracking-tight text-electric-blue">
-                        Auto Auctions Africa Gate Pass
+                        autoexports.live Gate Pass
                     </CardTitle>
                     <CardDescription className="font-mono text-xs uppercase tracking-widest mt-1">
                         {pass.code}
@@ -145,7 +145,7 @@ export default function GatePassPage() {
                 </CardFooter>
             </Card>
             <div className="mt-8 text-center text-xs text-muted-foreground print:hidden">
-                Auto Auctions Africa Secure Gate System &copy; {new Date().getFullYear()}
+                autoexports.live Secure Gate System &copy; {new Date().getFullYear()}
             </div>
         </div>
     );

@@ -10,49 +10,46 @@ import {
   Package,
   CheckCircle2,
   ArrowRight,
-  HelpCircle,
-  Zap,
   Shield,
-  Truck,
   Globe,
-  Plus
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
+import { SITE_NAME } from "@/lib/constants";
 
 const steps = [
   {
     number: "01",
-    title: "Browse Marketplace",
+    title: "Browse Inventory",
     description:
-      "Explore our catalog of quality vehicles from Chinese manufacturers. Use filters to find vehicles by condition, and more.",
+      "Access our exclusive global verified database. High-resolution imagery and detailed condition reports for every unit.",
     icon: Search,
-    color: "bg-electric-blue/10 text-electric-blue"
+    color: "bg-brand-blue text-white",
   },
   {
     number: "02",
-    title: "Secure Bidding",
+    title: "Bid & Win",
     description:
-      "Join live auctions or place proxy bids. Our system protects your interests with transparent real-time bidding mechanisms.",
+      "Participate in high-stakes live auctions or set your max proxy bid. Our escrow system secures your deposit until the win is confirmed.",
     icon: Gavel,
-    color: "bg-volt-green/10 text-volt-green"
+    color: "bg-brand-accent text-white",
   },
   {
     number: "03",
-    title: "Smart Logistics",
+    title: "Managed Logistics",
     description:
-      "We handle documentation, shipping, and customs clearance. Track your vehicle's journey across the world in real-time.",
+      "We handle everything: ocean freight, port clearing, and local customs documentation. Real-time tracking from port to city.",
     icon: Package,
-    color: "bg-primary/10 text-primary"
+    color: "bg-brand-gold text-brand-primary",
   },
   {
     number: "04",
-    title: "Final Delivery",
+    title: "Direct Handover",
     description:
-      "Receive your vehicle at your doorstep or specified location. Complete final inspection and start your green journey.",
+      "Your vehicle is delivered directly to your specified location. Complete documentation and title transfer handled by our team.",
     icon: CheckCircle2,
-    color: "bg-electric-blue/10 text-electric-blue"
+    color: "bg-brand-success text-white",
   },
 ];
 
@@ -60,83 +57,86 @@ const faqs = [
   {
     question: "How do I participate in auctions?",
     answer:
-      "Simply create an account, browse vehicles, and join live auctions. You can place manual bids or set a maximum bid for automatic proxy bidding."
+      "Simply create an account, browse vehicles, and join live auctions. You can place manual bids or set a maximum bid for automatic proxy bidding.",
   },
   {
     question: "What payment methods do you accept?",
     answer:
-      "We accept payments via Paystack, which supports bank transfers, debit cards, and mobile money. All payments are secure and encrypted."
+      "We accept payments via multi-currency transfers and secure local gateways. All transactions are backed by our escrow protection system.",
   },
   {
-    question: "How long does shipping take?",
+    question: "How long does the export process take?",
     answer:
-      "Shipping from China to Nigeria typically takes 35-45 days depending on the shipping method (container or RoRo) and port of departure."
+      "From auction win to final delivery, the process typically takes 35-50 days. This includes inspection window, inland transport, ocean freight, and customs clearance.",
   },
   {
-    question: "What documents do I need?",
+    question: "What documents do I need to provide?",
     answer:
-      "We handle all import documentation including SONCAP certification, Form M, and customs clearance. You'll need to provide a valid ID and proof of address."
+      "We handle the heavy lifting. You only need to provide a valid government ID and proof of address for local registration and title transfer.",
   },
   {
-    question: "What if the vehicle has issues?",
+    question: "Is my investment insured?",
     answer:
-      "All vehicles come with detailed condition reports and battery health assessments. We provide inspection reports before shipping, and you can review all documentation before bidding."
+      "Yes. Every vehicle is fully insured from the moment it leaves the auction floor until the final keys are handed to you.",
   },
-  {
-    question: "What are the import duties for cars?",
-    answer:
-      "Vehicles enjoy reduced import duties (10-20%) and are exempt from VAT and IAT in many cases. We calculate all costs upfront so you know the total price before bidding."
-  }
 ];
 
 export default function HowItWorksPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-electric-blue/30">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-brand-primary selection:bg-brand-gold/30">
       <Header />
       <main className="flex-1">
-        {/* HERO SECTION - IMMERSIVE */}
-        <section className="relative pt-32 pb-24 md:pt-48 md:pb-32 overflow-hidden border-b border-border">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-electric-blue/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-volt-green/5 rounded-full blur-[120px]" />
-            <div className="absolute inset-0 bg-[url('/images/grid-pattern.svg')] opacity-10 dark:opacity-20 translate-y-20" />
-          </div>
-
+        {/* HERO SECTION - SOLID & BOLD */}
+        <section className="relative pt-32 pb-24 md:pt-40 md:pb-32 bg-brand-primary text-white overflow-hidden">
           <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <Badge className="mb-8 px-4 py-1.5 rounded-full bg-primary/5 text-primary border-primary/10 backdrop-blur-md uppercase tracking-widest font-bold text-[10px]">
-                The Future of Vehicle Import
+              <Badge className="mb-8 px-5 py-2 rounded-md bg-brand-gold text-brand-primary border-none uppercase tracking-[0.3em] font-black text-[10px]">
+                The Export Standard
               </Badge>
-              <h1 className="text-5xl md:text-8xl font-black tracking-tight mb-8 leading-[1.05]">
-                Seamless <br />
-                <span className="text-gradient">Transparency</span>
+              <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9] italic">
+                PURE <br />
+                <span className="text-brand-gold not-italic uppercase">
+                  LOGISTICS.
+                </span>
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                We've redesigned the path from global manufacturers to your driveway.
-                Experience a simplified, secure, and purely digital import process with Auto Auctions Africa.
+              <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
+                We&apos;ve eliminated the friction of international vehicle
+                trade. Full transparency, fixed fees, and legendary reliability
+                with {SITE_NAME}.
               </p>
             </div>
           </div>
         </section>
 
         {/* STEP-BY-STEP GRID */}
-        <section className="py-32 bg-muted/20">
+        <section className="py-24 border-b border-slate-200 bg-white">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {steps.map((step, idx) => {
                 const Icon = step.icon;
                 return (
-                  <div key={idx} className="group relative p-8 rounded-[2.5rem] bg-card border border-border hover-lift transition-all">
-                    <div className={`w-16 h-16 rounded-2xl ${step.color} flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
-                      <Icon className="h-8 w-8" />
+                  <div
+                    key={idx}
+                    className="group relative p-10 bg-slate-50 border border-slate-200 hover:bg-white hover:border-brand-primary hover:shadow-2xl transition-all duration-500 rounded-none"
+                  >
+                    <div
+                      className={`w-14 h-14 ${step.color} flex items-center justify-center mb-10 shadow-lg group-hover:-rotate-6 transition-transform`}
+                    >
+                      <Icon className="h-6 w-6" />
                     </div>
-                    <div className="text-sm font-black text-muted-foreground/30 mb-4 tracking-tighter text-4xl">{step.number}</div>
-                    <h3 className="text-2xl font-black mb-4">{step.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
-                    <div className="mt-8 flex items-center text-xs font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      Learn more <ArrowRight className="ml-2 h-3 w-3" />
+                    <div className="text-xs font-black text-slate-300 mb-2 tracking-[0.5em] uppercase">
+                      {step.number} — Phase
+                    </div>
+                    <h3 className="text-2xl font-black mb-4 uppercase italic tracking-tighter">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-500 text-sm leading-relaxed font-medium">
+                      {step.description}
+                    </p>
+                    <div className="mt-8 pt-8 border-t border-slate-200 flex items-center text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-accent transition-colors">
+                      Detailed Docs <ArrowRight className="ml-2 h-3 w-3" />
                     </div>
                   </div>
                 );
@@ -145,69 +145,77 @@ export default function HowItWorksPage() {
           </div>
         </section>
 
-        {/* VERTICAL TIMELINE / DETAILED PROCESS */}
-        <section className="py-32 relative overflow-hidden">
+        {/* TIMELINE SECTION - HIGH CONTRAST */}
+        <section className="py-32 bg-brand-primary text-white">
           <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto">
-              <div className="text-center mb-24">
-                <span className="text-sm font-black tracking-[0.2em] uppercase text-electric-blue block mb-4">Journey Map</span>
-                <h2 className="text-4xl md:text-6xl font-black mb-8">From Port to Home</h2>
-                <div className="h-1 w-24 bg-gradient-to-r from-electric-blue to-volt-green mx-auto rounded-full" />
+            <div className="max-w-6xl mx-auto">
+              <div className="grid lg:grid-cols-2 gap-20 items-center mb-32">
+                <div>
+                  <span className="text-brand-gold font-black tracking-[0.3em] uppercase text-xs block mb-6">
+                    Milestones
+                  </span>
+                  <h2 className="text-5xl md:text-6xl font-black mb-8 leading-tight italic uppercase">
+                    From Port <br />
+                    to Driveway
+                  </h2>
+                  <p className="text-lg text-slate-400 font-medium leading-relaxed max-w-md">
+                    We manage the invisible bureaucracy of global trade so you
+                    only experience the excitement of the win.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      title: "Direct Sourcing",
+                      val: "Verified Auction Tier 1",
+                    },
+                    { title: "Ocean Freight", val: "Maersk / MSC Preferred" },
+                    { title: "Customs Clearing", val: "Fixed-Fee Guarantee" },
+                  ].map((stat, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between items-center p-6 border border-white/10 hover:bg-white/5 transition-colors"
+                    >
+                      <span className="font-black uppercase text-xs tracking-widest text-slate-500">
+                        {stat.title}
+                      </span>
+                      <span className="font-bold text-lg text-brand-gold italic">
+                        {stat.val}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-12 md:space-y-0 relative">
-                {/* Connector Line (Desktop) */}
-                <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2 z-0" />
-
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                 {[
                   {
-                    title: "Manufacturer Direct",
-                    desc: "We source directly from premium production lines in China, ensuring you get factory-quality vehicles with original certifications.",
-                    icon: <Globe className="h-6 w-6" />,
-                    align: "right"
-                  },
-                  {
-                    title: "Rigorous Inspection",
-                    desc: "Every vehicle undergoes a 150-point inspection, specifically focusing on diagnostic health and electronics.",
+                    title: "Factory Triage",
+                    desc: "Rigorous 180-point inspection before it even hits the shipping container.",
                     icon: <Shield className="h-6 w-6" />,
-                    align: "left"
                   },
                   {
-                    title: "Global Shipping",
-                    desc: "Secured RO-RO or Container shipping with real-time GPS tracking. Your investment is fully insured throughout the voyage.",
-                    icon: <Truck className="h-6 w-6" />,
-                    align: "right"
+                    title: "Escrow Locked",
+                    desc: "Funds are held in high-security custodial accounts until title verification.",
+                    icon: <Badge className="h-6 w-6" />,
                   },
                   {
-                    title: "Customs Clearing",
-                    desc: "Our localized agents handle all Nigerian port formalities, SONCAP certifications, and duty payments seamlessly.",
-                    icon: <Package className="h-6 w-6" />,
-                    align: "left"
+                    title: "Live GPS Track",
+                    desc: "Watch your vehicle cross the Atlantic with real-time satellite updates.",
+                    icon: <Globe className="h-6 w-6" />,
                   },
-                  {
-                    title: "The Handover",
-                    desc: "Direct delivery to your Lagos, Abuja or Port Harcourt address, complete with a local orientation on your new vehicle.",
-                    icon: <Zap className="h-6 w-6" />,
-                    align: "right"
-                  }
                 ].map((item, i) => (
-                  <div key={i} className={`relative z-10 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 mb-24 last:mb-0 ${item.align === 'left' ? 'md:flex-row-reverse' : ''}`}>
-                    <div className="flex-1 text-center md:text-left">
-                      <div className={`flex flex-col ${item.align === 'left' ? 'md:items-end' : 'md:items-start'}`}>
-                        <h3 className="text-2xl font-black mb-4">{item.title}</h3>
-                        <p className={`text-muted-foreground text-sm max-w-sm leading-relaxed ${item.align === 'left' ? 'md:text-right' : ''}`}>
-                          {item.desc}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex-shrink-0 w-16 h-16 rounded-full bg-background border-4 border-muted flex items-center justify-center shadow-xl group hover:border-primary transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                        {item.icon}
-                      </div>
-                    </div>
-
-                    <div className="flex-1 hidden md:block" />
+                  <div
+                    key={i}
+                    className="flex flex-col gap-6 p-8 bg-white/5 border border-white/10 rounded-lg"
+                  >
+                    <div className="text-brand-gold">{item.icon}</div>
+                    <h3 className="text-2xl font-black italic uppercase italic leading-none">
+                      {item.title}
+                    </h3>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                      {item.desc}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -215,71 +223,75 @@ export default function HowItWorksPage() {
           </div>
         </section>
 
-        {/* FAQ - ACCORDION STYLE REDESIGNED */}
-        <section className="py-32 bg-slate-950 text-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('/images/grid-pattern.svg')] opacity-5" />
-          <div className="container relative z-10 mx-auto px-4">
+        {/* FAQ SECTION - BOLD & GROUNDED */}
+        <section className="py-32 bg-white border-t border-slate-200">
+          <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              <div className="flex flex-col md:flex-row gap-16 items-start">
-                <div className="md:sticky md:top-32 w-full md:w-1/3">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-volt-green mb-6">
-                    <HelpCircle className="h-3 w-3" /> Support
-                  </div>
-                  <h2 className="text-4xl font-black mb-6">Common <br />Questions</h2>
-                  <p className="text-white/50 text-sm leading-relaxed mb-8">
-                    Everything you need to know about the transition to electric mobility in Nigeria.
-                  </p>
-                  <Button variant="outline" className="rounded-full border-white/10 text-white hover:bg-white/5 px-8">
-                    Contact Support
-                  </Button>
-                </div>
+              <div className="text-center mb-20">
+                <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-brand-primary">
+                  FAQ — Expert Support
+                </h2>
+              </div>
 
-                <div className="w-full md:w-2/3 space-y-4">
-                  {faqs.map((faq, index) => (
+              <div className="space-y-2">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className="border border-slate-200 overflow-hidden transition-all duration-300"
+                    onClick={() =>
+                      setActiveFaq(activeFaq === index ? null : index)
+                    }
+                  >
                     <div
-                      key={index}
-                      className={`p-1 rounded-[2rem] transition-all cursor-pointer ${activeFaq === index ? 'bg-gradient-to-r from-electric-blue to-volt-green shadow-xl shadow-electric-blue/10' : 'bg-white/5 hover:bg-white/10'}`}
-                      onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                      className={`p-8 cursor-pointer flex justify-between items-center ${activeFaq === index ? "bg-slate-50" : "bg-white hover:bg-slate-50"}`}
                     >
-                      <div className="bg-slate-900 rounded-[1.95rem] p-8">
-                        <div className="flex justify-between items-center">
-                          <h3 className="font-bold text-lg md:text-xl pr-8">{faq.question}</h3>
-                          <div className={`transition-transform duration-300 ${activeFaq === index ? 'rotate-45 text-volt-green' : 'text-white/30'}`}>
-                            <Plus className="h-6 w-6" />
-                          </div>
-                        </div>
-                        <div className={`overflow-hidden transition-all duration-300 ${activeFaq === index ? 'max-h-96 mt-6 opacity-100' : 'max-h-0 opacity-0'}`}>
-                          <p className="text-white/60 leading-relaxed text-sm">{faq.answer}</p>
-                        </div>
+                      <h3 className="font-black text-lg uppercase tracking-tight text-brand-primary italic">
+                        {faq.question}
+                      </h3>
+                      <div
+                        className={`transition-transform duration-500 ${activeFaq === index ? "rotate-180 text-brand-accent" : "text-slate-300"}`}
+                      >
+                        <Plus className="h-6 w-6" />
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div
+                      className={`transition-all duration-500 overflow-hidden ${activeFaq === index ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+                    >
+                      <div className="p-8 pt-0 bg-slate-50">
+                        <p className="text-slate-500 font-medium leading-relaxed max-w-2xl">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </section>
 
-        {/* FINAL CTA */}
-        <section className="py-24">
-          <div className="container mx-auto px-4">
-            <div className="glass-morphism rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden border border-primary/10">
-              <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-primary/5 blur-[120px] rounded-full" />
-              <div className="relative z-10 max-w-2xl mx-auto">
-                <h2 className="text-4xl md:text-6xl font-black mb-8">Ready to start?</h2>
-                <p className="text-muted-foreground text-lg mb-12">
-                  Create an account today and browse thousands of vehicles
-                  ready for import to Nigeria.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                  <Button size="lg" className="h-16 px-10 rounded-full bg-electric-blue hover:bg-electric-blue-dark text-white font-bold text-lg shadow-xl shadow-electric-blue/10" asChild>
-                    <Link href="/register">Create Account</Link>
-                  </Button>
-                  <Button size="lg" variant="ghost" className="h-16 px-10 rounded-full border border-border font-bold text-lg" asChild>
-                    <Link href="/vehicles">Explore Marketplace</Link>
-                  </Button>
-                </div>
-              </div>
+        {/* FINAL CTA - SOLID GOLD BACKGROUND */}
+        <section className="py-24 bg-brand-gold">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-5xl md:text-7xl font-black mb-10 text-brand-primary italic uppercase tracking-tighter">
+              Ready to win?
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="h-20 px-12 bg-brand-primary text-white hover:bg-slate-800 rounded-none text-xl font-black uppercase tracking-widest shadow-2xl"
+                asChild
+              >
+                <Link href="/register">Start Exporting</Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-20 px-12 border-4 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white rounded-none text-xl font-black uppercase tracking-widest transition-all"
+                asChild
+              >
+                <Link href="/vehicles">View Inventory</Link>
+              </Button>
             </div>
           </div>
         </section>
