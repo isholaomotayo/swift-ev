@@ -29,16 +29,16 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { MockPaymentModal } from "@/components/shared/mock-payment-modal";
+import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 
 export function WalletDashboard() {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [fundAmount, setFundAmount] = useState("");
   const [fundOpen, setFundOpen] = useState(false);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [pendingAmount, setPendingAmount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =
+    useFlutterwaveCheckout();
 
   // Queries
   const walletData = useQuery(
@@ -67,40 +67,83 @@ export function WalletDashboard() {
       return;
     }
 
-    if (!token) return;
+    if (!token || !user) return;
+    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+      toast({
+        title: "Payment Unavailable",
+        description: "Flutterwave public key is not configured.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Store amount and open mock payment modal
-    setPendingAmount(amount);
-    setPaymentModalOpen(true);
-    // We close the initial amount selection dialog
-    setFundOpen(false);
-  };
-
-  const onPaymentComplete = async () => {
-    if (!token || pendingAmount === 0) return;
+    if (!flutterwaveReady || flutterwaveError) {
+      toast({
+        title: "Payment Unavailable",
+        description:
+          flutterwaveError || "Flutterwave is still loading. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const result = await initiateFunding({ token, amount: pendingAmount });
+      const init = await initiateFunding({ token, amount });
+      const checkoutAmount = Number((init.amount / 100).toFixed(2));
 
-      // Confirm the funding after successful "payment"
-      await confirmFunding({ reference: result.reference });
+      setFundOpen(false);
 
-      toast({
-        title: "Wallet Funded!",
-        description: `₦${(pendingAmount / 100).toLocaleString()} added to your wallet`,
+      openCheckout({
+        txRef: init.txRef,
+        amount: checkoutAmount,
+        currency: init.currency,
+        customer: {
+          email: init.customer.email ?? user.email,
+          name: init.customer.name ?? `${user.firstName} ${user.lastName}`,
+          phoneNumber: init.customer.phone ?? user.phone,
+        },
+        title: "Fund Wallet",
+        description: "Add funds to your wallet to increase bidding power.",
+        meta: {
+          payment_type: "wallet_funding",
+        },
+        onSuccess: async (payment) => {
+          try {
+            await confirmFunding({
+              token,
+              txRef: init.txRef,
+              transactionId: payment.transaction_id,
+            });
+
+            toast({
+              title: "Wallet Funded!",
+              description: `₦${(amount / 100).toLocaleString()} added to your wallet`,
+            });
+
+            setFundAmount("");
+          } catch (error) {
+            toast({
+              title: "Funding Verification Failed",
+              description:
+                error instanceof Error ? error.message : "Please try again",
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        },
+        onClose: () => {
+          setLoading(false);
+        },
       });
-
-      setFundAmount("");
-      setPendingAmount(0);
     } catch (error) {
       toast({
-        title: "Funding Failed",
+        title: "Funding Initialization Failed",
         description:
           error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -126,7 +169,7 @@ export function WalletDashboard() {
       {/* Balance Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Available Balance */}
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-electric-blue to-blue-600 text-white shadow-xl">
+        <div className="p-6 rounded-3xl bg-electric-blue text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-white/70">
               Available Balance
@@ -154,7 +197,7 @@ export function WalletDashboard() {
         </div>
 
         {/* Bidding Power */}
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-volt-green to-green-600 text-white shadow-xl">
+        <div className="p-6 rounded-3xl bg-volt-green text-slate-950 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-white/70">
               Bidding Power
@@ -242,8 +285,7 @@ export function WalletDashboard() {
               <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-xl text-sm">
                 <Shield className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <span className="text-muted-foreground">
-                  Payments are secured with 256-bit encryption. This is a
-                  stubbed demo.
+                  Payments are secured with 256-bit encryption.
                 </span>
               </div>
             </div>
@@ -304,14 +346,6 @@ export function WalletDashboard() {
         </Tabs>
       </div>
 
-      <MockPaymentModal
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        amount={pendingAmount}
-        currency="NGN"
-        title="Fund Wallet"
-        onPaymentComplete={onPaymentComplete}
-      />
     </div>
   );
 }

@@ -174,6 +174,9 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/vehicles/${vehicle._id}`}>View</Link>
                       </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/vendor/vehicles/${vehicle._id}/edit`}>Edit</Link>
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -176,7 +176,7 @@ export function MockSumsubModal({
 
               <div className="relative w-64 h-64 bg-black rounded-full overflow-hidden border-4 border-white shadow-xl mx-auto flex items-center justify-center">
                 {/* Simulated Camera View */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 z-10"></div>
+                <div className="absolute inset-0 bg-black/30 z-10"></div>
                 <User className="w-32 h-32 text-white/20" />
                 <div className="absolute bottom-6 left-0 right-0 text-white text-xs z-20 font-medium">
                   Position your face in the circle

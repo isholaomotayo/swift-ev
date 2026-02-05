@@ -365,7 +365,7 @@ export function BidButton({
                     variant="outline"
                     onClick={handleBuyNow}
                     disabled={loading}
-                    className="w-full h-12 rounded-xl border-volt-green/50 text-volt-green hover:bg-volt-green hover:text-white transition-all font-bold gap-2"
+                    className="w-full h-12 rounded-xl border-volt-green/50 text-volt-green hover:bg-volt-green hover:text-slate-950 transition-all font-bold gap-2"
                   >
                     <ShoppingCart className="h-5 w-5" />
                     Buy Now for {formatCurrency(buyNowPrice)}

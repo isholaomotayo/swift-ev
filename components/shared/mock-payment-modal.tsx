@@ -73,7 +73,7 @@ export function MockPaymentModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-xl text-white shadow-xl relative overflow-hidden">
+          <div className="bg-slate-900 p-6 rounded-xl text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <CreditCard className="w-24 h-24" />
             </div>

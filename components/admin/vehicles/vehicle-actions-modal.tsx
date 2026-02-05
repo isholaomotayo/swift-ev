@@ -270,7 +270,7 @@ export function VehicleActionsModal({
                         Cancel
                     </Button>
                     {mode === "edit" && (
-                        <Button onClick={handleSave} disabled={isLoading} className="bg-volt-green hover:bg-volt-green/90 text-white">
+                        <Button onClick={handleSave} disabled={isLoading} className="bg-volt-green hover:bg-volt-green/90 text-slate-950">
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Save Changes
                         </Button>

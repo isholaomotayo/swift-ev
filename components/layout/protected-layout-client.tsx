@@ -78,7 +78,7 @@ export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientP
       <div className="container mx-auto px-4 py-8 flex flex-1 gap-8">
         {/* Sidebar - Desktop */}
         <aside className="w-64 hidden lg:block shrink-0">
-          <div className="sticky top-24 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl p-4 shadow-sm">
+          <div className="sticky top-24 rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
             <div className="mb-6 px-4 pt-2">
               <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                 My Account

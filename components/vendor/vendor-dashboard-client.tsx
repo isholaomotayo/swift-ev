@@ -27,14 +27,14 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-volt-green to-emerald-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Vendor Overview
           </h1>
           <p className="text-muted-foreground mt-1">
             Welcome back, <span className="font-semibold text-foreground">{user.vendorCompany || user.firstName}</span>!
           </p>
         </div>
-        <Button asChild className="bg-volt-green hover:bg-volt-green/90 text-white shadow-lg shadow-volt-green/20">
+        <Button asChild className="bg-volt-green hover:bg-volt-green/90 text-slate-950 shadow-lg shadow-volt-green/20">
           <Link href="/vendor/vehicles/upload">
             <Upload className="h-4 w-4 mr-2" />
             Upload New Vehicle
@@ -44,7 +44,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-volt-green/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-volt-green/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -57,7 +57,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-electric-blue/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-electric-blue/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -70,7 +70,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-primary/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-primary/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -83,7 +83,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-warning-amber/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-warning-amber/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -114,7 +114,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
 
       {/* Quick Actions & Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm h-full">
+        <Card className="p-6 border-border/50 bg-card h-full">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
             <Zap className="h-5 w-5 text-volt-green" />
             Quick Actions
@@ -155,7 +155,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
         </Card>
 
         {/* Recent Vehicles */}
-        <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm h-full">
+        <Card className="p-6 border-border/50 bg-card h-full">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Car className="h-5 w-5 text-electric-blue" />
@@ -186,8 +186,12 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                      {vehicle.images && vehicle.images[0] ? (
-                        <img src={vehicle.images[0]} alt="Car" className="h-full w-full object-cover" />
+                      {vehicle.heroImage || (vehicle.images && vehicle.images[0]?.url) ? (
+                        <img 
+                          src={vehicle.heroImage || vehicle.images[0].url} 
+                          alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
+                          className="h-full w-full object-cover" 
+                        />
                       ) : (
                         <Car className="h-5 w-5 text-muted-foreground" />
                       )}

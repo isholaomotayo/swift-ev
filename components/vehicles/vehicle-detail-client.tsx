@@ -160,8 +160,8 @@ export function VehicleDetailClient({
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-background/20" />
+            <div className="absolute inset-0 bg-black/30" />
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted/50">

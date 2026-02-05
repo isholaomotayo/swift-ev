@@ -150,6 +150,7 @@ export default defineSchema({
     batteryHealthPercent: v.optional(v.number()),
     chargingType: v.array(v.string()),
     motorPower: v.optional(v.number()),
+    batteryType: v.optional(v.string()),
     drivetrain: v.optional(v.string()),
     // Condition
     odometer: v.number(),

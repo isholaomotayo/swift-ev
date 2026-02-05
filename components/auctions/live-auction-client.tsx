@@ -320,7 +320,7 @@ export function LiveAuctionClient({
                         buyNowPrice={currentLot.buyItNowPrice}
                         buyNowEnabled={currentLot.buyItNowEnabled}
                         status={currentLot.status}
-                        className="w-full h-14 text-xl shadow-lg shadow-volt-green/20 bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green"
+                        className="w-full h-14 text-xl shadow-lg shadow-volt-green/20 bg-volt-green text-slate-950 hover:bg-volt-green/90"
                       />
                       <p className="text-xs text-center text-muted-foreground">
                         Bid increment: {formatCurrency(currentLot.bidIncrement || 50000)}

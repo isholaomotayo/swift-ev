@@ -20,6 +20,7 @@ import type * as files from "../files.js";
 import type * as financials from "../financials.js";
 import type * as kyc from "../kyc.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_flutterwave from "../lib/flutterwave.js";
 import type * as logistics from "../logistics.js";
 import type * as orders from "../orders.js";
 import type * as seedData from "../seedData.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   financials: typeof financials;
   kyc: typeof kyc;
   "lib/auth": typeof lib_auth;
+  "lib/flutterwave": typeof lib_flutterwave;
   logistics: typeof logistics;
   orders: typeof orders;
   seedData: typeof seedData;

@@ -82,7 +82,7 @@ export function DashboardClient({
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -102,7 +102,7 @@ export function DashboardClient({
             </Link>
           )}
           <Link href="/vehicles">
-            <Button className="bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-lg shadow-blue-500/20">
+            <Button className="bg-electric-blue hover:bg-electric-blue/90 text-white shadow-lg shadow-blue-500/20">
               Browse Vehicles
             </Button>
           </Link>
@@ -112,7 +112,7 @@ export function DashboardClient({
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Wallet Balance Card */}
-        <Card className="p-6 relative overflow-hidden group hover-lift border-auction-gold/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-auction-gold/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-auction-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-auction-gold/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -132,7 +132,7 @@ export function DashboardClient({
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-electric-blue/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-electric-blue/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -145,7 +145,7 @@ export function DashboardClient({
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-volt-green/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-volt-green/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -158,7 +158,7 @@ export function DashboardClient({
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-error-red/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-error-red/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-error-red/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-error-red/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -171,7 +171,7 @@ export function DashboardClient({
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-warning-amber/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-warning-amber/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -187,7 +187,7 @@ export function DashboardClient({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Bids */}
-        <Card className="p-6 h-full border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="p-6 h-full border-border/50 bg-card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Gavel className="h-5 w-5 text-electric-blue" />
@@ -255,7 +255,7 @@ export function DashboardClient({
         </Card>
 
         {/* Watchlist Summary */}
-        <Card className="p-6 h-full border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="p-6 h-full border-border/50 bg-card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Heart className="h-5 w-5 text-error-red" />
@@ -332,7 +332,7 @@ export function DashboardClient({
       </div>
 
       {/* Quick Actions */}
-      <Card className="p-8 border-border/50 bg-gradient-to-r from-card to-muted/30">
+      <Card className="p-8 border-border/50 bg-card">
         <h2 className="text-xl font-bold mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/vehicles">

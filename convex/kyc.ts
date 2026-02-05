@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 
 /**
  * Get KYC status for the current user
@@ -36,10 +37,9 @@ export const getKycStatus = query({
 });
 
 /**
- * Pay verification fee (STUBBED)
- * In production, this would use Paystack
+ * Initiate verification fee payment (Flutterwave)
  */
-export const payVerificationFee = mutation({
+export const initiateVerificationFeePayment = mutation({
     args: {
         token: v.string(),
     },
@@ -62,14 +62,26 @@ export const payVerificationFee = mutation({
             throw new Error("Verification fee already paid");
         }
 
-        // STUBBED: In production, this would create a Paystack transaction
-        // For now, we'll mark it as paid immediately
+        if (user.verificationFeeStatus === "pending" && user.verificationFeeReference) {
+            return {
+                success: true,
+                txRef: user.verificationFeeReference,
+                amount: 450000,
+                currency: "NGN",
+                customer: {
+                    email: user.email,
+                    name: `${user.firstName} ${user.lastName}`.trim(),
+                    phone: user.phone,
+                },
+                message: "Verification fee payment already initiated.",
+            };
+        }
+
         const reference = `VF_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
         await ctx.db.patch(session.userId, {
-            verificationFeeStatus: "paid",
+            verificationFeeStatus: "pending",
             verificationFeeReference: reference,
-            verificationFeePaidAt: Date.now(),
             updatedAt: Date.now(),
         });
 
@@ -79,18 +91,127 @@ export const payVerificationFee = mutation({
             type: "fee",
             amount: 450000, // $3 = ₦4,500 = 450000 kobo
             currency: "NGN",
-            status: "completed",
+            status: "pending",
             reference,
             description: "KYC Verification Fee",
-            paymentProvider: "paystack_stub",
+            paymentProvider: "flutterwave",
             createdAt: Date.now(),
-            completedAt: Date.now(),
         });
 
         return {
             success: true,
-            reference,
-            message: "Verification fee paid successfully (stubbed)",
+            txRef: reference,
+            amount: 450000,
+            currency: "NGN",
+            customer: {
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`.trim(),
+                phone: user.phone,
+            },
+            message: "Verification fee payment initiated.",
+        };
+    },
+});
+
+/**
+ * Confirm verification fee payment (Flutterwave verification)
+ */
+export const confirmVerificationFeePayment = mutation({
+    args: {
+        token: v.string(),
+        txRef: v.string(),
+        transactionId: v.union(v.number(), v.string()),
+    },
+    handler: async (ctx, args) => {
+        const session = await ctx.db
+            .query("sessions")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .first();
+
+        if (!session) {
+            throw new Error("Unauthorized");
+        }
+
+        const user = await ctx.db.get(session.userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const transaction = await ctx.db
+            .query("walletTransactions")
+            .withIndex("by_reference", (q) => q.eq("reference", args.txRef))
+            .first();
+
+        if (!transaction || transaction.userId !== session.userId) {
+            throw new Error("Transaction not found");
+        }
+
+        if (transaction.status === "completed" && user.verificationFeeStatus === "paid") {
+            return {
+                success: true,
+                reference: transaction.reference,
+                message: "Verification fee already confirmed",
+            };
+        }
+
+        const verification = await verifyFlutterwaveTransaction(args.transactionId);
+
+        if (verification.tx_ref !== args.txRef) {
+            throw new Error("Flutterwave reference mismatch");
+        }
+
+        if (verification.status !== "successful") {
+            await ctx.db.patch(transaction._id, {
+                status: "failed",
+                completedAt: Date.now(),
+                paymentReference: verification.flw_ref ?? String(verification.id),
+            });
+            await ctx.db.patch(session.userId, {
+                verificationFeeStatus: "not_paid",
+                verificationFeeReference: undefined,
+                updatedAt: Date.now(),
+            });
+            throw new Error("Payment not successful");
+        }
+
+        if (verification.currency !== "NGN") {
+            throw new Error("Invalid payment currency");
+        }
+
+        const expectedAmount = transaction.amount / 100;
+        const paidAmount = verification.charged_amount ?? verification.amount;
+        if (paidAmount + 0.01 < expectedAmount) {
+            await ctx.db.patch(transaction._id, {
+                status: "failed",
+                completedAt: Date.now(),
+                paymentReference: verification.flw_ref ?? String(verification.id),
+            });
+            await ctx.db.patch(session.userId, {
+                verificationFeeStatus: "not_paid",
+                verificationFeeReference: undefined,
+                updatedAt: Date.now(),
+            });
+            throw new Error("Payment amount is insufficient");
+        }
+
+        await ctx.db.patch(transaction._id, {
+            status: "completed",
+            completedAt: Date.now(),
+            paymentProvider: "flutterwave",
+            paymentReference: verification.flw_ref ?? String(verification.id),
+        });
+
+        await ctx.db.patch(session.userId, {
+            verificationFeeStatus: "paid",
+            verificationFeeReference: args.txRef,
+            verificationFeePaidAt: Date.now(),
+            updatedAt: Date.now(),
+        });
+
+        return {
+            success: true,
+            reference: args.txRef,
+            message: "Verification fee paid successfully",
         };
     },
 });

@@ -92,7 +92,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="border-volt-green text-volt-green hover:bg-volt-green hover:text-white">
+                        <Button variant="outline" size="sm" className="border-volt-green text-volt-green hover:bg-volt-green hover:text-slate-950">
                             Browse Services
                         </Button>
                     </DialogTrigger>
@@ -118,7 +118,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
                                             {getServiceIcon(service.id)}
                                         </div>
                                         {isServiceSelected(service.id) && (
-                                            <Badge className="bg-volt-green text-white">Selected</Badge>
+                                            <Badge className="bg-volt-green text-slate-950">Selected</Badge>
                                         )}
                                     </div>
                                     <h3 className="font-bold text-lg mb-1">{service.name}</h3>

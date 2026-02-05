@@ -83,12 +83,12 @@ export function VehicleCard({
             className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
           />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+          <div className="flex h-full items-center justify-center bg-muted/50">
             <Zap className="h-16 w-16 text-muted-foreground/20" />
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* Lot Number Badge */}
         <div className="absolute top-3 left-3 z-10">
@@ -121,7 +121,7 @@ export function VehicleCard({
         {/* In Auction Badge */}
         {isInAuction && (
           <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2">
-            <Badge className="bg-volt-green text-white border-0 animate-pulse shadow-lg shadow-volt-green/20 px-3 py-1">
+            <Badge className="bg-volt-green text-slate-950 border-0 animate-pulse shadow-lg shadow-volt-green/20 px-3 py-1">
               <span className="w-2 h-2 rounded-full bg-white mr-2 block animate-ping" />
               Live Auction
             </Badge>
@@ -224,8 +224,8 @@ export function VehicleCard({
               className={cn(
                 "flex-1 text-white shadow-lg transition-all font-semibold",
                 isInAuction
-                  ? "bg-gradient-to-r from-volt-green to-emerald-600 hover:from-emerald-600 hover:to-volt-green shadow-volt-green/20 hover:shadow-volt-green/40"
-                  : "bg-gradient-to-r from-electric-blue to-blue-600 hover:from-blue-600 hover:to-electric-blue shadow-electric-blue/20 hover:shadow-electric-blue/40",
+                  ? "bg-volt-green hover:bg-volt-green/90 shadow-volt-green/20 hover:shadow-volt-green/40"
+                  : "bg-electric-blue hover:bg-electric-blue/90 shadow-electric-blue/20 hover:shadow-electric-blue/40",
               )}
               onClick={onBidClick}
             >

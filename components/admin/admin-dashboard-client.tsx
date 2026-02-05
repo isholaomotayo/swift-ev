@@ -17,7 +17,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-electric-blue to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Admin Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -34,7 +34,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-electric-blue/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-electric-blue/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-electric-blue/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -47,7 +47,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-volt-green/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-volt-green/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-volt-green/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -60,7 +60,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-primary/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-primary/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -73,7 +73,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
           </div>
         </Card>
 
-        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="p-6 relative overflow-hidden group hover-lift border-warning-amber/20 bg-card">
           <div className="absolute top-0 right-0 w-32 h-32 bg-warning-amber/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-warning-amber/10 transition-colors" />
           <div className="flex items-center justify-between relative z-10">
             <div>
@@ -89,7 +89,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Live Auctions */}
-        <Card className="lg:col-span-2 p-6 border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="lg:col-span-2 p-6 border-border/50 bg-card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-volt-green" />
@@ -140,7 +140,7 @@ export function AdminDashboardClient({ vehicleStats, liveAuctions }: AdminDashbo
         </Card>
 
         {/* Quick Actions / Recent Activity (Placeholder) */}
-        <Card className="p-6 border-border/50 bg-gradient-to-b from-card to-muted/30">
+        <Card className="p-6 border-border/50 bg-card">
           <h2 className="text-xl font-bold mb-6">Quick Management</h2>
           <div className="space-y-3">
             <Link href="/admin/vehicles">

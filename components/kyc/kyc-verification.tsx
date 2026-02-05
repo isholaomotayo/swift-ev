@@ -17,28 +17,35 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { MockPaymentModal } from "@/components/shared/mock-payment-modal";
 import { MockSumsubModal } from "@/components/shared/mock-sumsub-modal";
+import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 
 type VerificationStep = "fee" | "documents" | "review" | "complete";
 
 export function KycVerification() {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   // Modal states
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [sumsubModalOpen, setSumsubModalOpen] = useState(false);
 
   // Queries
   const kycStatus = useQuery(api.kyc.getKycStatus, token ? { token } : "skip");
 
   // Mutations
-  const payVerificationFee = useMutation(api.kyc.payVerificationFee);
+  const initiateVerificationFeePayment = useMutation(
+    api.kyc.initiateVerificationFeePayment
+  );
+  const confirmVerificationFeePayment = useMutation(
+    api.kyc.confirmVerificationFeePayment
+  );
   const generateSumsubToken = useMutation(api.kyc.generateSumsubToken);
   const submitKycDocuments = useMutation(api.kyc.submitKycDocuments);
   const simulateApproval = useMutation(api.kyc.simulateKycApproval);
+
+  const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =
+    useFlutterwaveCheckout();
 
   const getCurrentStep = (): VerificationStep => {
     if (!kycStatus) return "fee";
@@ -51,25 +58,78 @@ export function KycVerification() {
   const currentStep = getCurrentStep();
 
   const handlePayFee = async () => {
-    if (!token) return;
-    setPaymentModalOpen(true);
-  };
-
-  const onPaymentComplete = async () => {
-    if (!token) return;
-    try {
-      await payVerificationFee({ token });
+    if (!token || !user) return;
+    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
       toast({
-        title: "Fee Paid Successfully",
-        description: "You can now proceed with document verification",
+        title: "Payment Unavailable",
+        description: "Flutterwave public key is not configured.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!flutterwaveReady || flutterwaveError) {
+      toast({
+        title: "Payment Unavailable",
+        description:
+          flutterwaveError || "Flutterwave is still loading. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const init = await initiateVerificationFeePayment({ token });
+      const amount = Number((init.amount / 100).toFixed(2));
+
+      openCheckout({
+        txRef: init.txRef,
+        amount,
+        currency: init.currency,
+        customer: {
+          email: init.customer.email ?? user.email,
+          name: init.customer.name ?? `${user.firstName} ${user.lastName}`,
+          phoneNumber: init.customer.phone ?? user.phone,
+        },
+        title: "Pay Verification Fee",
+        description: "Secure payment for identity verification processing.",
+        meta: {
+          payment_type: "kyc_verification_fee",
+        },
+        onSuccess: async (payment) => {
+          try {
+            await confirmVerificationFeePayment({
+              token,
+              txRef: init.txRef,
+              transactionId: payment.transaction_id,
+            });
+            toast({
+              title: "Fee Paid Successfully",
+              description: "You can now proceed with document verification",
+            });
+          } catch (error) {
+            toast({
+              title: "Payment Verification Failed",
+              description:
+                error instanceof Error ? error.message : "Please try again",
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        },
+        onClose: () => {
+          setLoading(false);
+        },
       });
     } catch (error) {
       toast({
-        title: "Payment Failed",
+        title: "Payment Initialization Failed",
         description:
           error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
+      setLoading(false);
     }
   };
 
@@ -166,7 +226,7 @@ export function KycVerification() {
                   h-10 w-10 rounded-full flex items-center justify-center
                   ${
                     isComplete
-                      ? "bg-volt-green text-white"
+                      ? "bg-volt-green text-slate-950"
                       : isCurrent
                         ? "bg-electric-blue text-white"
                         : "bg-muted text-muted-foreground"
@@ -357,16 +417,6 @@ export function KycVerification() {
           </div>
         )}
       </div>
-
-      <MockPaymentModal
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        amount={450000} // approx $3
-        currency="NGN"
-        title="Pay Verification Fee"
-        description="Secure payment for identity verification processing."
-        onPaymentComplete={onPaymentComplete}
-      />
 
       <MockSumsubModal
         open={sumsubModalOpen}

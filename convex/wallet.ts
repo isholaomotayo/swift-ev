@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 
 /**
  * Get wallet balance and details for the current user
@@ -68,8 +69,7 @@ export const getTransactionHistory = query({
 });
 
 /**
- * Initiate wallet funding (STUBBED - simulates Paystack)
- * In production, this would initialize a Paystack transaction
+ * Initiate wallet funding (Flutterwave)
  */
 export const initiateWalletFunding = mutation({
     args: {
@@ -96,7 +96,11 @@ export const initiateWalletFunding = mutation({
             throw new Error("User not found");
         }
 
-        // Generate a unique reference
+        if (args.amount < 10000) {
+            throw new Error("Minimum deposit is ₦100");
+        }
+
+        // Generate a unique reference for Flutterwave tx_ref
         const reference = `WF_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
         // Create pending transaction
@@ -108,51 +112,93 @@ export const initiateWalletFunding = mutation({
             status: "pending",
             reference,
             description: `Wallet funding - ${(args.amount / 100).toLocaleString()} NGN`,
-            paymentProvider: "paystack_stub",
+            paymentProvider: "flutterwave",
             createdAt: Date.now(),
         });
 
-        // STUBBED: In production, this would call Paystack API
-        // For now, return a mock authorization URL
         return {
             success: true,
-            reference,
-            // Mock Paystack response
-            authorizationUrl: `/wallet/confirm-payment?reference=${reference}&amount=${args.amount}`,
-            accessCode: `mock_access_${reference}`,
-            message: "Payment initiated. This is a stubbed response.",
+            txRef: reference,
+            amount: args.amount,
+            currency: "NGN",
+            customer: {
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`.trim(),
+                phone: user.phone,
+            },
+            message: "Flutterwave payment initialized.",
         };
     },
 });
 
 /**
- * Confirm wallet funding (STUBBED - simulates successful payment)
- * In production, this would be called by Paystack webhook
+ * Confirm wallet funding (Flutterwave verification)
  */
 export const confirmWalletFunding = mutation({
     args: {
-        reference: v.string(),
+        token: v.string(),
+        txRef: v.string(),
+        transactionId: v.union(v.number(), v.string()),
     },
     handler: async (ctx, args) => {
+        const session = await ctx.db
+            .query("sessions")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .first();
+
+        if (!session) {
+            throw new Error("Unauthorized");
+        }
+
         // Find the pending transaction
         const transaction = await ctx.db
             .query("walletTransactions")
-            .withIndex("by_reference", (q) => q.eq("reference", args.reference))
+            .withIndex("by_reference", (q) => q.eq("reference", args.txRef))
             .first();
 
-        if (!transaction) {
+        if (!transaction || transaction.userId !== session.userId) {
             throw new Error("Transaction not found");
         }
 
-        if (transaction.status !== "pending") {
-            throw new Error("Transaction already processed");
+        if (transaction.status === "completed") {
+            return {
+                success: true,
+                newBalance: (await ctx.db.get(transaction.userId))?.walletBalance ?? 0,
+                message: "Wallet already funded",
+            };
+        }
+
+        const verification = await verifyFlutterwaveTransaction(args.transactionId);
+
+        if (verification.tx_ref !== args.txRef) {
+            throw new Error("Flutterwave reference mismatch");
+        }
+
+        if (verification.status !== "successful") {
+            await ctx.db.patch(transaction._id, {
+                status: "failed",
+                completedAt: Date.now(),
+                paymentReference: verification.flw_ref ?? String(verification.id),
+            });
+            throw new Error("Payment not successful");
+        }
+
+        if (verification.currency !== "NGN") {
+            throw new Error("Invalid payment currency");
+        }
+
+        const expectedAmount = transaction.amount / 100;
+        const paidAmount = verification.charged_amount ?? verification.amount;
+        if (paidAmount + 0.01 < expectedAmount) {
+            throw new Error("Payment amount is insufficient");
         }
 
         // Update transaction status
         await ctx.db.patch(transaction._id, {
             status: "completed",
             completedAt: Date.now(),
-            paymentReference: `mock_paystack_${args.reference}`,
+            paymentProvider: "flutterwave",
+            paymentReference: verification.flw_ref ?? String(verification.id),
         });
 
         // Get user and update wallet balance

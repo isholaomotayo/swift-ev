@@ -607,6 +607,7 @@ export const createVehicle = mutation({
  */
 export const updateVehicle = mutation({
   args: {
+    token: v.string(),
     vehicleId: v.id("vehicles"),
     updates: v.object({
       make: v.optional(v.string()),
@@ -676,7 +677,23 @@ export const updateVehicle = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    // TODO: Add admin authentication check
+    // 1. Authenticate user
+    const user = await requireAuth(ctx, args.token);
+
+    // 2. Get vehicle to check ownership
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    // 3. Verify ownership (only seller or admin can update)
+    // Note: Admin roles are "admin" or "superadmin"
+    const isAdmin = user.role === "admin" || user.role === "superadmin";
+    const isOwner = vehicle.sellerId === user._id;
+
+    if (!isOwner && !isAdmin) {
+      throw new Error("You do not have permission to update this vehicle");
+    }
 
     const { vehicleId, updates } = args;
 

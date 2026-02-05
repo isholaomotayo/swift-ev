@@ -73,7 +73,7 @@ export const register = mutation({
       reservedBalance: 0,
       walletCurrency: "NGN",
       // KYC fields (FEAT-002)
-      verificationFeeStatus: "not_paid",
+      verificationFeeStatus: "paid", // Payment collected in UI
       buyingPower: 0,
       depositAmount: 0,
       dailyBidsUsed: 0,

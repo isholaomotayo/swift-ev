@@ -11,7 +11,6 @@ import {
   Package,
   TrendingUp,
   LogOut,
-  Zap
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -72,20 +71,19 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
   return (
     <div className="flex min-h-screen bg-background selection:bg-electric-blue/30">
       {/* Sidebar */}
-      <aside className="w-72 bg-card/90 backdrop-blur-xl border-r border-border fixed h-screen overflow-y-auto z-50">
+      <aside className="w-72 bg-card border-r border-border fixed h-screen overflow-y-auto z-50">
         <div className="p-6">
-          <Link href="/" className="flex items-center space-x-3 mb-10 group">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-electric-blue to-blue-700 shadow-lg shadow-electric-blue/20 group-hover:shadow-electric-blue/40 transition-all duration-300">
-              <Zap className="h-7 w-7 text-white" fill="currentColor" />
+          <Link href="/" className="flex items-center space-x-2 group mb-10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary transition-all duration-300 group-hover:rotate-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe h-6 w-6">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                <path d="M2 12h20"></path>
+              </svg>
             </div>
-            <div>
-              <span className="font-bold text-xl tracking-tight block leading-none">
-                AutoExports
-              </span>
-              <span className="text-xs font-bold text-electric-blue uppercase tracking-widest">
-                Admin Portal
-              </span>
-            </div>
+            <span className="font-black text-2xl tracking-tighter text-brand-primary dark:text-white">
+              autoexports<span className="text-brand-gold">.live</span>
+            </span>
           </Link>
 
           <div className="mb-6">
