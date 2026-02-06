@@ -121,9 +121,20 @@ export function VehicleActionsModal({
     };
 
     const handleSave = async () => {
+        const token = localStorage.getItem("autoexports_token");
+        if (!token) {
+            toast({
+                title: "Error",
+                description: "You must be logged in to update vehicles",
+                variant: "destructive",
+            });
+            return;
+        }
+
         try {
             setIsLoading(true);
             await updateVehicle({
+                token,
                 vehicleId: vehicle._id as Id<"vehicles">,
                 updates: {
                     ...formData,

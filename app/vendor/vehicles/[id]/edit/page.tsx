@@ -46,10 +46,10 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         condition: vehicle.condition,
         odometer: vehicle.odometer,
         exteriorColor: vehicle.exteriorColor,
-        interiorColor: vehicle.interiorColor,
+        interiorColor: vehicle.interiorColor || "",
         damageDescription: vehicle.damageDescription || "",
-        startingBid: vehicle.startingBid,
-        reservePrice: vehicle.reservePrice,
+        startingBid: vehicle.startingBid ?? 0,
+        reservePrice: vehicle.reservePrice ?? 0,
         buyItNowPrice: vehicle.buyItNowPrice,
         locationCity: vehicle.currentLocation?.city || "",
         locationState: "", // Not stored explicitly, might need to extract or leave blank
