@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SITE_NAME } from "@/lib/constants";
+import * as m from "@/src/paraglide/messages.js";
 
 export default function TrustSafetyPage() {
   return (
@@ -17,15 +18,13 @@ export default function TrustSafetyPage() {
         <section className="bg-brand-primary text-white py-24 md:py-32 relative overflow-hidden">
           <div className="container mx-auto px-4 text-center relative z-10">
             <Badge className="mb-8 px-6 py-2 rounded-none bg-brand-gold text-brand-primary border-none uppercase tracking-[0.4em] font-black text-[10px]">
-              Security Protocol
+              {m.trust_safety_protocol()}
             </Badge>
             <h1 className="text-5xl md:text-8xl font-black mb-6 uppercase italic tracking-tighter">
-              Armor <span className="text-brand-gold not-italic">Plated.</span>
+              {m.trust_safety_armor_plated().split(" ")[0]} <span className="text-brand-gold not-italic">{m.trust_safety_armor_plated().split(" ").slice(1).join(" ")}</span>
             </h1>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
-              Global trade requires absolute trust. We&apos;ve built the
-              industry&apos;s most robust verification and escrow infrastructure
-              for {SITE_NAME}.
+              {m.trust_safety_hero_desc({ siteName: SITE_NAME })}
             </p>
           </div>
         </section>
@@ -39,15 +38,14 @@ export default function TrustSafetyPage() {
                   <Lock className="h-8 w-8" />
                 </div>
                 <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-6 leading-none">
-                  Escrow <br />
-                  Protected.
+                  {m.trust_safety_escrow_protected().split(" ")[0]} <br />
+                  {m.trust_safety_escrow_protected().split(" ").slice(1).join(" ")}
                 </h2>
                 <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                  Your capital never touches the seller until the vehicle is
-                  inspected and cleared for export.
+                  {m.trust_safety_escrow_desc()}
                 </p>
                 <Button className="w-full h-14 bg-brand-primary text-white font-black uppercase tracking-widest rounded-none">
-                  Read Policy
+                  {m.trust_safety_read_policy()}
                 </Button>
               </div>
 
@@ -55,23 +53,23 @@ export default function TrustSafetyPage() {
                 {[
                   {
                     step: "01",
-                    title: "Capital Injection",
-                    desc: "Funds are locked in a Tier-1 multi-sig custodial account.",
+                    title: m.trust_safety_step_1_title(),
+                    desc: m.trust_safety_step_1_desc(),
                   },
                   {
                     step: "02",
-                    title: "Asset Verification",
-                    desc: "Independent 180-point onsite inspection complete.",
+                    title: m.trust_safety_step_2_title(),
+                    desc: m.trust_safety_step_2_desc(),
                   },
                   {
                     step: "03",
-                    title: "Export Transit",
-                    desc: "Bill of Lading issued and title transfer initiated.",
+                    title: m.trust_safety_step_3_title(),
+                    desc: m.trust_safety_step_3_desc(),
                   },
                   {
                     step: "04",
-                    title: "Success Release",
-                    desc: "Capital released to seller upon terminal arrival.",
+                    title: m.trust_safety_step_4_title(),
+                    desc: m.trust_safety_step_4_desc(),
                   },
                 ].map((step, i) => (
                   <div
@@ -79,7 +77,7 @@ export default function TrustSafetyPage() {
                     className="bg-white p-8 border border-slate-200 hover:border-brand-primary transition-colors"
                   >
                     <div className="text-brand-gold font-black text-xs tracking-widest uppercase mb-4">
-                      {step.step} • Milestone
+                      {step.step} • {m.trust_safety_milestone()}
                     </div>
                     <h3 className="text-xl font-black uppercase italic mb-3">
                       {step.title}
@@ -98,25 +96,25 @@ export default function TrustSafetyPage() {
             <div className="grid lg:grid-cols-2 gap-20 items-center">
               <div>
                 <Badge className="mb-6 px-4 py-1 bg-white/10 text-brand-accent border-none font-black text-[10px] uppercase tracking-widest">
-                  Counter-Fraud
+                  {m.trust_safety_counter_fraud()}
                 </Badge>
                 <h2 className="text-4xl md:text-5xl font-black mb-8 uppercase italic tracking-tighter">
-                  Anti-Corruption <br />
-                  Systems.
+                  {m.trust_safety_anti_corruption().split(" ")[0]} <br />
+                  {m.trust_safety_anti_corruption().split(" ").slice(1).join(" ")}
                 </h2>
                 <div className="space-y-6">
                   {[
                     {
-                      title: "Shill Bid Monitoring",
-                      desc: "AI-driven behavioral analysis prevents artificial inflation.",
+                      title: m.trust_safety_shill_bid(),
+                      desc: m.trust_safety_shill_bid_desc(),
                     },
                     {
-                      title: "Asset Authentication",
-                      desc: "VIN analysis against 12 global databases for accident history.",
+                      title: m.trust_safety_asset_auth(),
+                      desc: m.trust_safety_asset_auth_desc(),
                     },
                     {
-                      title: "Verified Identity",
-                      desc: "Mandatory Tier-2 KYC for all buyers and sellers.",
+                      title: m.trust_safety_verified_id(),
+                      desc: m.trust_safety_verified_id_desc(),
                     },
                   ].map((item, i) => (
                     <div key={i} className="flex gap-6 group">
@@ -140,11 +138,11 @@ export default function TrustSafetyPage() {
                 <div className="relative bg-white/5 border border-white/10 p-10 rounded-xl space-y-6">
                   <div className="flex justify-between items-center border-b border-white/10 pb-6">
                     <span className="font-black uppercase tracking-widest text-xs text-slate-500">
-                      Security Pulse
+                      {m.trust_safety_security_pulse()}
                     </span>
                     <span className="flex items-center gap-2 text-brand-success font-black text-xs uppercase tracking-widest">
                       <div className="h-2 w-2 rounded-full bg-brand-success animate-pulse" />{" "}
-                      Live Protection
+                      {m.trust_safety_live_protection()}
                     </span>
                   </div>
                   <div className="space-y-4">
@@ -152,13 +150,11 @@ export default function TrustSafetyPage() {
                       <div className="h-full w-[98%] bg-brand-gold" />
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      System Integrity: 99.98%
+                      {m.trust_safety_system_integrity()}
                     </p>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed font-medium italic">
-                    &quot;Our systems analyze over 4.2 million data points daily
-                    to ensure every bid is authentic and every seller is
-                    legitimate.&quot;
+                    &quot;{m.trust_safety_quote()}&quot;
                   </p>
                 </div>
               </div>
@@ -172,27 +168,31 @@ export default function TrustSafetyPage() {
                 <Shield className="h-6 w-6" />
               </div>
               <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">
-                Arbitration Framework.
+                {m.trust_safety_arbitration_title()}
               </h2>
             </div>
             <div className="grid md:grid-cols-4 gap-4">
               {[
                 {
-                  label: "Response",
-                  val: "24-48H",
-                  desc: "Official acknowledgement",
+                  label: m.trust_safety_stat_response_label(),
+                  val: m.trust_safety_stat_response_val(),
+                  desc: m.trust_safety_stat_response_desc(),
                 },
                 {
-                  label: "Resolution",
-                  val: "7 Days",
-                  desc: "Average case closing",
+                  label: m.trust_safety_stat_resolution_label(),
+                  val: m.trust_safety_stat_resolution_val(),
+                  desc: m.trust_safety_stat_resolution_desc(),
                 },
                 {
-                  label: "Amicable",
-                  val: "95%",
-                  desc: "Bilateral agreement rate",
+                  label: m.trust_safety_stat_amicable_label(),
+                  val: m.trust_safety_stat_amicable_val(),
+                  desc: m.trust_safety_stat_amicable_desc(),
                 },
-                { label: "Reviewed", val: "100%", desc: "Human oversight" },
+                { 
+                  label: m.trust_safety_stat_reviewed_label(), 
+                  val: m.trust_safety_stat_reviewed_val(), 
+                  desc: m.trust_safety_stat_reviewed_desc() 
+                },
               ].map((stat, i) => (
                 <div
                   key={i}
@@ -219,10 +219,10 @@ export default function TrustSafetyPage() {
                 <HeadphonesIcon className="h-8 w-8" />
               </div>
               <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-4">
-                Immediate Assistance.
+                {m.trust_safety_immediate_assistance()}
               </h2>
               <p className="text-brand-primary/70 font-bold mb-10 max-w-sm mx-auto uppercase tracking-tighter">
-                Our trust & safety team is deployed 24/7 across three timezones.
+                {m.common_our_trust_safety_team_is_deployed_247_across_three()}
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button
@@ -230,8 +230,8 @@ export default function TrustSafetyPage() {
                   className="h-16 px-10 bg-brand-primary text-white font-black uppercase tracking-widest rounded-none shadow-2xl"
                   asChild
                 >
-                  <Link href="mailto:safety@autoexports.live">
-                    E-Mail Direct
+                  <Link href={`mailto:safety@${SITE_NAME.toLowerCase().replace(/\s+/g, '')}.live`}>
+                    {m.trust_safety_email_direct()}
                   </Link>
                 </Button>
                 <Button
@@ -240,7 +240,7 @@ export default function TrustSafetyPage() {
                   className="h-16 px-10 border-2 border-brand-primary text-brand-primary font-black uppercase tracking-widest rounded-none hover:bg-brand-primary hover:text-white transition-all"
                   asChild
                 >
-                  <Link href="/faq">Review Database</Link>
+                  <Link href="/faq">{m.trust_safety_review_database()}</Link>
                 </Button>
               </div>
             </div>

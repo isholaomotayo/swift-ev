@@ -17,72 +17,64 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { SITE_NAME } from "@/lib/constants";
-
-const steps = [
-  {
-    number: "01",
-    title: "Browse Inventory",
-    description:
-      "Access our exclusive global verified database. High-resolution imagery and detailed condition reports for every unit.",
-    icon: Search,
-    color: "bg-brand-blue text-white",
-  },
-  {
-    number: "02",
-    title: "Bid & Win",
-    description:
-      "Participate in high-stakes live auctions or set your max proxy bid. Our escrow system secures your deposit until the win is confirmed.",
-    icon: Gavel,
-    color: "bg-brand-accent text-white",
-  },
-  {
-    number: "03",
-    title: "Managed Logistics",
-    description:
-      "We handle everything: ocean freight, port clearing, and local customs documentation. Real-time tracking from port to city.",
-    icon: Package,
-    color: "bg-brand-gold text-brand-primary",
-  },
-  {
-    number: "04",
-    title: "Direct Handover",
-    description:
-      "Your vehicle is delivered directly to your specified location. Complete documentation and title transfer handled by our team.",
-    icon: CheckCircle2,
-    color: "bg-brand-success text-white",
-  },
-];
-
-const faqs = [
-  {
-    question: "How do I participate in auctions?",
-    answer:
-      "Simply create an account, browse vehicles, and join live auctions. You can place manual bids or set a maximum bid for automatic proxy bidding.",
-  },
-  {
-    question: "What payment methods do you accept?",
-    answer:
-      "We accept payments via multi-currency transfers and secure local gateways. All transactions are backed by our escrow protection system.",
-  },
-  {
-    question: "How long does the export process take?",
-    answer:
-      "From auction win to final delivery, the process typically takes 35-50 days. This includes inspection window, inland transport, ocean freight, and customs clearance.",
-  },
-  {
-    question: "What documents do I need to provide?",
-    answer:
-      "We handle the heavy lifting. You only need to provide a valid government ID and proof of address for local registration and title transfer.",
-  },
-  {
-    question: "Is my investment insured?",
-    answer:
-      "Yes. Every vehicle is fully insured from the moment it leaves the auction floor until the final keys are handed to you.",
-  },
-];
+import * as m from "@/src/paraglide/messages.js";
 
 export default function HowItWorksPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  const steps = [
+    {
+      number: "01",
+      title: m.how_it_works_browse_inventory(),
+      description: m.how_it_works_browse_inventory_desc(),
+      icon: Search,
+      color: "bg-brand-blue text-white",
+    },
+    {
+      number: "02",
+      title: m.how_it_works_bid_win(),
+      description: m.how_it_works_bid_win_desc(),
+      icon: Gavel,
+      color: "bg-brand-accent text-white",
+    },
+    {
+      number: "03",
+      title: m.how_it_works_managed_logistics(),
+      description: m.how_it_works_managed_logistics_desc(),
+      icon: Package,
+      color: "bg-brand-gold text-brand-primary",
+    },
+    {
+      number: "04",
+      title: m.how_it_works_direct_handover(),
+      description: m.how_it_works_direct_handover_desc(),
+      icon: CheckCircle2,
+      color: "bg-brand-success text-white",
+    },
+  ];
+
+  const faqs = [
+    {
+      question: m.how_it_works_faqs_q1(),
+      answer: m.how_it_works_faqs_a1(),
+    },
+    {
+      question: m.how_it_works_faqs_q2(),
+      answer: m.how_it_works_faqs_a2(),
+    },
+    {
+      question: m.how_it_works_faqs_q3(),
+      answer: m.how_it_works_faqs_a3(),
+    },
+    {
+      question: m.how_it_works_faqs_q4(),
+      answer: m.how_it_works_faqs_a4(),
+    },
+    {
+      question: m.how_it_works_faqs_q5(),
+      answer: m.how_it_works_faqs_a5(),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-brand-primary selection:bg-brand-gold/30">
@@ -93,18 +85,16 @@ export default function HowItWorksPage() {
           <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
               <Badge className="mb-8 px-5 py-2 rounded-md bg-brand-gold text-brand-primary border-none uppercase tracking-[0.3em] font-black text-[10px]">
-                The Export Standard
+                {m.how_it_works_standard()}
               </Badge>
               <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9] italic">
-                PURE <br />
+                {m.how_it_works_pure()} <br />
                 <span className="text-brand-gold not-italic uppercase">
-                  LOGISTICS.
+                  {m.how_it_works_logistics()}
                 </span>
               </h1>
               <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
-                We&apos;ve eliminated the friction of international vehicle
-                trade. Full transparency, fixed fees, and legendary reliability
-                with {SITE_NAME}.
+                {m.how_it_works_eliminated_friction({ siteName: SITE_NAME })}
               </p>
             </div>
           </div>
@@ -127,7 +117,7 @@ export default function HowItWorksPage() {
                       <Icon className="h-6 w-6" />
                     </div>
                     <div className="text-xs font-black text-slate-300 mb-2 tracking-[0.5em] uppercase">
-                      {step.number} — Phase
+                      {step.number} — {m.how_it_works_phase()}
                     </div>
                     <h3 className="text-2xl font-black mb-4 uppercase italic tracking-tighter">
                       {step.title}
@@ -136,7 +126,7 @@ export default function HowItWorksPage() {
                       {step.description}
                     </p>
                     <div className="mt-8 pt-8 border-t border-slate-200 flex items-center text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-accent transition-colors">
-                      Detailed Docs <ArrowRight className="ml-2 h-3 w-3" />
+                      {m.how_it_works_detailed_docs()} <ArrowRight className="ml-2 h-3 w-3" />
                     </div>
                   </div>
                 );
@@ -152,25 +142,23 @@ export default function HowItWorksPage() {
               <div className="grid lg:grid-cols-2 gap-20 items-center mb-32">
                 <div>
                   <span className="text-brand-gold font-black tracking-[0.3em] uppercase text-xs block mb-6">
-                    Milestones
+                    {m.how_it_works_milestones()}
                   </span>
                   <h2 className="text-5xl md:text-6xl font-black mb-8 leading-tight italic uppercase">
-                    From Port <br />
-                    to Driveway
+                    {m.how_it_works_from_port_to_driveway()}
                   </h2>
                   <p className="text-lg text-slate-400 font-medium leading-relaxed max-w-md">
-                    We manage the invisible bureaucracy of global trade so you
-                    only experience the excitement of the win.
+                    {m.how_it_works_manage_invisible_bureaucracy()}
                   </p>
                 </div>
                 <div className="space-y-4">
                   {[
                     {
-                      title: "Direct Sourcing",
+                      title: m.common_direct_sourcing(),
                       val: "Verified Auction Tier 1",
                     },
-                    { title: "Ocean Freight", val: "Maersk / MSC Preferred" },
-                    { title: "Customs Clearing", val: "Fixed-Fee Guarantee" },
+                    { title: m.common_ocean_freight(), val: "Maersk / MSC Preferred" },
+                    { title: m.common_customs_clearance_title(), val: m.common_fixedfee_guarantee() },
                   ].map((stat, i) => (
                     <div
                       key={i}
@@ -190,18 +178,18 @@ export default function HowItWorksPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                 {[
                   {
-                    title: "Factory Triage",
-                    desc: "Rigorous 180-point inspection before it even hits the shipping container.",
+                    title: m.how_it_works_factory_triage(),
+                    desc: m.how_it_works_factory_triage_desc(),
                     icon: <Shield className="h-6 w-6" />,
                   },
                   {
-                    title: "Escrow Locked",
-                    desc: "Funds are held in high-security custodial accounts until title verification.",
+                    title: m.how_it_works_escrow_locked(),
+                    desc: m.how_it_works_escrow_locked_desc(),
                     icon: <Badge className="h-6 w-6" />,
                   },
                   {
-                    title: "Live GPS Track",
-                    desc: "Watch your vehicle cross the Atlantic with real-time satellite updates.",
+                    title: m.how_it_works_live_gps_track(),
+                    desc: m.how_it_works_live_gps_track_desc(),
                     icon: <Globe className="h-6 w-6" />,
                   },
                 ].map((item, i) => (
@@ -229,7 +217,7 @@ export default function HowItWorksPage() {
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-20">
                 <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-brand-primary">
-                  FAQ — Expert Support
+                  {m.how_it_works_faq_expert_support()}
                 </h2>
               </div>
 
@@ -274,7 +262,7 @@ export default function HowItWorksPage() {
         <section className="py-24 bg-brand-gold">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-5xl md:text-7xl font-black mb-10 text-brand-primary italic uppercase tracking-tighter">
-              Ready to win?
+              {m.how_it_works_ready_to_win()}
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -282,7 +270,7 @@ export default function HowItWorksPage() {
                 className="h-20 px-12 bg-brand-primary text-white hover:bg-slate-800 rounded-none text-xl font-black uppercase tracking-widest shadow-2xl"
                 asChild
               >
-                <Link href="/register">Start Exporting</Link>
+                <Link href="/register">{m.register_start_exporting()}</Link>
               </Button>
               <Button
                 variant="outline"
@@ -290,7 +278,7 @@ export default function HowItWorksPage() {
                 className="h-20 px-12 border-4 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white rounded-none text-xl font-black uppercase tracking-widest transition-all"
                 asChild
               >
-                <Link href="/vehicles">View Inventory</Link>
+                <Link href="/vehicles">{m.common_full_inventory()}</Link>
               </Button>
             </div>
           </div>

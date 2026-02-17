@@ -16,7 +16,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FeaturedVehicles } from "@/components/home/featured-vehicles";
+import { FeaturedVehicles, type Vehicle } from "@/components/home/featured-vehicles";
 import { api } from "@/convex/_generated/api";
 import { SITE_NAME } from "@/lib/constants";
 import * as m from "@/src/paraglide/messages.js";
@@ -32,7 +32,7 @@ export default async function Home() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   // Fetch data server-side
-  let featuredVehicles: Record<string, unknown>[] = [];
+  let featuredVehicles: Vehicle[] = [];
   try {
     featuredVehicles = await convex.query(api.vehicles.getFeaturedVehicles, {});
   } catch (error) {

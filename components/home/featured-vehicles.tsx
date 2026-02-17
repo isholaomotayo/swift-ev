@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { VehicleCard } from "@/components/autoexports/vehicle-card";
 import * as m from "@/src/paraglide/messages.js";
 
-interface Vehicle {
+export interface Vehicle {
   _id: string;
   lotNumber: string;
   make: string;
