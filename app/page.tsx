@@ -18,13 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FeaturedVehicles } from "@/components/home/featured-vehicles";
 import { api } from "@/convex/_generated/api";
-import { SITE_NAME, BRAND_TAGLINE } from "@/lib/constants";
+import { SITE_NAME } from "@/lib/constants";
+import * as m from "@/src/paraglide/messages.js";
 
-export const metadata: Metadata = {
-  title: `${SITE_NAME} - ${BRAND_TAGLINE}`,
-  description:
-    "Direct global vehicle exports. Compete for quality vehicles from China, Japan, Germany & USA with total transparency.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: `${SITE_NAME} - ${m.common_bid_win()} ${m.common_export()}`,
+    description: m.common_direct_global_vehicle_exports_compete_for_quality_(),
+  };
+}
 
 export default async function Home() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -38,7 +40,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground overflow-x-hidden">
+    <div className="flex min-h-screen flex-col bg-white dark:bg-slate-950 text-foreground overflow-x-hidden">
       <Header />
       <main className="flex-1">
         {/* HERO SECTION - REBUILT FOR DEPTH & SOLIDITY */}
@@ -47,16 +49,14 @@ export default async function Home() {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
                 <Badge className="mb-6 px-4 py-1.5 rounded-full bg-brand-accent text-white border-none uppercase tracking-widest font-bold text-[10px]">
-                  Global Vehicle Procurement
+                  {m.common_global_vehicle_procurement()}
                 </Badge>
                 <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-[0.95]">
-                  Bid. Win. <br />
-                  <span className="text-brand-gold">Export.</span>
+                  {m.common_bid_win()} <br />
+                  <span className="text-brand-gold">{m.common_export()}</span>
                 </h1>
                 <p className="text-xl text-slate-300 mb-10 leading-relaxed font-medium max-w-xl border-l-4 border-brand-accent pl-6">
-                  {SITE_NAME} connects you directly to global auction houses. No
-                  middleman, no hidden fees, just pure transparency from port to
-                  doorstep.
+                  {m.common_global_trade_invisible()}
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -65,7 +65,7 @@ export default async function Home() {
                     className="h-16 px-10 text-lg rounded-md bg-brand-gold hover:bg-brand-gold/90 text-brand-primary font-black shadow-[4px_4px_0px_0px_rgba(245,158,11,0.3)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                     asChild
                   >
-                    <Link href="/register">Get Started</Link>
+                    <Link href="/register">{m.common_get_started()}</Link>
                   </Button>
                   <Button
                     size="lg"
@@ -73,7 +73,7 @@ export default async function Home() {
                     className="h-16 px-10 text-lg rounded-md border-2 border-white/20 text-white bg-transparent hover:bg-white/10 font-bold transition-all"
                     asChild
                   >
-                    <Link href="/vehicles">Explore Inventory</Link>
+                    <Link href="/vehicles">{m.common_explore_inventory()}</Link>
                   </Button>
                 </div>
 
@@ -81,13 +81,13 @@ export default async function Home() {
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5" />
                     <span className="text-sm font-bold uppercase tracking-wider">
-                      Global Reach
+                      {m.common_global_reach()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Shield className="h-5 w-5" />
                     <span className="text-sm font-bold uppercase tracking-wider">
-                      Fully Insured
+                      {m.common_fully_insured()}
                     </span>
                   </div>
                 </div>
@@ -98,7 +98,7 @@ export default async function Home() {
                 <div className="relative aspect-[4/3] rounded-2xl border-4 border-white/10 bg-slate-800 shadow-2xl overflow-hidden">
                   <Image
                     src="/images/home-hero-clean.png"
-                    alt="Global Export Logistics"
+                    alt={m.common_global_export_logistics()}
                     fill
                     className="object-cover object-center grayscale-[20%] hover:grayscale-0 transition-all duration-700"
                     priority
@@ -107,10 +107,10 @@ export default async function Home() {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-brand-gold font-black text-sm uppercase">
-                          Live Market Data
+                          {m.common_live_market_data()}
                         </p>
                         <p className="text-white text-lg font-bold">
-                          12,400+ Active Listings
+                          {m.common_12400_active_listings()}
                         </p>
                       </div>
                       <div className="h-10 w-10 rounded-full bg-brand-success/20 flex items-center justify-center">
@@ -125,47 +125,45 @@ export default async function Home() {
         </section>
 
         {/* TRUST BAR - GROUNDED & SOLID */}
-        <section className="bg-white border-b border-slate-200 py-10 overflow-x-auto whitespace-nowrap scrollbar-hide">
-          <div className="container mx-auto px-4 flex items-center justify-between gap-12 text-sm font-black text-brand-primary/60 uppercase tracking-widest">
+        <section className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-10 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <div className="container mx-auto px-4 flex items-center justify-between gap-12 text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">
             <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-brand-blue" /> Escrow Protected
+              <Shield className="h-5 w-5 text-brand-blue" /> {m.common_escrow_protected()}
             </div>
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-brand-success" /> Verified
-              Inspections
+              <CheckCircle2 className="h-5 w-5 text-brand-success" /> {m.common_verified_inspections()}
             </div>
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-brand-primary" /> Documentation
-              Support
+              <FileText className="h-5 w-5 text-brand-primary dark:text-slate-200" /> {m.common_documentation_support()}
             </div>
             <div className="flex items-center gap-3">
-              <Truck className="h-5 w-5 text-brand-gold" /> Doorstep Delivery
+              <Truck className="h-5 w-5 text-brand-gold" /> {m.common_doorstep_delivery_text()}
             </div>
             <div className="flex items-center gap-3">
-              <Gavel className="h-5 w-5 text-brand-accent" /> Transparent Rules
+              <Gavel className="h-5 w-5 text-brand-accent" /> {m.common_transparent_rules()}
             </div>
           </div>
         </section>
 
         {/* FEATURED AUCTIONS */}
-        <section className="py-24 bg-slate-50">
+        <section className="py-24 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-8">
-              <div className="border-l-8 border-brand-primary pl-8">
+              <div className="border-l-8 border-brand-primary dark:border-brand-gold pl-8">
                 <span className="text-brand-accent font-black uppercase tracking-[0.2em] text-xs">
-                  Direct from inventory
+                  {m.common_direct_from_inventory()}
                 </span>
-                <h3 className="text-4xl md:text-5xl font-black mt-2 text-brand-primary">
-                  Featured Vehicles
+                <h3 className="text-4xl md:text-5xl font-black mt-2 text-brand-primary dark:text-white">
+                  {m.common_featured_vehicles()}
                 </h3>
               </div>
               <Button
                 variant="ghost"
-                className="group px-8 text-brand-primary font-black hover:bg-slate-200"
+                className="group px-8 text-brand-primary dark:text-brand-gold font-black hover:bg-slate-100 dark:hover:bg-slate-800"
                 asChild
               >
                 <Link href="/vehicles" className="flex items-center">
-                  Full Inventory{" "}
+                  {m.common_full_inventory()}{" "}
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
                 </Link>
               </Button>
@@ -176,15 +174,14 @@ export default async function Home() {
         </section>
 
         {/* HOW IT WORKS - GROUNDED PRODUCT FEEL */}
-        <section className="py-24 bg-white">
+        <section className="py-24 bg-white dark:bg-slate-900">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <h2 className="text-4xl md:text-5xl font-black mb-6 text-brand-primary italic">
-                The Export Journey
+              <h2 className="text-4xl md:text-5xl font-black mb-6 text-brand-primary dark:text-white italic">
+                {m.common_the_export_journey()}
               </h2>
-              <p className="text-lg text-slate-500 font-medium leading-relaxed">
-                We&apos;ve simplified international car buying into three robust
-                stages. Full visibility at every milestone.
+              <p className="text-lg text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
+                {m.common_weve_simplified_international_car_buying_into_thre()}
               </p>
             </div>
 
@@ -192,27 +189,27 @@ export default async function Home() {
               {[
                 {
                   step: "01",
-                  title: "Strategic Search",
-                  desc: "Access proprietary filters to find vehicles that meet your specific import local requirements.",
+                  title: m.common_strategic_search(),
+                  desc: m.common_access_proprietary_filters_to_find_vehicles_that_m(),
                   color: "bg-brand-blue",
                   link: "/register",
-                  cta: "Start Searching",
+                  cta: m.common_start_searching(),
                 },
                 {
                   step: "02",
-                  title: "Verified Bidding",
-                  desc: "Our escrow system keeps your deposit safe until the vehicle is inspected and the win is confirmed.",
+                  title: m.common_verified_bidding(),
+                  desc: m.common_our_escrow_system_keeps_your_deposit_safe_until_th(),
                   color: "bg-brand-accent",
                   link: "/vehicles",
-                  cta: "Live Bids",
+                  cta: m.nav_live_bids(),
                 },
                 {
                   step: "03",
-                  title: "Seamless Logistics",
-                  desc: "Tracking from port of origin to your city. We handle shipping, customs, and final registration.",
+                  title: m.common_seamless_logistics(),
+                  desc: m.common_tracking_from_port_of_origin_to_your_city_we_handl(),
                   color: "bg-brand-success",
                   link: "/how-it-works",
-                  cta: "Shipping Info",
+                  cta: m.common_shipping_info(),
                 },
               ].map((item, i) => (
                 <div key={i} className="group flex flex-col items-start">
@@ -221,15 +218,15 @@ export default async function Home() {
                   >
                     {item.step}
                   </div>
-                  <h3 className="text-2xl font-black text-brand-primary mb-4">
+                  <h3 className="text-2xl font-black text-brand-primary dark:text-white mb-4">
                     {item.title}
                   </h3>
-                  <p className="text-slate-500 mb-8 leading-relaxed font-medium">
+                  <p className="text-slate-500 dark:text-slate-300 mb-8 leading-relaxed font-medium">
                     {item.desc}
                   </p>
                   <Link
                     href={item.link}
-                    className="flex items-center text-brand-primary font-black uppercase text-xs tracking-widest hover:gap-3 transition-all"
+                    className="flex items-center text-brand-primary dark:text-brand-gold font-black uppercase text-xs tracking-widest hover:gap-3 transition-all"
                   >
                     {item.cta} <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
@@ -245,24 +242,23 @@ export default async function Home() {
             <div className="grid lg:grid-cols-[1fr_2fr] gap-20">
               <div>
                 <h2 className="text-4xl md:text-5xl font-black leading-tight mb-8">
-                  End-to-End <br />
-                  <span className="text-brand-gold italic">Solutions.</span>
+                  {m.common_endtoend()} <br />
+                  <span className="text-brand-gold italic">{m.common_solutions()}</span>
                 </h2>
-                <p className="text-slate-400 text-lg font-medium leading-relaxed mb-10">
-                  Global supply chains are complex. We make them invisible. Our
-                  team handles the bureaucracy so you can focus on the vehicle.
+                <p className="text-slate-300 text-lg font-medium leading-relaxed mb-10">
+                  {m.common_global_trade_invisible()}
                 </p>
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <p className="text-3xl font-black text-white">100%</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">
-                      Guaranteed Delivery
+                    <p className="text-3xl font-black text-white">{m.common_100()}</p>
+                    <p className="text-xs text-slate-300 uppercase tracking-widest font-bold mt-1">
+                      {m.common_guaranteed_delivery()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-3xl font-black text-white">24/7</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">
-                      Live Tracking
+                    <p className="text-3xl font-black text-white">{m.common_247()}</p>
+                    <p className="text-xs text-slate-300 uppercase tracking-widest font-bold mt-1">
+                      {m.common_live_tracking()}
                     </p>
                   </div>
                 </div>
@@ -271,27 +267,27 @@ export default async function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   {
-                    title: "Customs Clearance",
+                    title: m.common_customs_clearance_title(),
                     icon: <Shield className="h-5 w-5" />,
                   },
                   {
-                    title: "Direct Shipping",
+                    title: m.common_direct_shipping_title(),
                     icon: <Truck className="h-5 w-5" />,
                   },
                   {
-                    title: "Battery Health Certs",
+                    title: m.common_battery_health_certs_title(),
                     icon: <Zap className="h-5 w-5" />,
                   },
                   {
-                    title: "Final Registration",
+                    title: m.common_final_registration_title(),
                     icon: <FileText className="h-5 w-5" />,
                   },
                   {
-                    title: "Insurance Coverage",
+                    title: m.common_insurance_coverage_title(),
                     icon: <CheckCircle2 className="h-5 w-5" />,
                   },
                   {
-                    title: "Global Logistics",
+                    title: m.common_global_logistics_title(),
                     icon: <Globe className="h-5 w-5" />,
                   },
                 ].map((service, i) => (

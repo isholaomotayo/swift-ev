@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/project-settings",
+  "sourceLanguageTag": "en",
+  "languageTags": ["en", "fr", "zh-CN", "ha", "yo", "ig"],
+  "modules": [
+    "./node_modules/@inlang/plugin-message-format/dist/index.js",
+    "./node_modules/@inlang/plugin-m-function-matcher/dist/index.js"
+  ],
+  "messageLintRuleLevels": {
+    "message-format": "error"
+  },
+  "plugin.inlang.messageFormat": {
+    "pathPattern": "./messages/{languageTag}.json",
+    "sort": "asc"
+  }
+}

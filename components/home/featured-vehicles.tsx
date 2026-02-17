@@ -2,11 +2,28 @@
 
 import { useRouter } from "next/navigation";
 import { VehicleCard } from "@/components/autoexports/vehicle-card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import * as m from "@/src/paraglide/messages.js";
+
+interface Vehicle {
+  _id: string;
+  lotNumber: string;
+  make: string;
+  model: string;
+  year: number;
+  batteryCapacity: number;
+  estimatedRange: number;
+  batteryHealthPercent?: number;
+  heroImage?: string;
+  auctionLot?: {
+    currentBid: number;
+    bidCount: number;
+    endsAt?: number;
+    status: string;
+  } | null;
+}
 
 interface FeaturedVehiclesProps {
-  vehicles: any[];
+  vehicles: Vehicle[];
   loading?: boolean;
 }
 
@@ -30,7 +47,7 @@ export function FeaturedVehicles({ vehicles, loading }: FeaturedVehiclesProps) {
     return (
       <div className="text-center py-12 bg-background rounded-lg border">
         <p className="text-muted-foreground">
-          No vehicles currently available. Check back soon!
+          {m.home_no_vehicles_available()}
         </p>
       </div>
     );
@@ -42,7 +59,7 @@ export function FeaturedVehicles({ vehicles, loading }: FeaturedVehiclesProps) {
         <VehicleCard
           key={vehicle._id}
           vehicle={vehicle}
-          auctionLot={vehicle.auctionLot}
+          auctionLot={vehicle.auctionLot || undefined}
           onBidClick={() => {
             router.push(`/vehicles/${vehicle._id}`);
           }}

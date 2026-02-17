@@ -6,6 +6,15 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { SITE_NAME, BRAND_TAGLINE } from "@/lib/constants";
+import {
+  assertIsLocale,
+  baseLocale,
+  getLocale,
+  overwriteGetLocale,
+  type Locale,
+} from "@/src/paraglide/runtime.js";
+import { headers } from "next/headers";
+import { cache } from "react";
 import "./globals.css";
 
 const inter = Inter({
@@ -64,6 +73,14 @@ export const metadata: Metadata = {
   },
 };
 
+// Cache locale per request for Server Components
+const ssrLocale = cache(async () => {
+  // Read locale from headers set by middleware
+  const headerList = await headers();
+  const localeHeader = headerList.get("x-paraglide-locale");
+  return { locale: assertIsLocale(localeHeader || baseLocale) };
+});
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -78,8 +95,14 @@ export default async function RootLayout({
       ? (themeCookie.value as "dark" | "light" | "system")
       : undefined;
 
+  // Set locale from headers and overwrite getLocale for this request
+  // This must be done INSIDE the component, not at module level
+  const localeFromHeader = (await ssrLocale()).locale;
+  overwriteGetLocale(() => assertIsLocale(localeFromHeader));
+  const locale = getLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} ${sora.variable} antialiased font-sans`}
       >

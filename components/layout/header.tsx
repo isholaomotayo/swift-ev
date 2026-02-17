@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
+import * as m from "@/src/paraglide/messages.js";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,10 +43,10 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1 flex-1">
           {[
-            { href: "/vehicles", label: "Inventory" },
-            { href: "/auctions", label: "Live Bids" },
-            { href: "/how-it-works", label: "Process" },
-            { href: "/trust-safety", label: "Verification" },
+            { href: "/vehicles", label: m.nav_inventory() },
+            { href: "/auctions", label: m.nav_live_bids() },
+            { href: "/how-it-works", label: m.nav_process() },
+            { href: "/trust-safety", label: m.nav_verification() },
           ].map((item) => (
             <Link
               key={item.href}
@@ -53,7 +55,7 @@ export function Header() {
                 "relative px-5 py-2 text-sm font-black uppercase tracking-widest transition-all duration-300 rounded-md",
                 isNavLinkActive(item.href)
                   ? "text-brand-primary bg-slate-100 dark:text-white dark:bg-white/10"
-                  : "text-slate-500 hover:text-brand-primary hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5",
+                  : "text-slate-500 hover:text-brand-primary hover:bg-slate-50 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5",
               )}
             >
               {item.label}
@@ -67,14 +69,15 @@ export function Header() {
         {/* Right Section */}
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center group/search relative">
-            <Search className="absolute left-3 h-4 w-4 text-slate-400 group-focus-within/search:text-brand-primary" />
+            <Search className="absolute left-3 h-4 w-4 text-slate-400 dark:text-slate-500 group-focus-within/search:text-brand-primary dark:group-focus-within/search:text-brand-gold" />
             <Input
               type="search"
-              placeholder="Search VIN or Model..."
-              className="w-48 focus:w-72 pl-10 pr-4 h-11 text-sm bg-slate-100 border-transparent focus:bg-white focus:border-slate-300 transition-all duration-300 rounded-lg dark:bg-white/5 dark:focus:bg-white/10"
+              placeholder={m.nav_search_vin_or_model()}
+              className="w-48 focus:w-72 pl-10 pr-4 h-11 text-sm bg-slate-100 text-slate-700 placeholder:text-slate-500 border-transparent focus:bg-white focus:text-brand-primary focus:border-slate-300 transition-all duration-300 rounded-lg dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:bg-white/10 dark:focus:text-white dark:focus:border-white/20"
             />
           </div>
 
+          <LanguageSwitcher />
           <ThemeToggle />
 
           {isAuthenticated ? (
@@ -101,13 +104,13 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-64 p-2 border-slate-200 shadow-xl dark:bg-brand-primary dark:border-white/10"
+                  className="w-64 p-2 border-slate-200 text-foreground shadow-xl dark:bg-brand-primary dark:border-white/10"
                 >
                   <div className="px-3 py-4 border-b border-slate-100 mb-2 dark:border-white/5">
                     <p className="text-sm font-black text-brand-primary dark:text-white uppercase tracking-tight">
                       {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-300 font-bold uppercase tracking-widest mt-1">
                       {user?.email}
                     </p>
                   </div>
@@ -120,23 +123,28 @@ export function Header() {
                         href="/dashboard"
                         className="flex items-center justify-between w-full"
                       >
-                        <span className="text-sm font-bold">Dashboard</span>
+                        <span className="text-sm font-bold">{m.nav_dashboard()}</span>
                         <Zap className="h-4 w-4 text-brand-gold" />
                       </Link>
                     </DropdownMenuItem>
-                    {["Watchlist", "My Bids", "Orders", "Wallet"].map(
+                    {[
+                      { label: m.common_my_watchlist(), href: "/watchlist" },
+                      { label: m.common_my_bids(), href: "/my-bids" },
+                      { label: m.common_my_orders_autoexportslive().replace(" | autoexports.live", ""), href: "/orders" },
+                      { label: m.common_my_wallet(), href: "/wallet" }
+                    ].map(
                       (item) => (
                         <DropdownMenuItem
-                          key={item}
+                          key={item.href}
                           asChild
                           className="cursor-pointer focus:bg-slate-100 dark:focus:bg-white/5 p-2 rounded-md transition-colors"
                         >
                           <Link
-                            href={`/${item.toLowerCase().replace(" ", "-")}`}
+                            href={item.href}
                             className="block w-full"
                           >
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                              {item}
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                              {item.label}
                             </span>
                           </Link>
                         </DropdownMenuItem>
@@ -145,10 +153,10 @@ export function Header() {
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-white/5 my-2" />
                   <DropdownMenuItem
-                    className="text-brand-accent focus:bg-brand-accent/5 cursor-pointer p-2 rounded-md font-black italic uppercase text-xs"
+                    className="text-brand-accent focus:bg-brand-accent/5 dark:focus:bg-brand-accent/20 cursor-pointer p-2 rounded-md font-black italic uppercase text-xs"
                     onClick={() => logout()}
                   >
-                    Log Out
+                    {m.nav_log_out()}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -157,16 +165,16 @@ export function Header() {
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
-                className="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary transition-colors dark:text-slate-400 dark:hover:text-white"
+                className="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary transition-colors dark:text-slate-300 dark:hover:text-white"
               >
-                Log In
+                {m.common_log_in()}
               </Link>
               <Button
                 size="sm"
                 asChild
                 className="h-11 px-6 bg-brand-primary text-white hover:bg-brand-primary shadow-[4px_4px_0px_0px_rgba(15,23,42,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] rounded-md text-xs font-black uppercase tracking-[0.2em] transition-all dark:bg-brand-gold dark:text-brand-primary"
               >
-                <Link href="/register">Join Now</Link>
+                <Link href="/register">{m.nav_join_now()}</Link>
               </Button>
             </div>
           )}
@@ -194,10 +202,10 @@ export function Header() {
             <div className="space-y-12">
               <div className="flex flex-col gap-6">
                 {[
-                  { href: "/vehicles", label: "Inventory" },
-                  { href: "/auctions", label: "Live Bids" },
-                  { href: "/how-it-works", label: "Process" },
-                  { href: "/trust-safety", label: "Verification" },
+                  { href: "/vehicles", label: m.nav_inventory() },
+                  { href: "/auctions", label: m.nav_live_bids() },
+                  { href: "/how-it-works", label: m.nav_process() },
+                  { href: "/trust-safety", label: m.nav_verification() },
                 ].map((item) => (
                   <Link
                     key={item.href}
@@ -206,7 +214,7 @@ export function Header() {
                       "text-5xl font-black tracking-tighter transition-all duration-300 uppercase italic",
                       isNavLinkActive(item.href)
                         ? "text-brand-gold"
-                        : "text-brand-primary/20 dark:text-white/20",
+                        : "text-brand-primary/45 dark:text-white/45",
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -228,7 +236,7 @@ export function Header() {
                       href="/register"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Create Account
+                      {m.nav_create_account()}
                     </Link>
                   </Button>
                   <Button
@@ -241,7 +249,7 @@ export function Header() {
                       href="/login"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Sign In
+                      {m.nav_sign_in()}
                     </Link>
                   </Button>
                 </>
@@ -254,7 +262,7 @@ export function Header() {
                     setMobileMenuOpen(false);
                   }}
                 >
-                  Sign Out
+                  {m.nav_sign_out()}
                 </Button>
               )}
             </div>

@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -37,89 +43,56 @@ function setCookie(name: string, value: string, days = 365) {
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
 }
 
+function getSystemIsDark() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function subscribeToSystemTheme(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  mediaQuery.addEventListener("change", callback);
+  return () => mediaQuery.removeEventListener("change", callback);
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "system",
   cookieName = "autoexports-theme",
   initialTheme,
 }: ThemeProviderProps) {
-  // Initialize theme from cookie or prop, fallback to default
   const [theme, setThemeState] = useState<Theme>(() => {
     if (initialTheme) return initialTheme;
     if (typeof document !== "undefined") {
       const cookieTheme = getCookie(cookieName) as Theme | null;
-      if (cookieTheme && (cookieTheme === "dark" || cookieTheme === "light" || cookieTheme === "system")) {
+      if (
+        cookieTheme &&
+        (cookieTheme === "dark" ||
+          cookieTheme === "light" ||
+          cookieTheme === "system")
+      ) {
         return cookieTheme;
       }
     }
     return defaultTheme;
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "light";
-    
-    const currentTheme = initialTheme || (typeof document !== "undefined" ? getCookie(cookieName) as Theme | null : null) || defaultTheme;
-    
-    if (currentTheme === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
-    return currentTheme === "dark" ? "dark" : "light";
-  });
+  const systemIsDark = useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemIsDark,
+    () => false,
+  );
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Load theme from cookie on mount
-    const cookieTheme = getCookie(cookieName) as Theme | null;
-    if (cookieTheme && (cookieTheme === "dark" || cookieTheme === "light" || cookieTheme === "system")) {
-      setThemeState(cookieTheme);
-    }
-  }, [cookieName]);
+  const resolvedTheme: "dark" | "light" =
+    theme === "system" ? (systemIsDark ? "dark" : "light") : theme;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const root = window.document.documentElement;
-
-    // Remove existing theme classes
     root.classList.remove("light", "dark");
-
-    let resolved: "dark" | "light";
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-      resolved = systemTheme;
-    } else {
-      resolved = theme;
-    }
-
-    setResolvedTheme(resolved);
-    root.classList.add(resolved);
-  }, [theme]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handleChange = () => {
-      if (theme === "system") {
-        const resolved = mediaQuery.matches ? "dark" : "light";
-        setResolvedTheme(resolved);
-        const root = window.document.documentElement;
-        root.classList.remove("light", "dark");
-        root.classList.add(resolved);
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+    root.classList.add(resolvedTheme);
+  }, [resolvedTheme]);
 
   const setTheme = (newTheme: Theme) => {
     setCookie(cookieName, newTheme);
@@ -148,4 +121,3 @@ export const useTheme = () => {
 
   return context;
 }
-

@@ -2,11 +2,15 @@
   "name": "swift-ev",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0 <25.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "concurrently --names \"NEXT,CONVEX\" --prefix-colors \"cyan,magenta\" \"next dev --turbopack\" \"convex dev\"",
     "dev:next": "next dev --turbopack",
     "dev:convex": "convex dev",
-    "build": "next build",
+    "build": "pnpm paraglide:compile && next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
@@ -14,7 +18,9 @@
     "convex:deploy": "convex deploy",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy cookie preferredLanguage baseLocale",
+    "extract:strings": "tsx scripts/extract-strings.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -57,12 +63,18 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@inlang/paraglide-js": "^2.12.0",
+    "@inlang/plugin-m-function-matcher": "^2.2.1",
+    "@inlang/plugin-message-format": "^4.3.0",
+    "@inlang/sdk": "^2.7.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/numeral": "^2.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/typescript-estree": "^8.56.0",
+    "@vitalets/google-translate-api": "^9.2.1",
     "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
@@ -70,6 +82,8 @@
     "prettier": "^3.1.1",
     "prettier-plugin-tailwindcss": "^0.5.10",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5"
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "unplugin": "^3.0.0"
   }
 }
