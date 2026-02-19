@@ -269,7 +269,13 @@ describe("Vehicles", () => {
         startingBid: 5000000,
         reservePrice: 6000000,
         buyItNowPrice: 7000000,
-        imageUrls: ["https://example.com/image1.jpg"],
+        mediaUploads: [
+          { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
+          { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
+          { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
+          { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+        ],
+        videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
 
       const result = await client.mutation(api.vehicles.createVehicle, {
@@ -304,7 +310,13 @@ describe("Vehicles", () => {
         locationCountry: "Nigeria",
         startingBid: 5000000,
         reservePrice: 6000000,
-        imageUrls: ["https://example.com/image1.jpg"],
+        mediaUploads: [
+          { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
+          { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
+          { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
+          { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+        ],
+        videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
 
       await expect(
@@ -312,7 +324,7 @@ describe("Vehicles", () => {
           token: buyerToken,
           vehicleData,
         })
-      ).rejects.toThrow("Only vendors can upload vehicles");
+      ).rejects.toThrow("Only vendors or admins can upload vehicles");
     });
 
     test("requires valid session token", async () => {
@@ -338,7 +350,13 @@ describe("Vehicles", () => {
         locationCountry: "Nigeria",
         startingBid: 5000000,
         reservePrice: 6000000,
-        imageUrls: ["https://example.com/image1.jpg"],
+        mediaUploads: [
+          { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
+          { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
+          { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
+          { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+        ],
+        videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
 
       await expect(
@@ -396,4 +414,3 @@ describe("Vehicles", () => {
     });
   });
 });
-

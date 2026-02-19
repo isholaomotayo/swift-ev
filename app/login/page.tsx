@@ -14,13 +14,14 @@ import { QuickLogin } from "@/components/auth/quick-login";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Redirect based on user role when authenticated
   useEffect(() => {
+    if (authLoading) return;
     if (isAuthenticated && user) {
       if (user.role === "superadmin" || user.role === "admin") {
         router.push("/admin");
@@ -30,10 +31,10 @@ export default function LoginPage() {
         router.push("/");
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, authLoading, router]);
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
+  // Prevent UI flash for authenticated sessions
+  if (authLoading || isAuthenticated) {
     return null;
   }
 
@@ -120,7 +121,7 @@ export default function LoginPage() {
             </div>
             <Button
               type="submit"
-              className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10"
+              className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10 text-white"
               disabled={loading}
             >
               {loading ? "Signing in..." : "Continue"}

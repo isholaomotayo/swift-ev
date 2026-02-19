@@ -13,6 +13,12 @@ interface EditVehiclePageProps {
   params: Promise<{ id: string }>;
 }
 
+type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
+type TaggedUploadFile = File & {
+  __mediaRole?: UploadRole;
+  __category?: string;
+};
+
 export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   const { id } = use(params);
   const vehicleId = id as Id<"vehicles">;
@@ -25,6 +31,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   // Fetch vehicle data
   const vehicle = useQuery(api.vehicles.getVehicleById, { vehicleId });
   const updateVehicle = useMutation(api.vehicles.updateVehicle);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const [initialData, setInitialData] = useState<VehicleFormData | null>(null);
 
@@ -58,7 +65,23 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     }
   }, [vehicle]);
 
-  const handleSubmit = async (formData: VehicleFormData, _newImages: File[], _deletedImageIds: string[]) => {
+  const uploadFileToStorage = async (token: string, file: File): Promise<string> => {
+    const uploadUrl = await generateUploadUrl({ token });
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+
+    if (!result.ok) {
+      throw new Error(`Upload failed for ${file.name}`);
+    }
+
+    const { storageId } = await result.json();
+    return String(storageId);
+  };
+
+  const handleSubmit = async (formData: VehicleFormData, newFiles: File[], deletedImageIds: string[]) => {
     if (!user) {
       toast({
         title: "Error",
@@ -76,16 +99,8 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         throw new Error("No authentication token found");
       }
 
-      // Handle image deletion if needed (not yet implemented in backend properly for individual deletions via update, 
-      // but updateVehicle handles replacing everything if imageUrls is provided.
-      // Current updateVehicle implementation replaces ALL images if imageUrls is provided.
-      // So we need to gather ALL valid image URLs (existing - deleted + new).
-      
-      // For now, let's keep it simple: we aren't handling full image re-upload logic here correctly without cloud storage.
-      // But we can update text fields.
-      
       // Construct updates object
-      const updates = {
+      const updates: any = {
         make: formData.make,
         model: formData.model,
         year: formData.year,
@@ -111,10 +126,24 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
           city: formData.locationCity,
           country: formData.locationCountry,
         },
-        // We are NOT sending imageUrls here to avoid wiping existing images
-        // unless we have new images to handle. 
-        // Real implementation would upload newImages, get URLs, combine with filtered existing images, and send all.
       };
+
+      const taggedNewFiles = newFiles as TaggedUploadFile[];
+      const newImageFiles = taggedNewFiles.filter(
+        (file) => file.__mediaRole === "required_image" || file.__mediaRole === "optional_image"
+      );
+
+      const existingImageUrls = (vehicle?.images || [])
+        .filter((img: any) => !deletedImageIds.includes(String(img._id)))
+        .map((img: any) => img.url)
+        .filter(Boolean);
+
+      if (newImageFiles.length > 0 || deletedImageIds.length > 0) {
+        const uploadedImageIds = await Promise.all(
+          newImageFiles.map((file) => uploadFileToStorage(token, file))
+        );
+        updates.imageUrls = [...existingImageUrls, ...uploadedImageIds];
+      }
 
       await updateVehicle({
         token,

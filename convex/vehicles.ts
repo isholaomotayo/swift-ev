@@ -476,6 +476,15 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
   return lotNumber;
 }
 
+const REQUIRED_MEDIA_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"];
+
+const mapCategoryToImageType = (category: string) => {
+  if (category === "Front View") return "hero" as const;
+  if (category.toLowerCase().includes("interior")) return "interior" as const;
+  if (category.toLowerCase().includes("damage")) return "damage" as const;
+  return "exterior" as const;
+};
+
 /**
  * Vendor: Create a new vehicle
  */
@@ -518,8 +527,16 @@ export const createVehicle = mutation({
       buyItNowPrice: v.optional(v.number()),
       buyItNowEnabled: v.optional(v.boolean()),
 
-      // Images
-      imageUrls: v.array(v.string()),
+      // Structured media uploads
+      mediaUploads: v.array(
+        v.object({
+          storageId: v.string(),
+          category: v.string(),
+          isRequired: v.boolean(),
+        })
+      ),
+      inspectionReportStorageId: v.optional(v.string()),
+      videoWalkthroughStorageId: v.string(),
     }),
   },
   handler: async (ctx, args) => {
@@ -542,12 +559,52 @@ export const createVehicle = mutation({
       throw new Error("User not found");
     }
 
-    // Check if user is a vendor (seller)
-    if (user.role !== "seller") {
-      throw new Error("Only vendors can upload vehicles");
+    // Check role permissions
+    if (user.role !== "seller" && user.role !== "admin" && user.role !== "superadmin") {
+      throw new Error("Only vendors or admins can upload vehicles");
     }
 
     const { vehicleData } = args;
+
+    // Hard validation to prevent client-side bypass
+    const nextYear = new Date().getFullYear() + 1;
+    if (vehicleData.year < 2014 || vehicleData.year > nextYear) {
+      throw new Error(`Vehicle year must be between 2014 and ${nextYear}.`);
+    }
+
+    if (vehicleData.odometer < 0) {
+      throw new Error("Odometer cannot be negative.");
+    }
+
+    if (vehicleData.startingBid < 0 || vehicleData.reservePrice < 0) {
+      throw new Error("Pricing values cannot be negative.");
+    }
+
+    const allowedFuelTypes = new Set(["EV (Electric)", "Hybrid", "Gas/Petrol", "Solar"]);
+    if (vehicleData.fuelType && !allowedFuelTypes.has(vehicleData.fuelType)) {
+      throw new Error("Invalid fuel type.");
+    }
+
+    const requiredCategorySet = new Set(
+      vehicleData.mediaUploads
+        .filter((item) => item.isRequired)
+        .map((item) => item.category)
+    );
+    const missingRequiredCategories = REQUIRED_MEDIA_CATEGORIES.filter(
+      (category) => !requiredCategorySet.has(category)
+    );
+    if (missingRequiredCategories.length > 0) {
+      throw new Error(
+        `Missing required media categories: ${missingRequiredCategories.join(", ")}`
+      );
+    }
+
+    const invalidMedia = vehicleData.mediaUploads.find(
+      (item) => !item.storageId || !item.category
+    );
+    if (invalidMedia) {
+      throw new Error("Invalid media upload payload.");
+    }
 
     // Check for duplicate VIN
     const existingVIN = await ctx.db
@@ -579,6 +636,7 @@ export const createVehicle = mutation({
       batteryHealthPercent: vehicleData.batteryHealthPercent,
       chargingType: vehicleData.chargingTypes,
       motorPower: vehicleData.motorPower,
+      batteryType: vehicleData.batteryType,
       odometer: vehicleData.odometer,
       odometerUnit: "km",
       condition: vehicleData.condition as "new" | "like_new" | "excellent" | "good" | "fair" | "salvage",
@@ -604,17 +662,35 @@ export const createVehicle = mutation({
 
     // Create image records matching exact schema
     await Promise.all(
-      vehicleData.imageUrls.map(async (url, index) => {
+      vehicleData.mediaUploads.map(async (media, index) => {
         await ctx.db.insert("vehicleImages", {
           vehicleId,
-          imageUrl: url,
-          thumbnailUrl: url, // In production, generate actual thumbnails
-          imageType: index === 0 ? "hero" : "exterior",
+          imageUrl: media.storageId,
+          thumbnailUrl: media.storageId,
+          imageType: mapCategoryToImageType(media.category),
           order: index,
           uploadedAt: now,
         });
       })
     );
+
+    // Optional inspection report document
+    if (vehicleData.inspectionReportStorageId) {
+      await ctx.db.insert("vehicleDocuments", {
+        vehicleId,
+        documentType: "inspection_report",
+        documentUrl: vehicleData.inspectionReportStorageId,
+        uploadedAt: now,
+      });
+    }
+
+    // Required walkthrough video is stored as a vehicle document.
+    await ctx.db.insert("vehicleDocuments", {
+      vehicleId,
+      documentType: "bill_of_sale",
+      documentUrl: vehicleData.videoWalkthroughStorageId,
+      uploadedAt: now,
+    });
 
     return { vehicleId };
   },
@@ -716,6 +792,13 @@ export const updateVehicle = mutation({
     }
 
     const { vehicleId, updates } = args;
+
+    if (typeof updates.year === "number") {
+      const nextYear = new Date().getFullYear() + 1;
+      if (updates.year < 2014 || updates.year > nextYear) {
+        throw new Error(`Vehicle year must be between 2014 and ${nextYear}.`);
+      }
+    }
 
     // 1. Update vehicle fields
     // Separate imageUrls from the patch as it's not a field on the 'vehicles' table

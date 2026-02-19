@@ -18,6 +18,28 @@ import { Card } from "@/components/ui/card";
 import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
+type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
+type TaggedUploadFile = File & {
+  __mediaRole?: UploadRole;
+  __category?: string;
+};
+
+const REQUIRED_IMAGE_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"] as const;
+const OPTIONAL_IMAGE_CATEGORIES = ["Passenger Side", "Engine Bay"] as const;
+
+const getRegionLabel = (country: string) => {
+  switch (country) {
+    case "China":
+    case "Canada":
+      return "Province";
+    case "United Kingdom":
+      return "County / Region";
+    case "United States":
+      return "State";
+    default:
+      return "State / Region";
+  }
+};
 
 export interface VehicleFormData {
   // Basic Info
@@ -55,6 +77,7 @@ export interface VehicleFormData {
   locationCity: string;
   locationState: string;
   locationCountry: string;
+  locationCountryCustom?: string;
 }
 
 export const initialFormData: VehicleFormData = {
@@ -81,6 +104,7 @@ export const initialFormData: VehicleFormData = {
   locationCity: "",
   locationState: "",
   locationCountry: "Nigeria",
+  locationCountryCustom: "",
 };
 
 interface VehicleFormProps {
@@ -104,7 +128,7 @@ export function VehicleForm({
   const [formData, setFormData] = useState<VehicleFormData>(initialData);
   
   // Manage new file uploads
-  const [newImages, setNewImages] = useState<File[]>([]);
+  const [newImages, setNewImages] = useState<TaggedUploadFile[]>([]);
   
   // Manage existing images (for edit mode)
   const [existingImages, setExistingImages] = useState<any[]>(initialImages);
@@ -114,25 +138,55 @@ export function VehicleForm({
   const [acceptedCommission, setAcceptedCommission] = useState(false);
 
   // Categorized image uploads
-  const REQUIRED_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"];
-  const OPTIONAL_CATEGORIES = ["Passenger Side", "Engine Bay"];
   const [categoryImages, setCategoryImages] = useState<Record<string, File | null>>({});
   const [inspectionReport, setInspectionReport] = useState<File | null>(null);
+  const [videoWalkthrough, setVideoWalkthrough] = useState<File | null>(null);
+  const isEditMode = initialImages.length > 0;
+
+  const tagFile = (file: File, role: UploadRole, category?: string) =>
+    Object.assign(file, { __mediaRole: role, __category: category }) as TaggedUploadFile;
+
+  const upsertTaggedUpload = (matchFn: (file: TaggedUploadFile) => boolean, nextFile: TaggedUploadFile | null) => {
+    setNewImages((prev) => {
+      const filtered = prev.filter((file) => !matchFn(file));
+      if (!nextFile) return filtered;
+      return [...filtered, nextFile];
+    });
+  };
 
   const handleCategoryUpload = (category: string, file: File | null) => {
     setCategoryImages((prev) => ({ ...prev, [category]: file }));
-    if (file) {
-      setNewImages((prev) => {
-        const filtered = prev.filter((img) => (img as any).__category !== category);
-        const tagged = Object.assign(file, { __category: category });
-        return [...filtered, tagged];
-      });
-    } else {
-      setNewImages((prev) => prev.filter((img) => (img as any).__category !== category));
-    }
+    const role: UploadRole = REQUIRED_IMAGE_CATEGORIES.includes(category as (typeof REQUIRED_IMAGE_CATEGORIES)[number])
+      ? "required_image"
+      : "optional_image";
+    upsertTaggedUpload(
+      (img) => img.__category === category,
+      file ? tagFile(file, role, category) : null
+    );
   };
 
-  const allRequiredUploaded = REQUIRED_CATEGORIES.every((cat) => !!categoryImages[cat]);
+  const handleInspectionUpload = (file: File | null) => {
+    setInspectionReport(file);
+    upsertTaggedUpload(
+      (img) => img.__mediaRole === "inspection_report",
+      file ? tagFile(file, "inspection_report") : null
+    );
+  };
+
+  const handleVideoUpload = (file: File | null) => {
+    setVideoWalkthrough(file);
+    upsertTaggedUpload(
+      (img) => img.__mediaRole === "video_walkthrough",
+      file ? tagFile(file, "video_walkthrough") : null
+    );
+  };
+
+  const requiredPhotosUploaded = REQUIRED_IMAGE_CATEGORIES.every((cat) => !!categoryImages[cat]);
+  const hasExistingRequiredPhotoCoverage = existingImages.length >= REQUIRED_IMAGE_CATEGORIES.length;
+  const requiresWalkthroughVideo = !isEditMode;
+  const hasRequiredWalkthroughVideo = !requiresWalkthroughVideo || !!videoWalkthrough;
+  const allRequiredUploaded =
+    (requiredPhotosUploaded || hasExistingRequiredPhotoCoverage) && hasRequiredWalkthroughVideo;
 
   const steps: UploadStep[] = ["basic", "specs", "condition", "pricing", "images"];
   const stepTitles: Record<UploadStep, string> = {
@@ -163,17 +217,6 @@ export function VehicleForm({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const addedFiles = Array.from(e.target.files);
-      setNewImages((prev) => [...prev, ...addedFiles]);
-    }
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const removeExistingImage = (id: string) => {
     setExistingImages((prev) => prev.filter((img) => img._id !== id));
     setDeletedImageIds((prev) => [...prev, id]);
@@ -185,11 +228,16 @@ export function VehicleForm({
       ...formData,
       make: formData.make === "Other" ? (formData.makeCustom || "Other") : formData.make,
       batteryType: formData.batteryType === "Other" ? (formData.batteryTypeCustom || "Other") : formData.batteryType,
+      locationCountry:
+        formData.locationCountry === "Other"
+          ? (formData.locationCountryCustom || "Other")
+          : formData.locationCountry,
     };
     onSubmit(resolvedData, newImages, deletedImageIds);
   };
 
   const isEV = formData.fuelType === "EV (Electric)" || formData.fuelType === "Hybrid";
+  const regionLabel = getRegionLabel(formData.locationCountry);
 
   return (
     <div className="space-y-6">
@@ -300,7 +348,7 @@ export function VehicleForm({
                   id="year"
                   type="number"
                   value={formData.year}
-                  onChange={(e) => updateFormData("year", parseInt(e.target.value))}
+                  onChange={(e) => updateFormData("year", Number(e.target.value) || 2014)}
                   min={2014}
                   max={new Date().getFullYear() + 1}
                 />
@@ -478,7 +526,7 @@ export function VehicleForm({
                   id="odometer"
                   type="number"
                   value={formData.odometer}
-                  onChange={(e) => updateFormData("odometer", parseInt(e.target.value))}
+                  onChange={(e) => updateFormData("odometer", Number(e.target.value) || 0)}
                   min="0"
                 />
               </div>
@@ -520,17 +568,29 @@ export function VehicleForm({
                     ))}
                   </SelectContent>
                 </Select>
+                {formData.locationCountry === "Other" && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Enter country name"
+                    value={formData.locationCountryCustom || ""}
+                    onChange={(e) => updateFormData("locationCountryCustom", e.target.value)}
+                  />
+                )}
               </div>
 
               <div>
-                <Label htmlFor="locationState">
-                  {formData.locationCountry === "China" ? "Province" : "State / Region"}
-                </Label>
+                <Label htmlFor="locationState">{regionLabel}</Label>
                 <Input
                   id="locationState"
                   value={formData.locationState}
                   onChange={(e) => updateFormData("locationState", e.target.value)}
-                  placeholder={formData.locationCountry === "China" ? "e.g., Guangdong" : "e.g., Lagos State"}
+                  placeholder={
+                    regionLabel === "Province"
+                      ? "e.g., Guangdong"
+                      : regionLabel === "State"
+                      ? "e.g., California"
+                      : "e.g., Lagos State"
+                  }
                 />
               </div>
 
@@ -569,7 +629,7 @@ export function VehicleForm({
                   id="startingBid"
                   type="number"
                   value={formData.startingBid}
-                  onChange={(e) => updateFormData("startingBid", parseInt(e.target.value))}
+                  onChange={(e) => updateFormData("startingBid", Number(e.target.value) || 0)}
                   min="0"
                   step="100000"
                 />
@@ -584,7 +644,7 @@ export function VehicleForm({
                   id="reservePrice"
                   type="number"
                   value={formData.reservePrice}
-                  onChange={(e) => updateFormData("reservePrice", parseInt(e.target.value))}
+                  onChange={(e) => updateFormData("reservePrice", Number(e.target.value) || 0)}
                   min="0"
                   step="100000"
                 />
@@ -600,7 +660,7 @@ export function VehicleForm({
                   type="number"
                   value={formData.buyItNowPrice || ""}
                   onChange={(e) =>
-                    updateFormData("buyItNowPrice", e.target.value ? parseInt(e.target.value) : undefined)
+                    updateFormData("buyItNowPrice", e.target.value ? Number(e.target.value) : undefined)
                   }
                   min="0"
                   step="100000"
@@ -634,7 +694,7 @@ export function VehicleForm({
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl font-semibold mb-4">Vehicle Media</h2>
             <p className="text-sm text-muted-foreground">
-              Upload photos for each required angle. All <span className="text-error-red font-semibold">Required</span> categories must be filled before submitting.
+              Upload photos for each required angle{requiresWalkthroughVideo ? " and one walkthrough video" : ""}. All <span className="text-error-red font-semibold">Required</span> items must be filled before submitting.
             </p>
 
             {/* Existing Images (edit mode) */}
@@ -662,7 +722,7 @@ export function VehicleForm({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Required Photos</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {REQUIRED_CATEGORIES.map((category) => {
+                {REQUIRED_IMAGE_CATEGORIES.map((category) => {
                   const file = categoryImages[category];
                   const inputId = `cat-${category.replace(/\s+/g, "-")}`;
                   return (
@@ -699,7 +759,7 @@ export function VehicleForm({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Optional Photos</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {OPTIONAL_CATEGORIES.map((category) => {
+                {OPTIONAL_IMAGE_CATEGORIES.map((category) => {
                   const file = categoryImages[category];
                   const inputId = `cat-${category.replace(/\s+/g, "-")}`;
                   return (
@@ -728,6 +788,32 @@ export function VehicleForm({
               </div>
             </div>
 
+            {/* Video Walkthrough */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Video Walkthrough</Label>
+                <span className={`text-xs font-bold ${requiresWalkthroughVideo ? "text-error-red" : "text-muted-foreground"}`}>
+                  {requiresWalkthroughVideo ? "Required" : "Optional"}
+                </span>
+              </div>
+              <div className={`border-2 rounded-xl p-3 transition-colors ${videoWalkthrough ? "border-volt-green/60 bg-volt-green/5" : requiresWalkthroughVideo ? "border-dashed border-error-red/40 bg-error-red/5" : "border-dashed border-border"}`}>
+                {videoWalkthrough ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground truncate">{videoWalkthrough.name}</span>
+                    <button type="button" onClick={() => handleVideoUpload(null)} className="p-1 text-destructive hover:bg-destructive/10 rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label htmlFor="videoWalkthrough" className="flex flex-col items-center justify-center h-20 cursor-pointer hover:bg-muted/30 transition-colors rounded-lg">
+                    <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+                    <span className="text-xs text-muted-foreground">Upload walkthrough video</span>
+                    <input id="videoWalkthrough" type="file" className="hidden" accept="video/*" onChange={(e) => handleVideoUpload(e.target.files?.[0] || null)} />
+                  </label>
+                )}
+              </div>
+            </div>
+
             {/* Inspection Report */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -738,7 +824,7 @@ export function VehicleForm({
                 {inspectionReport ? (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground truncate">{inspectionReport.name}</span>
-                    <button type="button" onClick={() => setInspectionReport(null)} className="p-1 text-destructive hover:bg-destructive/10 rounded">
+                    <button type="button" onClick={() => handleInspectionUpload(null)} className="p-1 text-destructive hover:bg-destructive/10 rounded">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -746,7 +832,7 @@ export function VehicleForm({
                   <label htmlFor="inspectionReport" className="flex flex-col items-center justify-center h-20 cursor-pointer hover:bg-muted/30 transition-colors rounded-lg">
                     <Upload className="w-5 h-5 text-muted-foreground mb-1" />
                     <span className="text-xs text-muted-foreground">Upload inspection report</span>
-                    <input id="inspectionReport" type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => setInspectionReport(e.target.files?.[0] || null)} />
+                    <input id="inspectionReport" type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleInspectionUpload(e.target.files?.[0] || null)} />
                   </label>
                 )}
               </div>
@@ -754,7 +840,7 @@ export function VehicleForm({
 
             {!allRequiredUploaded && (
               <p className="text-sm text-error-red font-medium">
-                Please upload all required photos before submitting.
+                Please upload all required photos{requiresWalkthroughVideo ? " and the walkthrough video" : ""} before submitting.
               </p>
             )}
           </div>
@@ -774,7 +860,7 @@ export function VehicleForm({
 
         <div className="flex gap-2">
           {!isLastStep ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="bg-electric-blue hover:bg-electric-blue-dark text-white">
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -782,8 +868,14 @@ export function VehicleForm({
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || !acceptedCommission || !allRequiredUploaded}
-              title={!acceptedCommission ? "Please accept the commission terms in the Pricing step" : !allRequiredUploaded ? "Please upload all required vehicle photos" : undefined}
-              className="bg-volt-green hover:bg-volt-green/90 text-white"
+              title={
+                !acceptedCommission
+                  ? "Please accept the commission terms in the Pricing step"
+                  : !allRequiredUploaded
+                  ? `Please upload all required vehicle photos${requiresWalkthroughVideo ? " and walkthrough video" : ""}`
+                  : undefined
+              }
+              className="bg-electric-blue hover:bg-electric-blue-dark text-white"
             >
               {isSubmitting ? (
                 "Processing..."

@@ -8,7 +8,11 @@ import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleForm } from "@/components/vendor/vehicle-form";
 
-
+type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
+type TaggedUploadFile = File & {
+  __mediaRole?: UploadRole;
+  __category?: string;
+};
 
 export default function VehicleUploadPage() {
   const { user } = useAuth();
@@ -17,8 +21,25 @@ export default function VehicleUploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createVehicle = useMutation(api.vehicles.createVehicle);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
-  const handleSubmit = async (formData: any, images: File[]) => {
+  const uploadFileToStorage = async (token: string, file: File): Promise<string> => {
+    const uploadUrl = await generateUploadUrl({ token });
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+
+    if (!result.ok) {
+      throw new Error(`Upload failed for ${file.name}`);
+    }
+
+    const { storageId } = await result.json();
+    return String(storageId);
+  };
+
+  const handleSubmit = async (formData: any, files: File[], _deletedImageIds: string[]) => {
     if (!user) {
       toast({
         title: "Error",
@@ -36,20 +57,39 @@ export default function VehicleUploadPage() {
         throw new Error("No authentication token found");
       }
 
-      // In a real implementation, you would upload images to Cloudinary first
-      // For now, we'll use placeholder images or object URLs if needed,
-      // but the mutation expects strings. We'll use placeholders for demo.
-      const placeholderImages = [
-        `https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop`,
-        `https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop`,
-        `https://images.unsplash.com/photo-1614200179396-2bdb77ebf81b?w=800&h=600&fit=crop`,
-      ];
+      const taggedFiles = files as TaggedUploadFile[];
+      const imageFiles = taggedFiles.filter(
+        (file) => file.__mediaRole === "required_image" || file.__mediaRole === "optional_image"
+      );
+      const inspectionReportFile =
+        taggedFiles.find((file) => file.__mediaRole === "inspection_report") || null;
+      const videoWalkthroughFile =
+        taggedFiles.find((file) => file.__mediaRole === "video_walkthrough") || null;
+
+      if (!videoWalkthroughFile) {
+        throw new Error("A walkthrough video is required before submission.");
+      }
+
+      const mediaUploads = await Promise.all(
+        imageFiles.map(async (file) => ({
+          storageId: await uploadFileToStorage(token, file),
+          category: file.__category || "Additional",
+          isRequired: file.__mediaRole === "required_image",
+        }))
+      );
+
+      const inspectionReportStorageId = inspectionReportFile
+        ? await uploadFileToStorage(token, inspectionReportFile)
+        : undefined;
+      const videoWalkthroughStorageId = await uploadFileToStorage(token, videoWalkthroughFile);
 
       await createVehicle({
         token,
         vehicleData: {
           ...formData,
-          imageUrls: placeholderImages,
+          mediaUploads,
+          inspectionReportStorageId,
+          videoWalkthroughStorageId,
         },
       });
 
@@ -59,11 +99,11 @@ export default function VehicleUploadPage() {
       });
 
       router.push("/vendor/vehicles");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading vehicle:", error);
       toast({
         title: "Error",
-        description: "Failed to upload vehicle. Please try again.",
+        description: error?.message || "Failed to upload vehicle. Please try again.",
         variant: "destructive",
       });
     } finally {

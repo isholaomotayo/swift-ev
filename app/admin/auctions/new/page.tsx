@@ -469,12 +469,20 @@ export default function CreateAuctionPage() {
           </Button>
 
           {step < 4 ? (
-            <Button onClick={() => setStep((s) => s + 1)} disabled={!canProceed()}>
+            <Button
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!canProceed()}
+              className="bg-electric-blue hover:bg-electric-blue-dark text-white"
+            >
               Next
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleCreateAuction} disabled={loading}>
+            <Button
+              onClick={handleCreateAuction}
+              disabled={loading}
+              className="bg-electric-blue hover:bg-electric-blue-dark text-white"
+            >
               {loading ? "Creating..." : "Create Auction"}
             </Button>
           )}

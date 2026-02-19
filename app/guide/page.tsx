@@ -344,7 +344,7 @@ const guideSections = [
         title: "Buyer fees",
         columns: ["Fee", "Amount"],
         rows: [
-          ["Registration", "$3 (one-time)"],
+          ["Registration Verification", "Configurable (admin-controlled)"],
           ["Buyer Premium", "5% of winning bid"],
           ["Documentation Fee", "₦25,000"],
           ["Late Payment", "₦50,000 + 2%"],

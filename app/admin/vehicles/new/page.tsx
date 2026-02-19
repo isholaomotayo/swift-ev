@@ -152,12 +152,18 @@ export default function AdminVehicleUploadPage() {
     setIsSubmitting(true);
 
     try {
-      // In a real implementation, you would upload images to Convex storage first
-      // For now, we'll use placeholder images
+      // TODO: Replace placeholders with real storage uploads for admin flow.
       const placeholderImages = [
         `https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop`,
         `https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop`,
         `https://images.unsplash.com/photo-1614200179396-2bdb77ebf81b?w=800&h=600&fit=crop`,
+        `https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&h=600&fit=crop`,
+      ];
+      const mediaUploads = [
+        { storageId: placeholderImages[0], category: "Front View", isRequired: true },
+        { storageId: placeholderImages[1], category: "Rear View", isRequired: true },
+        { storageId: placeholderImages[2], category: "Driver Side", isRequired: true },
+        { storageId: placeholderImages[3], category: "Interior (Dashboard)", isRequired: true },
       ];
 
       await createVehicle({
@@ -184,7 +190,8 @@ export default function AdminVehicleUploadPage() {
           locationCity: formData.locationCity,
           locationState: formData.locationState,
           locationCountry: formData.locationCountry,
-          imageUrls: placeholderImages,
+          mediaUploads,
+          videoWalkthroughStorageId: placeholderImages[0],
         },
       });
 

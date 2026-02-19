@@ -25,7 +25,7 @@ type RegistrationStep = "account_type" | "form" | "payment";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isAuthenticated } = useAuth();
+  const { register, isAuthenticated, loading: authLoading, user } = useAuth();
 
   const [step, setStep] = useState<RegistrationStep>("account_type");
   const [accountType, setAccountType] = useState<AccountType | null>(null);
@@ -50,8 +50,18 @@ export default function RegisterPage() {
   const verificationFeeAmount = feeAmount ? String(feeAmount) : "3";
 
   // Redirect if already authenticated
+  if (authLoading) {
+    return null;
+  }
+
   if (isAuthenticated) {
-    router.push("/dashboard");
+    if (user?.role === "seller") {
+      router.push("/vendor");
+    } else if (user?.role === "admin" || user?.role === "superadmin") {
+      router.push("/admin");
+    } else {
+      router.push("/dashboard");
+    }
     return null;
   }
 
@@ -401,7 +411,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10">
+              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10 text-white">
                 Continue to Verification
               </Button>
             </form>
@@ -443,7 +453,7 @@ export default function RegisterPage() {
               <Button
                 onClick={handlePayment}
                 disabled={loading}
-                className="w-full h-14 rounded-2xl text-lg font-bold bg-success-green hover:bg-green-600 shadow-xl shadow-green-600/10 text-white"
+                className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10 text-white"
               >
                 {loading ? "Processing Payment..." : "Pay & Create Account"}
               </Button>

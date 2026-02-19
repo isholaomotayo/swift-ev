@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Prepare message files for translation by removing placeholder prefixes
- * The inlang CLI only translates MISSING keys, not keys with placeholder values
+ * AND removing keys that match English (so CLI treats them as missing)
  */
 import * as fs from "fs";
 import * as path from "path";
@@ -18,10 +18,15 @@ languages.forEach((lang) => {
   const langMessages = JSON.parse(fs.readFileSync(filePath, "utf-8"));
   let removed = 0;
   let kept = 0;
+  let removedEnglish = 0;
 
   // Remove placeholder prefixes to make keys "missing" for translation
   Object.keys(langMessages).forEach((key) => {
     const value = langMessages[key];
+    
+    // Skip $schema
+    if (key === "$schema") return;
+    
     // Handle zh-CN case for placeholder pattern
     const langCode = lang === "zh-CN" ? "ZH" : lang.toUpperCase();
     const placeholderPattern = new RegExp(`^\\[${langCode}\\] `);
@@ -30,12 +35,16 @@ languages.forEach((lang) => {
       // Remove the key entirely so CLI treats it as missing
       delete langMessages[key];
       removed++;
+    } else if (typeof value === "string" && value === enMessages[key]) {
+      // If value matches English exactly, remove it so CLI translates it
+      delete langMessages[key];
+      removedEnglish++;
     } else {
       kept++;
     }
   });
 
-  // Write back without placeholders
+  // Write back without placeholders or English matches
   const sortedMessages: Record<string, string> = {};
   Object.keys(langMessages)
     .sort()
@@ -49,7 +58,7 @@ languages.forEach((lang) => {
     "utf-8"
   );
 
-  console.log(`✅ ${lang}.json: Removed ${removed} placeholders, kept ${kept} existing translations`);
+  console.log(`✅ ${lang}.json: Removed ${removed} placeholders, ${removedEnglish} English matches, kept ${kept} existing translations`);
 });
 
 console.log("\n✨ Ready for translation! Now run:");

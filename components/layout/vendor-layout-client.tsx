@@ -61,6 +61,7 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
+  const displayName = user.vendorCompany?.trim() || `${user.firstName} ${user.lastName}`.trim();
 
   return (
     <div className="flex min-h-screen bg-background selection:bg-volt-green/30">
@@ -114,8 +115,10 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
 
           <div className="absolute bottom-6 left-6 right-6">
             <div className="p-4 rounded-xl bg-muted/30 border border-border/50 mb-4 backdrop-blur-sm">
-              <p className="font-bold text-sm truncate">{user.firstName} {user.lastName}</p>
-              <p className="text-xs text-muted-foreground truncate opacity-80">{user.vendorCompany || 'Vendor Account'}</p>
+              <p className="font-bold text-sm truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate opacity-80">
+                {user.vendorCompany ? "Verified Vendor Account" : "Vendor Account"}
+              </p>
             </div>
             <Button
               variant="ghost"
@@ -141,4 +144,3 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
     </div>
   );
 }
-
