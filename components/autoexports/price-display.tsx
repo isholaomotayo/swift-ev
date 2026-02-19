@@ -7,7 +7,6 @@ interface PriceDisplayProps {
   variant?: "default" | "large" | "compact";
   className?: string;
   currency?: string;
-  locale?: string;
 }
 
 export function PriceDisplay({
@@ -16,9 +15,8 @@ export function PriceDisplay({
   variant = "default",
   className,
   currency = "NGN",
-  locale = "en-NG",
 }: PriceDisplayProps) {
-  const formattedPrice = formatCurrency(amount, { currency, locale });
+  const formattedPrice = formatCurrency(amount, { currency });
 
   if (variant === "compact") {
     return (

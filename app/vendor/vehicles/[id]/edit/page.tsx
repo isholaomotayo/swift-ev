@@ -36,7 +36,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         model: vehicle.model,
         year: vehicle.year,
         vin: vehicle.vin,
-        lotNumber: vehicle.lotNumber,
+        fuelType: (vehicle as { fuelType?: string }).fuelType ?? "EV (Electric)",
         batteryCapacity: vehicle.batteryCapacity,
         batteryHealthPercent: vehicle.batteryHealthPercent || 100,
         range: vehicle.estimatedRange, // Map estimatedRange to range
@@ -90,7 +90,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         model: formData.model,
         year: formData.year,
         vin: formData.vin,
-        lotNumber: formData.lotNumber,
+        fuelType: formData.fuelType,
         batteryCapacity: formData.batteryCapacity,
         batteryHealthPercent: formData.batteryHealthPercent,
         estimatedRange: formData.range, // Frontend 'range' -> Backend 'estimatedRange'

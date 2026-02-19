@@ -133,13 +133,12 @@ export function VehicleActionsModal({
 
         try {
             setIsLoading(true);
+            const { lotNumber: _omit, ...formDataWithoutLot } = formData;
             await updateVehicle({
                 token,
                 vehicleId: vehicle._id as Id<"vehicles">,
                 updates: {
-                    ...formData,
-                    // Map flat location fields back to object if needed, or update mutation to handle flat fields?
-                    // The mutation expects a currentLocation object.
+                    ...formDataWithoutLot,
                     currentLocation: {
                         facility: vehicle.currentLocation?.facility || "Default Facility",
                         city: formData.locationCity,

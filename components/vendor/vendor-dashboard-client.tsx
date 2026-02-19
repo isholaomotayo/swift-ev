@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface VendorDashboardClientProps {
   user: {
@@ -23,6 +24,9 @@ interface VendorDashboardClientProps {
 }
 
 export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDashboardClientProps) {
+  const { user: authUser } = useAuth();
+  const preferredCurrency = authUser?.preferredCurrency ?? "NGN";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -88,7 +92,7 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
           <div className="flex items-center justify-between relative z-10">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Total Revenue</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(stats.totalRevenue, { currency: preferredCurrency })}</p>
             </div>
             <div className="h-12 w-12 rounded-2xl bg-warning-amber/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <DollarSign className="h-6 w-6 text-warning-amber" />

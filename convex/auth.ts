@@ -23,6 +23,7 @@ export const register = mutation({
         v.literal("seller_fleet")
       )
     ),
+    preferredCurrency: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if email already exists
@@ -72,6 +73,7 @@ export const register = mutation({
       pendingBalance: 0,
       reservedBalance: 0,
       walletCurrency: "NGN",
+      preferredCurrency: args.preferredCurrency ?? "NGN",
       // KYC fields (FEAT-002)
       verificationFeeStatus: "paid", // Payment collected in UI
       buyingPower: 0,
@@ -231,6 +233,7 @@ export const getCurrentUser = query({
       role: user.role,
       vendorCompany: user.vendorCompany,
       vendorLicense: user.vendorLicense,
+      preferredCurrency: user.preferredCurrency ?? "NGN",
     };
   },
 });

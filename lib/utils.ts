@@ -11,32 +11,61 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format currency in Nigerian Naira
+ * Exchange rate table — used to convert NGN amounts to other currencies.
+ * Values can be overridden at runtime by passing exchangeRates to formatCurrency.
+ */
+const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
+  NGN: 1,
+  USD: 1 / 1650,
+  CNY: 1 / 230,
+  GBP: 1 / 2100,
+};
+
+const CURRENCY_LOCALES: Record<string, string> = {
+  NGN: "en-NG",
+  USD: "en-US",
+  CNY: "zh-CN",
+  GBP: "en-GB",
+};
+
+/**
+ * Format a NGN amount, optionally converting to the user's preferred currency.
+ *
+ * @param amountNgn  - Amount in Nigerian Naira (always the base unit on the platform)
+ * @param options.currency       - Target display currency (default: "NGN")
+ * @param options.showSymbol     - Whether to show the currency symbol (default: true)
+ * @param options.exchangeRates  - Override exchange rates (usdToNgn, cnyToNgn, gbpToNgn)
  */
 export function formatCurrency(
-  amount: number,
+  amountNgn: number,
   options?: {
     currency?: string;
-    locale?: string;
     showSymbol?: boolean;
+    exchangeRates?: { usdToNgn?: number; cnyToNgn?: number; gbpToNgn?: number };
   }
 ): string {
-  const {
-    currency = "NGN",
-    locale = "en-NG",
-    showSymbol = true,
-  } = options || {};
+  const { currency = "NGN", showSymbol = true, exchangeRates } = options || {};
 
   if (!showSymbol) {
-    return numeral(amount).format("0,0");
+    return numeral(amountNgn).format("0,0");
   }
+
+  // Build the effective rates, merging any admin-supplied rates over defaults
+  const rates = { ...DEFAULT_EXCHANGE_RATES };
+  if (exchangeRates?.usdToNgn) rates.USD = 1 / exchangeRates.usdToNgn;
+  if (exchangeRates?.cnyToNgn) rates.CNY = 1 / exchangeRates.cnyToNgn;
+  if (exchangeRates?.gbpToNgn) rates.GBP = 1 / exchangeRates.gbpToNgn;
+
+  const rate = rates[currency] ?? 1;
+  const converted = amountNgn * rate;
+  const locale = CURRENCY_LOCALES[currency] ?? "en-NG";
 
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+    maximumFractionDigits: currency === "NGN" ? 0 : 2,
+  }).format(converted);
 }
 
 /**

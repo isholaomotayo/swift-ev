@@ -23,6 +23,7 @@ interface User {
   // Vendor-specific fields
   vendorCompany?: string;
   vendorLicense?: string;
+  preferredCurrency?: string;
 }
 
 interface AuthContextType {
@@ -43,6 +44,7 @@ interface RegisterData {
   phone?: string;
   password: string;
   accountType?: "individual" | "dealer" | "corporate" | "seller_individual" | "seller_dealer" | "seller_fleet";
+  preferredCurrency?: string;
 }
 
 interface ProfileUpdates {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,25 +15,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES } from "@/lib/constants";
+import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
 
 export interface VehicleFormData {
   // Basic Info
   make: string;
+  makeCustom?: string;
   model: string;
   year: number;
   vin: string;
-  lotNumber: string;
 
-  // Car Specs
-  batteryCapacity: number;
-  batteryHealthPercent: number;
-  range: number;
-  batteryType: string;
-  chargingTypes: string[];
-  motorPower: number;
+  // Fuel type
+  fuelType: string;
+
+  // Car Specs (EV-specific fields are optional for non-EV vehicles)
+  batteryCapacity?: number;
+  batteryHealthPercent?: number;
+  range?: number;
+  batteryType?: string;
+  batteryTypeCustom?: string;
+  chargingTypes?: string[];
+  motorPower?: number;
 
   // Condition
   condition: string;
@@ -54,14 +59,16 @@ export interface VehicleFormData {
 
 export const initialFormData: VehicleFormData = {
   make: "",
+  makeCustom: "",
   model: "",
   year: new Date().getFullYear(),
   vin: "",
-  lotNumber: "",
+  fuelType: "EV (Electric)",
   batteryCapacity: 0,
   batteryHealthPercent: 100,
   range: 0,
   batteryType: "",
+  batteryTypeCustom: "",
   chargingTypes: [],
   motorPower: 0,
   condition: "",
@@ -102,6 +109,30 @@ export function VehicleForm({
   // Manage existing images (for edit mode)
   const [existingImages, setExistingImages] = useState<any[]>(initialImages);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+
+  // Commission terms acceptance
+  const [acceptedCommission, setAcceptedCommission] = useState(false);
+
+  // Categorized image uploads
+  const REQUIRED_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"];
+  const OPTIONAL_CATEGORIES = ["Passenger Side", "Engine Bay"];
+  const [categoryImages, setCategoryImages] = useState<Record<string, File | null>>({});
+  const [inspectionReport, setInspectionReport] = useState<File | null>(null);
+
+  const handleCategoryUpload = (category: string, file: File | null) => {
+    setCategoryImages((prev) => ({ ...prev, [category]: file }));
+    if (file) {
+      setNewImages((prev) => {
+        const filtered = prev.filter((img) => (img as any).__category !== category);
+        const tagged = Object.assign(file, { __category: category });
+        return [...filtered, tagged];
+      });
+    } else {
+      setNewImages((prev) => prev.filter((img) => (img as any).__category !== category));
+    }
+  };
+
+  const allRequiredUploaded = REQUIRED_CATEGORIES.every((cat) => !!categoryImages[cat]);
 
   const steps: UploadStep[] = ["basic", "specs", "condition", "pricing", "images"];
   const stepTitles: Record<UploadStep, string> = {
@@ -149,8 +180,16 @@ export function VehicleForm({
   };
 
   const handleSubmit = () => {
-    onSubmit(formData, newImages, deletedImageIds);
+    // Resolve "Other" values before submitting
+    const resolvedData = {
+      ...formData,
+      make: formData.make === "Other" ? (formData.makeCustom || "Other") : formData.make,
+      batteryType: formData.batteryType === "Other" ? (formData.batteryTypeCustom || "Other") : formData.batteryType,
+    };
+    onSubmit(resolvedData, newImages, deletedImageIds);
   };
+
+  const isEV = formData.fuelType === "EV (Electric)" || formData.fuelType === "Hybrid";
 
   return (
     <div className="space-y-6">
@@ -199,6 +238,25 @@ export function VehicleForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
+                <Label htmlFor="fuelType">Fuel / Engine Type</Label>
+                <Select
+                  value={formData.fuelType}
+                  onValueChange={(value) => updateFormData("fuelType", value)}
+                >
+                  <SelectTrigger id="fuelType">
+                    <SelectValue placeholder="Select fuel type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FUEL_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label htmlFor="make">Make</Label>
                 <Select
                   value={formData.make}
@@ -213,8 +271,17 @@ export function VehicleForm({
                         {make}
                       </SelectItem>
                     ))}
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.make === "Other" && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Enter manufacturer name"
+                    value={formData.makeCustom || ""}
+                    onChange={(e) => updateFormData("makeCustom", e.target.value)}
+                  />
+                )}
               </div>
 
               <div>
@@ -234,7 +301,7 @@ export function VehicleForm({
                   type="number"
                   value={formData.year}
                   onChange={(e) => updateFormData("year", parseInt(e.target.value))}
-                  min={2010}
+                  min={2014}
                   max={new Date().getFullYear() + 1}
                 />
               </div>
@@ -255,11 +322,11 @@ export function VehicleForm({
                 <Label htmlFor="lotNumber">Lot Number</Label>
                 <Input
                   id="lotNumber"
-                  value={formData.lotNumber}
-                  onChange={(e) => updateFormData("lotNumber", e.target.value.toUpperCase())}
-                  placeholder="e.g., VB-000123"
-                  className="font-mono"
+                  value="Auto-generated by system"
+                  readOnly
+                  className="font-mono bg-muted/50 text-muted-foreground cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Assigned automatically upon submission</p>
               </div>
             </div>
           </div>
@@ -268,97 +335,115 @@ export function VehicleForm({
         {currentStep === "specs" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl font-semibold mb-4">Car Specifications</h2>
+            {!isEV && (
+              <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                EV-specific fields (battery, range, charging) are hidden for {formData.fuelType} vehicles.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="batteryCapacity">Battery Capacity (kWh)</Label>
-                <Input
-                  id="batteryCapacity"
-                  type="number"
-                  value={formData.batteryCapacity}
-                  onChange={(e) => updateFormData("batteryCapacity", parseFloat(e.target.value))}
-                  step="0.1"
-                  min="0"
-                />
-              </div>
+              {isEV && (
+                <>
+                  <div>
+                    <Label htmlFor="batteryCapacity">Battery Capacity (kWh)</Label>
+                    <Input
+                      id="batteryCapacity"
+                      type="number"
+                      value={formData.batteryCapacity ?? ""}
+                      onChange={(e) => updateFormData("batteryCapacity", parseFloat(e.target.value))}
+                      step="0.1"
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="batteryHealthPercent">Battery Health (%)</Label>
-                <Input
-                  id="batteryHealthPercent"
-                  type="number"
-                  value={formData.batteryHealthPercent}
-                  onChange={(e) => updateFormData("batteryHealthPercent", parseInt(e.target.value))}
-                  min="0"
-                  max="100"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="batteryHealthPercent">Battery Health (%)</Label>
+                    <Input
+                      id="batteryHealthPercent"
+                      type="number"
+                      value={formData.batteryHealthPercent ?? ""}
+                      onChange={(e) => updateFormData("batteryHealthPercent", parseInt(e.target.value))}
+                      min="0"
+                      max="100"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="range">Range (km)</Label>
-                <Input
-                  id="range"
-                  type="number"
-                  value={formData.range}
-                  onChange={(e) => updateFormData("range", parseInt(e.target.value))}
-                  min="0"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="range">Range (km)</Label>
+                    <Input
+                      id="range"
+                      type="number"
+                      value={formData.range ?? ""}
+                      onChange={(e) => updateFormData("range", parseInt(e.target.value))}
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="motorPower">Motor Power (kW)</Label>
-                <Input
-                  id="motorPower"
-                  type="number"
-                  value={formData.motorPower}
-                  onChange={(e) => updateFormData("motorPower", parseInt(e.target.value))}
-                  min="0"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="motorPower">Motor Power (kW)</Label>
+                    <Input
+                      id="motorPower"
+                      type="number"
+                      value={formData.motorPower ?? ""}
+                      onChange={(e) => updateFormData("motorPower", parseInt(e.target.value))}
+                      min="0"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="batteryType">Battery Type</Label>
-                <Select
-                  value={formData.batteryType}
-                  onValueChange={(value) => updateFormData("batteryType", value)}
-                >
-                  <SelectTrigger id="batteryType">
-                    <SelectValue placeholder="Select battery type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BATTERY_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Charging Types (select multiple)</Label>
-                <div className="space-y-2 mt-2">
-                  {CHARGING_TYPES.map((type) => (
-                    <label key={type} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.chargingTypes.includes(type)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            updateFormData("chargingTypes", [...formData.chargingTypes, type]);
-                          } else {
-                            updateFormData(
-                              "chargingTypes",
-                              formData.chargingTypes.filter((t) => t !== type)
-                            );
-                          }
-                        }}
+                  <div>
+                    <Label htmlFor="batteryType">Battery Type</Label>
+                    <Select
+                      value={formData.batteryType || ""}
+                      onValueChange={(value) => updateFormData("batteryType", value)}
+                    >
+                      <SelectTrigger id="batteryType">
+                        <SelectValue placeholder="Select battery type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BATTERY_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formData.batteryType === "Other" && (
+                      <Input
+                        className="mt-2"
+                        placeholder="Enter battery type"
+                        value={formData.batteryTypeCustom || ""}
+                        onChange={(e) => updateFormData("batteryTypeCustom", e.target.value)}
                       />
-                      <span>{type}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label>Charging Types (select multiple)</Label>
+                    <div className="space-y-2 mt-2">
+                      {CHARGING_TYPES.map((type) => (
+                        <label key={type} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={(formData.chargingTypes || []).includes(type)}
+                            onChange={(e) => {
+                              const current = formData.chargingTypes || [];
+                              if (e.target.checked) {
+                                updateFormData("chargingTypes", [...current, type]);
+                              } else {
+                                updateFormData(
+                                  "chargingTypes",
+                                  current.filter((t) => t !== type)
+                                );
+                              }
+                            }}
+                          />
+                          <span>{type}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -418,23 +503,44 @@ export function VehicleForm({
                 />
               </div>
 
+              <div>
+                <Label htmlFor="locationCountry">Country</Label>
+                <Select
+                  value={formData.locationCountry}
+                  onValueChange={(value) => updateFormData("locationCountry", value)}
+                >
+                  <SelectTrigger id="locationCountry">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="locationState">
+                  {formData.locationCountry === "China" ? "Province" : "State / Region"}
+                </Label>
+                <Input
+                  id="locationState"
+                  value={formData.locationState}
+                  onChange={(e) => updateFormData("locationState", e.target.value)}
+                  placeholder={formData.locationCountry === "China" ? "e.g., Guangdong" : "e.g., Lagos State"}
+                />
+              </div>
+
               <div className="md:col-span-2">
-                <Label htmlFor="locationCity">Location City</Label>
+                <Label htmlFor="locationCity">City</Label>
                 <Input
                   id="locationCity"
                   value={formData.locationCity}
                   onChange={(e) => updateFormData("locationCity", e.target.value)}
                   placeholder="e.g., Lagos"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="locationState">State</Label>
-                <Input
-                  id="locationState"
-                  value={formData.locationState}
-                  onChange={(e) => updateFormData("locationState", e.target.value)}
-                  placeholder="e.g., Lagos State"
                 />
               </div>
 
@@ -503,95 +609,154 @@ export function VehicleForm({
                   Price to purchase immediately without bidding
                 </p>
               </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-start space-x-3 p-4 bg-muted/20 rounded-xl border border-border mt-2">
+                  <Checkbox
+                    id="commissionTerms"
+                    checked={acceptedCommission}
+                    onCheckedChange={(checked) => setAcceptedCommission(checked as boolean)}
+                    className="mt-1"
+                  />
+                  <label htmlFor="commissionTerms" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                    I agree to the platform commission structure: <strong className="text-foreground">7%</strong> for bids up to ₦5M,{" "}
+                    <strong className="text-foreground">6%</strong> for bids up to ₦15M, and{" "}
+                    <strong className="text-foreground">5%</strong> for bids above ₦15M.
+                    Deducted from the final sale amount upon successful auction completion.
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {currentStep === "images" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-xl font-semibold mb-4">Vehicle Images</h2>
+            <h2 className="text-xl font-semibold mb-4">Vehicle Media</h2>
+            <p className="text-sm text-muted-foreground">
+              Upload photos for each required angle. All <span className="text-error-red font-semibold">Required</span> categories must be filled before submitting.
+            </p>
 
-            <div>
-              <Label htmlFor="images">Upload Images</Label>
-              <div className="mt-2 flex items-center justify-center w-full">
-                <label
-                  htmlFor="images"
-                  className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PNG, JPG or WEBP (MAX. 5MB per file)
-                    </p>
-                  </div>
-                  <input
-                    id="images"
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                  />
-                </label>
+            {/* Existing Images (edit mode) */}
+            {existingImages.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-3">Existing Images</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {existingImages.map((image) => (
+                    <div key={image._id} className="relative group">
+                      <img src={image.url} alt="Vehicle" className="w-full h-32 object-cover rounded-lg" />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(image._id)}
+                        className="absolute top-2 right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
 
-              {/* Existing Images */}
-              {existingImages.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium mb-3">Existing Images</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {existingImages.map((image) => (
-                      <div key={image._id} className="relative group">
-                        <img
-                          src={image.url}
-                          alt="Vehicle"
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeExistingImage(image._id)}
-                          className="absolute top-2 right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform hover:scale-110"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+            {/* Required Categories */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Required Photos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {REQUIRED_CATEGORIES.map((category) => {
+                  const file = categoryImages[category];
+                  const inputId = `cat-${category.replace(/\s+/g, "-")}`;
+                  return (
+                    <div key={category} className={`border-2 rounded-xl p-3 transition-colors ${file ? "border-volt-green/60 bg-volt-green/5" : "border-dashed border-error-red/40 bg-error-red/5"}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium">{category}</Label>
+                        <span className="text-xs text-error-red font-bold">Required</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* New Images */}
-              {newImages.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium mb-3">New Uploads</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {newImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={URL.createObjectURL(image)}
-                          alt={`Upload ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeNewImage(index)}
-                          className="absolute top-2 right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform hover:scale-110"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <p className="text-sm text-muted-foreground mt-4">
-                Note: In production, images will be uploaded to a CDN like Cloudinary.
-              </p>
+                      {file ? (
+                        <div className="relative group">
+                          <img src={URL.createObjectURL(file)} alt={category} className="w-full h-28 object-cover rounded-lg" />
+                          <button
+                            type="button"
+                            onClick={() => handleCategoryUpload(category, null)}
+                            className="absolute top-1 right-1 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label htmlFor={inputId} className="flex flex-col items-center justify-center h-28 border border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Click to upload</span>
+                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryUpload(category, e.target.files?.[0] || null)} />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Optional Categories */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Optional Photos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {OPTIONAL_CATEGORIES.map((category) => {
+                  const file = categoryImages[category];
+                  const inputId = `cat-${category.replace(/\s+/g, "-")}`;
+                  return (
+                    <div key={category} className={`border-2 rounded-xl p-3 transition-colors ${file ? "border-volt-green/60 bg-volt-green/5" : "border-dashed border-border"}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium">{category}</Label>
+                        <span className="text-xs text-muted-foreground">Optional</span>
+                      </div>
+                      {file ? (
+                        <div className="relative group">
+                          <img src={URL.createObjectURL(file)} alt={category} className="w-full h-28 object-cover rounded-lg" />
+                          <button type="button" onClick={() => handleCategoryUpload(category, null)} className="absolute top-1 right-1 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label htmlFor={inputId} className="flex flex-col items-center justify-center h-28 border border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Click to upload</span>
+                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryUpload(category, e.target.files?.[0] || null)} />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Inspection Report */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Inspection Report</Label>
+                <span className="text-xs text-muted-foreground">Optional — PDF, JPG, or PNG</span>
+              </div>
+              <div className={`border-2 rounded-xl p-3 transition-colors ${inspectionReport ? "border-volt-green/60 bg-volt-green/5" : "border-dashed border-border"}`}>
+                {inspectionReport ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground truncate">{inspectionReport.name}</span>
+                    <button type="button" onClick={() => setInspectionReport(null)} className="p-1 text-destructive hover:bg-destructive/10 rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label htmlFor="inspectionReport" className="flex flex-col items-center justify-center h-20 cursor-pointer hover:bg-muted/30 transition-colors rounded-lg">
+                    <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+                    <span className="text-xs text-muted-foreground">Upload inspection report</span>
+                    <input id="inspectionReport" type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => setInspectionReport(e.target.files?.[0] || null)} />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {!allRequiredUploaded && (
+              <p className="text-sm text-error-red font-medium">
+                Please upload all required photos before submitting.
+              </p>
+            )}
           </div>
         )}
       </Card>
@@ -616,8 +781,9 @@ export function VehicleForm({
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-volt-green hover:bg-volt-green/90"
+              disabled={isSubmitting || !acceptedCommission || !allRequiredUploaded}
+              title={!acceptedCommission ? "Please accept the commission terms in the Pricing step" : !allRequiredUploaded ? "Please upload all required vehicle photos" : undefined}
+              className="bg-volt-green hover:bg-volt-green/90 text-white"
             >
               {isSubmitting ? (
                 "Processing..."

@@ -23,18 +23,28 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface VendorVehiclesClientProps {
   initialVehicles: any[];
 }
 
 export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientProps) {
+  const { user } = useAuth();
+  const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  // Inventory view: exclude vehicles that are actively in auction or already sold
+  const inventoryVehicles = useMemo(() => {
+    return initialVehicles.filter(
+      (v) => v.status !== "in_auction" && v.status !== "sold"
+    );
+  }, [initialVehicles]);
+
   // Apply filters
   const filteredVehicles = useMemo(() => {
-    return initialVehicles.filter((vehicle) => {
+    return inventoryVehicles.filter((vehicle) => {
       const matchesSearch = searchQuery
         ? `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.lotNumber}`
             .toLowerCase()
@@ -46,7 +56,7 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
 
       return matchesSearch && matchesStatus;
     });
-  }, [initialVehicles, searchQuery, statusFilter]);
+  }, [inventoryVehicles, searchQuery, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
@@ -161,9 +171,9 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
                   <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                   <TableCell className="font-mono">
                     {vehicle.auctionLot
-                      ? formatCurrency(vehicle.auctionLot.currentBid)
+                      ? formatCurrency(vehicle.auctionLot.currentBid, { currency: preferredCurrency })
                       : vehicle.startingBid
-                      ? formatCurrency(vehicle.startingBid)
+                      ? formatCurrency(vehicle.startingBid, { currency: preferredCurrency })
                       : "—"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

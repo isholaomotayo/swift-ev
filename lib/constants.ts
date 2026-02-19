@@ -129,6 +129,26 @@ export const VEHICLE_CONDITIONS = [
 // Simplified for upload form
 export const CONDITION_OPTIONS = ["new", "like_new", "excellent", "good", "fair", "salvage"] as const;
 
+// Fuel / Engine Types
+export const FUEL_TYPES = [
+  "EV (Electric)",
+  "Hybrid",
+  "Gas/Petrol",
+  "Solar",
+] as const;
+
+// Countries (for location selection)
+export const COUNTRIES = [
+  "Nigeria",
+  "China",
+  "Ghana",
+  "Kenya",
+  "South Africa",
+  "United Kingdom",
+  "United States",
+  "Other",
+] as const;
+
 // Battery Types
 export const BATTERY_TYPES = [
   "Lithium-ion (Li-ion)",
@@ -136,6 +156,7 @@ export const BATTERY_TYPES = [
   "Nickel Manganese Cobalt (NMC)",
   "Nickel Cobalt Aluminum (NCA)",
   "Solid State",
+  "Other",
 ] as const;
 
 // Title Types

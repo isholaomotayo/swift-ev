@@ -58,6 +58,12 @@ export function SettingsClient({
     premierDailyBidLimit: "",
   });
 
+  // Registration settings state
+  const [registrationSettings, setRegistrationSettings] = useState({
+    verificationFeeEnabled: "true",
+    verificationFeeAmount: "3",
+  });
+
   // Dev settings state
   const [devSettings, setDevSettings] = useState({
     enableQuickLogin: "false",
@@ -86,6 +92,11 @@ export function SettingsClient({
         businessPrice: settings["membership.business.price"] || "",
         basicDailyBidLimit: settings["membership.basic.dailyBidLimit"] || "",
         premierDailyBidLimit: settings["membership.premier.dailyBidLimit"] || "",
+      });
+
+      setRegistrationSettings({
+        verificationFeeEnabled: settings["registration.verificationFeeEnabled"] || "true",
+        verificationFeeAmount: settings["registration.verificationFeeAmount"] || "3",
       });
 
       setDevSettings({
@@ -237,6 +248,25 @@ export function SettingsClient({
     }
   };
 
+  const handleSaveRegistrationSettings = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      await bulkUpdateSettings({
+        token,
+        settings: [
+          { key: "registration.verificationFeeEnabled", value: registrationSettings.verificationFeeEnabled, description: "Enable verification fee during registration" },
+          { key: "registration.verificationFeeAmount", value: registrationSettings.verificationFeeAmount, description: "Verification fee amount in USD" },
+        ],
+      });
+      toast({ title: "Success", description: "Registration settings saved" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveDevSettings = async () => {
     if (!token) return;
 
@@ -316,6 +346,10 @@ export function SettingsClient({
           <TabsTrigger value="membership">
             <Users className="w-4 h-4 mr-2" />
             Membership
+          </TabsTrigger>
+          <TabsTrigger value="registration">
+            <Users className="w-4 h-4 mr-2" />
+            Registration
           </TabsTrigger>
           <TabsTrigger value="dev">
             <Settings className="w-4 h-4 mr-2" />
@@ -574,6 +608,66 @@ export function SettingsClient({
               <div className="flex justify-end pt-4 border-t">
                 <Button onClick={handleSaveMembershipSettings} disabled={loading}>
                   {loading ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Registration Settings */}
+        <TabsContent value="registration">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-1">Registration Settings</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Configure the verification fee shown to new users during registration.
+            </p>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-2xl">
+                <div>
+                  <Label htmlFor="verificationFeeEnabled" className="text-base font-bold">Verification Fee</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    When enabled, new registrants must pay a one-time verification fee to complete sign-up.
+                  </p>
+                </div>
+                <select
+                  id="verificationFeeEnabled"
+                  value={registrationSettings.verificationFeeEnabled}
+                  onChange={(e) =>
+                    setRegistrationSettings((s) => ({ ...s, verificationFeeEnabled: e.target.value }))
+                  }
+                  className="h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="true">Enabled</option>
+                  <option value="false">Disabled</option>
+                </select>
+              </div>
+
+              <div className="max-w-xs">
+                <Label htmlFor="verificationFeeAmount">Fee Amount (USD)</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-muted-foreground text-sm">$</span>
+                  <Input
+                    id="verificationFeeAmount"
+                    type="number"
+                    min="1"
+                    step="0.5"
+                    value={registrationSettings.verificationFeeAmount}
+                    onChange={(e) =>
+                      setRegistrationSettings((s) => ({ ...s, verificationFeeAmount: e.target.value }))
+                    }
+                    placeholder="3"
+                    className="w-32"
+                  />
+                  <span className="text-muted-foreground text-sm">USD</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only applies when the verification fee is enabled.
+                </p>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={handleSaveRegistrationSettings} disabled={loading}>
+                  {loading ? "Saving..." : "Save Registration Settings"}
                 </Button>
               </div>
             </div>

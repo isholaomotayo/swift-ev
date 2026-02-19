@@ -155,7 +155,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
           <p>
-            {m.nav_all_rights_reserved().replace(". All rights reserved.", "")} © {currentYear} {SITE_NAME} {m.nav_all_rights_reserved()}
+            © {currentYear} {SITE_NAME} {m.common_all_rights_reserved_only()}
           </p>
           <div className="flex gap-8 mt-4 md:mt-0">
             <p>{m.nav_digital_excellence()}</p>

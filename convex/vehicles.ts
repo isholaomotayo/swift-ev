@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireSeller } from "./lib/auth";
 
@@ -454,6 +455,27 @@ export const getFilterOptions = query({
   },
 });
 
+async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
+  const date = new Date();
+  const datePart = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+  let lotNumber: string = "";
+  let attempts = 0;
+  do {
+    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+    lotNumber = `VB-${datePart}-${random}`;
+    const existing = await ctx.db
+      .query("vehicles")
+      .withIndex("by_lot_number", (q) => q.eq("lotNumber", lotNumber))
+      .first();
+    if (!existing) break;
+    attempts++;
+  } while (attempts < 10);
+  if (attempts >= 10) {
+    throw new Error("Unable to generate unique lot number after 10 attempts");
+  }
+  return lotNumber;
+}
+
 /**
  * Vendor: Create a new vehicle
  */
@@ -466,18 +488,20 @@ export const createVehicle = mutation({
       model: v.string(),
       year: v.number(),
       vin: v.string(),
-      lotNumber: v.string(),
       odometer: v.number(),
       exteriorColor: v.string(),
       interiorColor: v.string(),
 
-      // EV specs
-      batteryCapacity: v.number(),
-      batteryHealthPercent: v.number(),
-      range: v.number(),
-      batteryType: v.string(),
-      chargingTypes: v.array(v.string()),
-      motorPower: v.number(),
+      // Fuel type
+      fuelType: v.optional(v.string()),
+
+      // EV specs (optional for non-EV vehicles)
+      batteryCapacity: v.optional(v.number()),
+      batteryHealthPercent: v.optional(v.number()),
+      range: v.optional(v.number()),
+      batteryType: v.optional(v.string()),
+      chargingTypes: v.optional(v.array(v.string())),
+      motorPower: v.optional(v.number()),
 
       // Condition
       condition: v.string(),
@@ -535,31 +559,25 @@ export const createVehicle = mutation({
       throw new Error(`A vehicle with VIN ${vehicleData.vin} already exists`);
     }
 
-    // Check for duplicate lot number
-    const existingLotNumber = await ctx.db
-      .query("vehicles")
-      .withIndex("by_lot_number", (q) => q.eq("lotNumber", vehicleData.lotNumber))
-      .first();
-
-    if (existingLotNumber) {
-      throw new Error(`A vehicle with lot number ${vehicleData.lotNumber} already exists`);
-    }
+    // Auto-generate a unique lot number
+    const lotNumber = await generateUniqueLotNumber(ctx);
 
     const now = Date.now();
 
     // Create vehicle record matching exact schema
     const vehicleId = await ctx.db.insert("vehicles", {
-      lotNumber: vehicleData.lotNumber,
+      lotNumber,
       vin: vehicleData.vin,
       make: vehicleData.make,
       model: vehicleData.model,
       year: vehicleData.year,
+      fuelType: vehicleData.fuelType,
       exteriorColor: vehicleData.exteriorColor,
       interiorColor: vehicleData.interiorColor,
       batteryCapacity: vehicleData.batteryCapacity,
       estimatedRange: vehicleData.range,
       batteryHealthPercent: vehicleData.batteryHealthPercent,
-      chargingType: vehicleData.chargingTypes, // Schema uses singular 'chargingType'
+      chargingType: vehicleData.chargingTypes,
       motorPower: vehicleData.motorPower,
       odometer: vehicleData.odometer,
       odometerUnit: "km",
@@ -614,10 +632,12 @@ export const updateVehicle = mutation({
       model: v.optional(v.string()),
       year: v.optional(v.number()),
       vin: v.optional(v.string()), // Allow correcting VIN
-      lotNumber: v.optional(v.string()),
       odometer: v.optional(v.number()),
       exteriorColor: v.optional(v.string()),
       interiorColor: v.optional(v.string()),
+
+      // Fuel type
+      fuelType: v.optional(v.string()),
 
       // EV specs
       batteryCapacity: v.optional(v.number()),

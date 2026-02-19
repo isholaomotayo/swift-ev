@@ -167,7 +167,6 @@ export default function AdminVehicleUploadPage() {
           model: formData.model,
           year: formData.year,
           vin: formData.vin,
-          lotNumber: formData.lotNumber,
           batteryCapacity: formData.batteryCapacity,
           batteryHealthPercent: formData.batteryHealthPercent,
           range: formData.range,
@@ -292,7 +291,7 @@ export default function AdminVehicleUploadPage() {
                   type="number"
                   value={formData.year}
                   onChange={(e) => updateFormData("year", parseInt(e.target.value))}
-                  min={2010}
+                  min={2014}
                   max={new Date().getFullYear() + 1}
                 />
               </div>

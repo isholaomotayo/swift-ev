@@ -4,12 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Zap, Lock, ArrowLeft } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AccountTypeStep, type AccountType } from "@/components/auth/account-type-step";
 
 type RegistrationStep = "account_type" | "form" | "payment";
@@ -28,10 +37,17 @@ export default function RegisterPage() {
     phone: "",
     password: "",
     confirmPassword: "",
+    preferredCurrency: "NGN",
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Fetch verification fee setting from admin
+  const feeEnabled = useQuery(api.settings.getPublicSetting, { key: "registration.verificationFeeEnabled" });
+  const feeAmount = useQuery(api.settings.getPublicSetting, { key: "registration.verificationFeeAmount" });
+  const verificationFeeEnabled = feeEnabled === true || feeEnabled === "true";
+  const verificationFeeAmount = feeAmount ? String(feeAmount) : "3";
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -47,7 +63,7 @@ export default function RegisterPage() {
     setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -67,8 +83,28 @@ export default function RegisterPage() {
       return;
     }
 
-    // Proceed to Payment Step
-    setStep("payment");
+    // Proceed to Payment Step (or skip if fee disabled)
+    if (verificationFeeEnabled) {
+      setStep("payment");
+    } else {
+      // No fee required — go straight to registration
+      setLoading(true);
+      try {
+        await register({
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone || undefined,
+          password: formData.password,
+          accountType: accountType ?? "individual",
+          preferredCurrency: formData.preferredCurrency,
+        });
+        router.push("/login");
+      } catch {
+        setError("Registration failed. Please try again.");
+        setLoading(false);
+      }
+    }
   };
 
   const handlePayment = async () => {
@@ -85,6 +121,7 @@ export default function RegisterPage() {
         phone: formData.phone || undefined,
         password: formData.password,
         accountType: accountType ?? "individual",
+        preferredCurrency: formData.preferredCurrency,
       });
 
       // Show success message and redirect to login
@@ -143,7 +180,7 @@ export default function RegisterPage() {
           {[
             { label: "01", title: "Account Type", desc: "Choose buyer or seller" },
             { label: "02", title: "Your Details", desc: "Quick and easy KYC process" },
-            { label: "03", title: "Verification", desc: "One-time $3 verification fee" }
+            { label: "03", title: "Verification", desc: verificationFeeEnabled ? `One-time $${verificationFeeAmount} verification fee` : "Identity verification" }
           ].map((s, i) => {
             const stepIndex = { account_type: 0, form: 1, payment: 2 }[step];
             const isActive = i === stepIndex;
@@ -290,6 +327,25 @@ export default function RegisterPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preferred Currency</Label>
+                <Select
+                  value={formData.preferredCurrency}
+                  onValueChange={(val) => setFormData((prev) => ({ ...prev, preferredCurrency: val }))}
+                >
+                  <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-border">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NGN">NGN — Nigerian Naira (₦)</SelectItem>
+                    <SelectItem value="USD">USD — US Dollar ($)</SelectItem>
+                    <SelectItem value="CNY">CNY — Chinese Yuan (¥)</SelectItem>
+                    <SelectItem value="GBP">GBP — British Pound (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Prices in your dashboard will be shown in this currency.</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="password" title="At least 8 characters" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</Label>
@@ -363,7 +419,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-muted-foreground">To maintain a secure marketplace, we require a one-time verification fee.</p>
                 </div>
                 <div className="text-4xl font-black text-deep-navy">
-                  $3.00 <span className="text-sm text-muted-foreground font-medium">USD</span>
+                  ${verificationFeeAmount}.00 <span className="text-sm text-muted-foreground font-medium">USD</span>
                 </div>
               </div>
 

@@ -21,6 +21,16 @@ import { api } from "@/convex/_generated/api";
 import { SITE_NAME } from "@/lib/constants";
 import * as m from "@/src/paraglide/messages.js";
 
+function toFeaturedVehicle(
+  raw: { _id: string; batteryCapacity?: number; estimatedRange?: number; [key: string]: unknown }
+): Vehicle {
+  return {
+    ...raw,
+    batteryCapacity: raw.batteryCapacity ?? 0,
+    estimatedRange: raw.estimatedRange ?? 0,
+  } as Vehicle;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${SITE_NAME} - ${m.common_bid_win()} ${m.common_export()}`,
@@ -31,10 +41,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-  // Fetch data server-side
   let featuredVehicles: Vehicle[] = [];
   try {
-    featuredVehicles = await convex.query(api.vehicles.getFeaturedVehicles, {});
+    const raw = await convex.query(api.vehicles.getFeaturedVehicles, {});
+    featuredVehicles = raw.map(toFeaturedVehicle);
   } catch (error) {
     console.error("Failed to fetch homepage data:", error);
   }

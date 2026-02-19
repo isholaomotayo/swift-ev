@@ -67,6 +67,17 @@ export default defineSchema({
     // Vendor-specific fields
     vendorCompany: v.optional(v.string()),
     vendorLicense: v.optional(v.string()),
+    // Currency preference
+    preferredCurrency: v.optional(v.string()),
+    // Bank / Payout details
+    bankDetails: v.optional(v.object({
+      bankName: v.string(),
+      accountName: v.string(),
+      accountNumber: v.string(),
+      bankCountry: v.string(),
+      swiftCode: v.optional(v.string()),
+      currency: v.string(),
+    })),
     // KYC fields (FEAT-002)
     kycStatus: v.union(
       v.literal("not_started"),
@@ -144,11 +155,13 @@ export default defineSchema({
     trim: v.optional(v.string()),
     exteriorColor: v.string(),
     interiorColor: v.optional(v.string()),
+    // Fuel / Engine Type
+    fuelType: v.optional(v.string()),
     // EV Specific
-    batteryCapacity: v.number(),
-    estimatedRange: v.number(),
+    batteryCapacity: v.optional(v.number()),
+    estimatedRange: v.optional(v.number()),
     batteryHealthPercent: v.optional(v.number()),
-    chargingType: v.array(v.string()),
+    chargingType: v.optional(v.array(v.string())),
     motorPower: v.optional(v.number()),
     batteryType: v.optional(v.string()),
     drivetrain: v.optional(v.string()),

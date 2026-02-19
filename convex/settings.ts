@@ -72,7 +72,12 @@ export const getPublicSetting = query({
     key: v.string(),
   },
   handler: async (ctx, args) => {
-    const publicKeys = ["dev.enableQuickLogin", "platform.companyName"];
+    const publicKeys = [
+      "dev.enableQuickLogin",
+      "platform.companyName",
+      "registration.verificationFeeEnabled",
+      "registration.verificationFeeAmount",
+    ];
 
     if (!publicKeys.includes(args.key)) {
       return null;
@@ -246,6 +251,12 @@ export const initializeDefaultSettings = mutation({
       { key: "membership.business.price", value: "49900", description: "Business membership price" },
       { key: "membership.basic.dailyBidLimit", value: "3", description: "Basic tier daily bid limit" },
       { key: "membership.premier.dailyBidLimit", value: "10", description: "Premier tier daily bid limit" },
+      // Registration fee settings
+      { key: "registration.verificationFeeEnabled", value: "true", description: "Enable $3 verification fee during registration" },
+      { key: "registration.verificationFeeAmount", value: "3", description: "Verification fee amount in USD" },
+      // Currency exchange rates (NGN base)
+      { key: "currency.usdToNgn", value: "1650", description: "USD to NGN exchange rate" },
+      { key: "currency.cnyToNgn", value: "230", description: "CNY to NGN exchange rate" },
       // Dev settings
       { key: "dev.enableQuickLogin", value: "false", description: "Enable quick login buttons for development" },
     ];

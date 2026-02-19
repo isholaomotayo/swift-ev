@@ -155,9 +155,9 @@ export default function HowItWorksPage() {
                   {[
                     {
                       title: m.common_direct_sourcing(),
-                      val: "Verified Auction Tier 1",
+                      val: m.how_it_works_verified_auction_tier_1 ? m.how_it_works_verified_auction_tier_1() : "Verified Auction Tier 1",
                     },
-                    { title: m.common_ocean_freight(), val: "Maersk / MSC Preferred" },
+                    { title: m.common_ocean_freight(), val: m.how_it_works_maersk_msc_preferred ? m.how_it_works_maersk_msc_preferred() : "Maersk / MSC Preferred" },
                     { title: m.common_customs_clearance_title(), val: m.common_fixedfee_guarantee() },
                   ].map((stat, i) => (
                     <div
@@ -198,7 +198,7 @@ export default function HowItWorksPage() {
                     className="flex flex-col gap-6 p-8 bg-white/5 border border-white/10 rounded-lg"
                   >
                     <div className="text-brand-gold">{item.icon}</div>
-                    <h3 className="text-2xl font-black italic uppercase italic leading-none">
+                    <h3 className="text-2xl font-black italic uppercase leading-none">
                       {item.title}
                     </h3>
                     <p className="text-slate-400 text-sm font-medium leading-relaxed">

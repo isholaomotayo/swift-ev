@@ -432,3 +432,52 @@ export const getUserStats = query({
     };
   },
 });
+
+/**
+ * Vendor: Update bank/payout details
+ */
+export const updateBankDetails = mutation({
+  args: {
+    token: v.string(),
+    bankDetails: v.object({
+      bankName: v.string(),
+      accountName: v.string(),
+      accountNumber: v.string(),
+      bankCountry: v.string(),
+      swiftCode: v.optional(v.string()),
+      currency: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    await ctx.db.patch(user._id, {
+      bankDetails: args.bankDetails,
+      updatedAt: Date.now(),
+    });
+    return { success: true };
+  },
+});
+
+const ALLOWED_CURRENCIES = ["NGN", "USD", "CNY", "GBP"] as const;
+
+/**
+ * Vendor/User: Update preferred currency
+ */
+export const updatePreferredCurrency = mutation({
+  args: {
+    token: v.string(),
+    preferredCurrency: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currency = args.preferredCurrency.toUpperCase();
+    if (!ALLOWED_CURRENCIES.includes(currency as (typeof ALLOWED_CURRENCIES)[number])) {
+      throw new Error(`Invalid currency. Allowed: ${ALLOWED_CURRENCIES.join(", ")}`);
+    }
+    const user = await requireAuth(ctx, args.token);
+    await ctx.db.patch(user._id, {
+      preferredCurrency: currency,
+      updatedAt: Date.now(),
+    });
+    return { success: true };
+  },
+});

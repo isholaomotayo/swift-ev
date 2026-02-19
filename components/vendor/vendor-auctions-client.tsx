@@ -12,12 +12,19 @@ import {
 } from "@/components/ui/table";
 import { Gavel, Clock } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface VendorAuctionsClientProps {
   auctions: any[];
 }
 
 export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
+  const { user } = useAuth();
+  const preferredCurrency = user?.preferredCurrency ?? "NGN";
+
+  // Filter to only show currently live/active auctions in this tab
+  const liveAuctions = auctions.filter((a) => a.status === "live" || a.status === "active");
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "live":
@@ -44,13 +51,13 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
     }
   };
 
-  if (auctions.length === 0) {
+  if (liveAuctions.length === 0) {
     return (
       <Card className="p-12 text-center">
         <Gavel className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No auctions yet</h3>
+        <h3 className="text-lg font-semibold mb-2">No live auctions</h3>
         <p className="text-gray-500">
-          Your vehicles will appear here once they are added to an auction
+          Your vehicles will appear here once they are in a live auction. Check Inventory for scheduled listings.
         </p>
       </Card>
     );
@@ -66,7 +73,7 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
 
       {/* Auctions List */}
       <div className="space-y-6">
-        {auctions.map((auction) => (
+        {liveAuctions.map((auction) => (
           <Card key={auction._id} className="overflow-hidden">
             {/* Auction Header */}
             <div className="bg-gray-50 border-b p-4">
@@ -114,8 +121,8 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
                       </TableCell>
                       <TableCell className="font-medium">
                         {lot.currentBid
-                          ? formatCurrency(lot.currentBid)
-                          : formatCurrency(lot.startingBid)}
+                          ? formatCurrency(lot.currentBid, { currency: preferredCurrency })
+                          : formatCurrency(lot.startingBid, { currency: preferredCurrency })}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{lot.bidCount}</Badge>

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Package, DollarSign, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface VendorAnalyticsClientProps {
   initialStats: any;
@@ -18,6 +19,8 @@ export function VendorAnalyticsClient({
   initialRevenueHistory,
   token,
 }: VendorAnalyticsClientProps) {
+  const { user } = useAuth();
+  const preferredCurrency = user?.preferredCurrency ?? "NGN";
   // Use useQuery for real-time updates
   const stats = useQuery(
     api.vehicles.getVendorStats,
@@ -65,7 +68,7 @@ export function VendorAnalyticsClient({
               <div>
                 <p className="text-sm text-gray-500">Total Revenue</p>
                 <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(stats.totalRevenue)}
+                  {formatCurrency(stats.totalRevenue, { currency: preferredCurrency })}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
                   {stats.sold} vehicles sold
@@ -82,7 +85,7 @@ export function VendorAnalyticsClient({
               <div>
                 <p className="text-sm text-gray-500">Average Sale Price</p>
                 <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(stats.averageSalePrice)}
+                  {formatCurrency(stats.averageSalePrice, { currency: preferredCurrency })}
                 </p>
                 <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
@@ -119,7 +122,7 @@ export function VendorAnalyticsClient({
                   </div>
                 </div>
                 <div className="w-32 text-right font-semibold">
-                  {formatCurrency(data.revenue)}
+                  {formatCurrency(data.revenue, { currency: preferredCurrency })}
                 </div>
               </div>
             ))}

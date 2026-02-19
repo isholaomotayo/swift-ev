@@ -9,6 +9,19 @@
   --color-brand-blue: #2563EB;
   --color-brand-success: #10B981;
 
+  /* Custom Brand Utilities (required for Tailwind v4 class generation) */
+  --color-electric-blue: #2563EB;
+  --color-electric-blue-dark: #1D4ED8;
+  --color-volt-green: #10B981;
+  --color-volt-green-dark: #059669;
+  --color-success-green: #10B981;
+  --color-deep-navy: #0F172A;
+  --color-error-red: #E11D48;
+  --color-alert-red: #E11D48;
+  --color-auction-gold: #F59E0B;
+  --color-trust-blue: #2563EB;
+  --color-warning-amber: #F59E0B;
+
   /* Semantic Colors mapped to CSS variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -39,6 +52,7 @@
 
 /* Base Variables - LIGHT MODE DEFAULT */
 :root {
+  --gradient-primary: linear-gradient(135deg, #2563EB 0%, #10B981 100%);
   --background: hsl(210 40% 98%);
   --foreground: hsl(222 47% 11%);
 
