@@ -1,11 +1,16 @@
+"use client";
+
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
+import { useCurrencyStore } from "@/store/currency";
 
 interface PriceDisplayProps {
   amount: number;
   label?: string;
   variant?: "default" | "large" | "compact";
   className?: string;
+  /** Override the display currency. Defaults to the user's preferred currency from the store. */
   currency?: string;
 }
 
@@ -14,9 +19,16 @@ export function PriceDisplay({
   label,
   variant = "default",
   className,
-  currency = "NGN",
+  currency,
 }: PriceDisplayProps) {
-  const formattedPrice = formatCurrency(amount, { currency });
+  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const activeCurrency = currency ?? storeCurrency;
+  const exchangeRates = useExchangeRates();
+
+  const formattedPrice = formatCurrency(amount, {
+    currency: activeCurrency,
+    exchangeRates,
+  });
 
   if (variant === "compact") {
     return (

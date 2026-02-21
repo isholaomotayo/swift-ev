@@ -14,14 +14,14 @@ describe("Bids", () => {
 
   beforeAll(async () => {
     // Login as admin
-    const adminLogin = await client.mutation(api.auth.login, {
+    const adminLogin = await client.action(api.authActions.login, {
       email: "admin@autoexports.live",
       password: "admin123",
     });
     adminToken = adminLogin.token;
 
     // Login as buyer
-    const buyerLogin = await client.mutation(api.auth.login, {
+    const buyerLogin = await client.action(api.authActions.login, {
       email: "john.doe@example.com",
       password: "buyer123",
     });
@@ -29,7 +29,7 @@ describe("Bids", () => {
 
     // Login as second buyer (if exists)
     try {
-      const buyer2Login = await client.mutation(api.auth.login, {
+      const buyer2Login = await client.action(api.authActions.login, {
         email: "jane.smith@example.com",
         password: "buyer123",
       });

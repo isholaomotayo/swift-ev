@@ -87,6 +87,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
+  // Read the session token server-side so AuthProvider can initialise
+  // immediately without a client-side fetch round-trip.
+  const initialToken = cookieStore.get("autoexports_token")?.value ?? null;
   const themeCookie = cookieStore.get("ae-theme");
   const initialTheme =
     themeCookie?.value === "dark" ||
@@ -137,7 +140,7 @@ export default async function RootLayout({
           initialTheme={initialTheme}
         >
           <ConvexClientProvider>
-            <AuthProvider>
+            <AuthProvider initialToken={initialToken}>
               {children}
               <Toaster />
             </AuthProvider>

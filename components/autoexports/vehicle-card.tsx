@@ -23,8 +23,8 @@ interface VehicleCardProps {
     make: string;
     model: string;
     year: number;
-    batteryCapacity: number;
-    estimatedRange: number;
+    batteryCapacity?: number;
+    estimatedRange?: number;
     batteryHealthPercent?: number;
     heroImage?: string;
   };
@@ -151,14 +151,18 @@ export function VehicleCard({
 
         {/* Specs Row */}
         <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mt-2">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
-            <Battery className="h-4 w-4 text-electric-blue" />
-            <span>{batteryCapacity} kWh</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
-            <Zap className="h-4 w-4 text-warning-amber" />
-            <span>{estimatedRange} km range</span>
-          </div>
+          {batteryCapacity != null && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
+              <Battery className="h-4 w-4 text-electric-blue" />
+              <span>{batteryCapacity} kWh</span>
+            </div>
+          )}
+          {estimatedRange != null && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
+              <Zap className="h-4 w-4 text-warning-amber" />
+              <span>{estimatedRange} km range</span>
+            </div>
+          )}
         </div>
       </CardHeader>
 

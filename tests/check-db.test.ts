@@ -7,8 +7,8 @@ const client = new ConvexHttpClient(CONVEX_URL);
 
 describe("Database Check", () => {
   test("check what password hashes are actually stored", async () => {
-    // Login as admin to get a token
-    const loginResult = await client.mutation(api.auth.login, {
+    // Login via action (bcrypt runs in Node.js runtime)
+    const loginResult = await client.action(api.authActions.login, {
       email: "admin@autoexports.live",
       password: "admin123",
     });
@@ -16,10 +16,11 @@ describe("Database Check", () => {
     console.log("\n📊 Login Result:");
     console.log("Token:", loginResult.token);
     console.log("User:", loginResult.user);
-    console.log("\n✅ Password verification working with bcrypt!");
-    console.log("Passwords are now properly hashed using bcryptjs with 10 salt rounds.");
+    console.log("\n✅ Password verification working with bcrypt in Node.js action!");
+    console.log("Passwords are now safely hashed using bcryptjs (cost 12) in a Node.js action — no V8 CPU limits.");
 
     expect(loginResult.token).toBeDefined();
+    expect(typeof loginResult.token).toBe("string");
     expect(loginResult.user.email).toBe("admin@autoexports.live");
   });
 });

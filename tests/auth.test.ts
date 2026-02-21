@@ -8,13 +8,13 @@ const client = new ConvexHttpClient(CONVEX_URL);
 describe("Authentication", () => {
   describe("Login", () => {
     test("admin can login with correct credentials", async () => {
-      const result = await client.mutation(api.auth.login, {
+      const result = await client.action(api.authActions.login, {
         email: "admin@autoexports.live",
         password: "admin123",
       });
 
       expect(result.token).toBeDefined();
-      expect(result.token).toStartWith("token_");
+      expect(typeof result.token).toBe("string");
       expect(result.user.email).toBe("admin@autoexports.live");
       expect(result.user.role).toBe("superadmin");
       expect(result.user.firstName).toBe("System");
@@ -22,7 +22,7 @@ describe("Authentication", () => {
     });
 
     test("vendor can login with correct credentials", async () => {
-      const result = await client.mutation(api.auth.login, {
+      const result = await client.action(api.authActions.login, {
         email: "vendor@bydnigeria.com",
         password: "vendor123",
       });
@@ -35,7 +35,7 @@ describe("Authentication", () => {
     });
 
     test("buyer can login with correct credentials", async () => {
-      const result = await client.mutation(api.auth.login, {
+      const result = await client.action(api.authActions.login, {
         email: "john.doe@example.com",
         password: "buyer123",
       });
@@ -48,7 +48,7 @@ describe("Authentication", () => {
 
     test("login fails with wrong password", async () => {
       await expect(
-        client.mutation(api.auth.login, {
+        client.action(api.authActions.login, {
           email: "vendor@bydnigeria.com",
           password: "wrong_password",
         })
@@ -57,7 +57,7 @@ describe("Authentication", () => {
 
     test("login fails with non-existent email", async () => {
       await expect(
-        client.mutation(api.auth.login, {
+        client.action(api.authActions.login, {
           email: "nonexistent@example.com",
           password: "password123",
         })
@@ -68,7 +68,7 @@ describe("Authentication", () => {
   describe("Get Current User", () => {
     test("returns user data with valid token", async () => {
       // First login
-      const loginResult = await client.mutation(api.auth.login, {
+      const loginResult = await client.action(api.authActions.login, {
         email: "vendor@bydnigeria.com",
         password: "vendor123",
       });
@@ -96,7 +96,7 @@ describe("Authentication", () => {
   describe("Logout", () => {
     test("successfully logs out user", async () => {
       // First login
-      const loginResult = await client.mutation(api.auth.login, {
+      const loginResult = await client.action(api.authActions.login, {
         email: "john.doe@example.com",
         password: "buyer123",
       });

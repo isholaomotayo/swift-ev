@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ConvexHttpClient } from "convex/browser";
 import {
   Shield,
   ArrowRight,
@@ -18,8 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FeaturedVehicles, type Vehicle } from "@/components/home/featured-vehicles";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/convex-server";
 import { SITE_NAME } from "@/lib/constants";
 import * as m from "@/src/paraglide/messages.js";
+
+// Re-render at most once every 60 seconds (ISR).
+// Auction listings change frequently but not millisecond-to-millisecond;
+// real-time updates on the vehicle detail and auction pages handle the rest.
+export const revalidate = 60;
 
 function toFeaturedVehicle(
   raw: { _id: string; batteryCapacity?: number; estimatedRange?: number; [key: string]: unknown }
@@ -39,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  const convex = getConvexClient();
 
   let featuredVehicles: Vehicle[] = [];
   try {

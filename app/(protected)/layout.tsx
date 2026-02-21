@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/convex-server";
 import { ProtectedLayoutClient } from "@/components/layout/protected-layout-client";
 
 export const metadata: Metadata = {
@@ -26,8 +26,8 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  // Verify user authentication server-side
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  // Verify user authentication server-side (shared singleton for this request)
+  const convex = getConvexClient();
   let user;
 
   try {

@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { VehicleCard } from "@/components/autoexports/vehicle-card";
+import { WatchlistVehicleCard } from "@/components/autoexports/watchlist-vehicle-card";
 import * as m from "@/src/paraglide/messages.js";
 
 export interface Vehicle {
@@ -10,8 +9,8 @@ export interface Vehicle {
   make: string;
   model: string;
   year: number;
-  batteryCapacity: number;
-  estimatedRange: number;
+  batteryCapacity?: number;
+  estimatedRange?: number;
   batteryHealthPercent?: number;
   heroImage?: string;
   auctionLot?: {
@@ -28,9 +27,7 @@ interface FeaturedVehiclesProps {
 }
 
 export function FeaturedVehicles({ vehicles, loading }: FeaturedVehiclesProps) {
-  const router = useRouter();
-
-  if (loading || vehicles === null) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
@@ -56,21 +53,8 @@ export function FeaturedVehicles({ vehicles, loading }: FeaturedVehiclesProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {vehicles.slice(0, 3).map((vehicle) => (
-        <VehicleCard
-          key={vehicle._id}
-          vehicle={vehicle}
-          auctionLot={vehicle.auctionLot || undefined}
-          onBidClick={() => {
-            router.push(`/vehicles/${vehicle._id}`);
-          }}
-          onWatchlistToggle={() => {
-            // TODO: Implement watchlist functionality
-            console.log("Toggle watchlist for", vehicle._id);
-          }}
-          isWatchlisted={false}
-        />
+        <WatchlistVehicleCard key={vehicle._id} vehicle={vehicle} />
       ))}
     </div>
   );
 }
-
