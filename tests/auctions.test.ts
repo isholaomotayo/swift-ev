@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
+import { Doc, Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL =
   process.env.NEXT_PUBLIC_CONVEX_URL ||
@@ -45,7 +45,7 @@ describe("Auctions", () => {
 
       expect(Array.isArray(auctions)).toBe(true);
       if (auctions.length > 0) {
-        const auction = auctions[0];
+        const auction = auctions[0] as Doc<"auctions">;
         expect(auction).toHaveProperty("_id");
         expect(auction).toHaveProperty("name");
         expect(auction).toHaveProperty("status");
@@ -62,7 +62,7 @@ describe("Auctions", () => {
       });
 
       expect(Array.isArray(liveAuctions)).toBe(true);
-      liveAuctions.forEach((auction) => {
+      liveAuctions.forEach((auction: Doc<"auctions">) => {
         expect(auction.status).toBe("live");
       });
     });
@@ -328,7 +328,7 @@ describe("Auctions", () => {
 
       expect(Array.isArray(auctions)).toBe(true);
       if (auctions.length > 0) {
-        const auction = auctions[0];
+        const auction = auctions[0] as Doc<"auctions"> & { vendorLots?: unknown[] };
         expect(auction).toHaveProperty("_id");
         expect(auction).toHaveProperty("name");
         expect(auction).toHaveProperty("vendorLots");

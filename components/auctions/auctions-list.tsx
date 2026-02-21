@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { Calendar, Clock, Gavel, Play, Users } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
 interface AuctionsListProps {
-  initialAuctions?: any[];
+  initialAuctions?: Doc<"auctions">[];
 }
 
 export function AuctionsList({ initialAuctions }: AuctionsListProps) {
@@ -26,17 +27,17 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
 
   // Client-side filtering
   const liveAuctions = useMemo(
-    () => allAuctions.filter((a) => a.status === "live"),
+    () => allAuctions.filter((a: Doc<"auctions">) => a.status === "live"),
     [allAuctions]
   );
 
   const scheduledAuctions = useMemo(
-    () => allAuctions.filter((a) => a.status === "scheduled"),
+    () => allAuctions.filter((a: Doc<"auctions">) => a.status === "scheduled"),
     [allAuctions]
   );
 
   const endedAuctions = useMemo(
-    () => allAuctions.filter((a) => a.status === "ended"),
+    () => allAuctions.filter((a: Doc<"auctions">) => a.status === "ended"),
     [allAuctions]
   );
 
@@ -115,7 +116,7 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {allAuctions.map((auction) => (
+            {allAuctions.map((auction: Doc<"auctions">) => (
               <Card key={auction._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-semibold flex-1">
@@ -181,7 +182,7 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {liveAuctions.map((auction) => (
+            {liveAuctions.map((auction: Doc<"auctions">) => (
               <Card key={auction._id} className="p-6 hover:shadow-lg transition-shadow border-volt-green/20">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-semibold flex-1">
@@ -224,7 +225,7 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scheduledAuctions.map((auction) => (
+            {scheduledAuctions.map((auction: Doc<"auctions">) => (
               <Card key={auction._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-semibold flex-1">
@@ -268,7 +269,7 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {endedAuctions.map((auction) => (
+            {endedAuctions.map((auction: Doc<"auctions">) => (
               <Card key={auction._id} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-semibold flex-1">

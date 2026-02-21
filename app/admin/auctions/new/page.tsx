@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 
 interface LotConfig {
@@ -76,7 +76,7 @@ export default function CreateAuctionPage() {
     } else {
       newSelected.add(vehicleId);
       // Initialize lot config
-      const vehicle = vehicles?.vehicles.find((v) => v._id === vehicleId);
+      const vehicle = vehicles?.vehicles.find((v: Doc<"vehicles">) => v._id === vehicleId);
       if (vehicle) {
         const newConfigs = new Map(lotConfigs);
         newConfigs.set(vehicleId, {
@@ -300,7 +300,7 @@ export default function CreateAuctionPage() {
               </p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {vehicles.vehicles.map((vehicle) => (
+                {vehicles.vehicles.map((vehicle: Doc<"vehicles">) => (
                   <div
                     key={vehicle._id}
                     className="flex items-center gap-3 p-3 border rounded hover:bg-gray-50"
@@ -431,7 +431,7 @@ export default function CreateAuctionPage() {
             <div className="space-y-2">
               <h3 className="font-semibold">Lots Summary</h3>
               {Array.from(selectedVehicles).map((vehicleId) => {
-                const vehicle = vehicles?.vehicles.find((v) => v._id === vehicleId);
+                const vehicle = vehicles?.vehicles.find((v: Doc<"vehicles">) => v._id === vehicleId);
                 const config = lotConfigs.get(vehicleId);
 
                 if (!vehicle || !config) return null;

@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import type { Doc } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -96,7 +97,7 @@ describe("Vehicles", () => {
       });
 
       if (result.vehicles.length > 0) {
-        result.vehicles.forEach((vehicle) => {
+        result.vehicles.forEach((vehicle: Doc<"vehicles">) => {
           expect(vehicle.make).toBe("BYD");
         });
       }
@@ -110,7 +111,7 @@ describe("Vehicles", () => {
         limit: 10,
       });
 
-      result.vehicles.forEach((vehicle) => {
+      result.vehicles.forEach((vehicle: Doc<"vehicles">) => {
         expect(vehicle.year).toBeGreaterThanOrEqual(2020);
         expect(vehicle.year).toBeLessThanOrEqual(2024);
       });
@@ -123,7 +124,7 @@ describe("Vehicles", () => {
         limit: 10,
       });
 
-      result.vehicles.forEach((vehicle) => {
+      result.vehicles.forEach((vehicle: Doc<"vehicles">) => {
         expect(vehicle.condition).toBe("excellent");
       });
     });

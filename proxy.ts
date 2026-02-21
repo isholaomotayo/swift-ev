@@ -53,9 +53,10 @@ export function proxy(request: NextRequest) {
     // This ensures security by verifying user roles before rendering any protected content.
     // This proxy only checks for token presence as a first line of defense.
 
-    // If accessing login/register with valid token, redirect to dashboard
+    // If accessing login/register with valid token, redirect to dashboard or intended URL
     if ((pathname === "/login" || pathname === "/register") && token) {
-      return addLocaleHeader(NextResponse.redirect(new URL("/dashboard", request.url)));
+      const redirectTo = new URL(request.url).searchParams.get("redirect") ?? "/dashboard";
+      return addLocaleHeader(NextResponse.redirect(new URL(redirectTo, request.url)));
     }
 
     // Allow all other requests with locale header

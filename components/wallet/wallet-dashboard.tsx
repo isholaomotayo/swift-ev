@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -332,14 +333,14 @@ export function WalletDashboard() {
 
           <TabsContent value="deposits" className="mt-4">
             <TransactionList
-              transactions={transactions?.filter((t) => t.type === "deposit")}
+              transactions={transactions?.filter((t: Doc<"walletTransactions">) => t.type === "deposit")}
             />
           </TabsContent>
 
           <TabsContent value="bids" className="mt-4">
             <TransactionList
               transactions={transactions?.filter(
-                (t) => t.type === "bid_reserve" || t.type === "bid_release",
+                (t: Doc<"walletTransactions">) => t.type === "bid_reserve" || t.type === "bid_release",
               )}
             />
           </TabsContent>
@@ -350,7 +351,7 @@ export function WalletDashboard() {
   );
 }
 
-function TransactionList({ transactions }: { transactions?: any[] }) {
+function TransactionList({ transactions }: { transactions?: Doc<"walletTransactions">[] }) {
   if (!transactions || transactions.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">

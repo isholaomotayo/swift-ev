@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import bcrypt from "bcryptjs";
 
 /**
@@ -30,7 +31,7 @@ export const register = action({
     ),
     preferredCurrency: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ userId: Id<"users">; message: string }> => {
     const { password, ...rest } = args;
     // bcrypt with cost factor 12 — strong but within reason for a Node.js action
     const passwordHash = await bcrypt.hash(password, 12);
@@ -51,10 +52,33 @@ export const login = action({
     email: v.string(),
     password: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    token: string;
+    user: {
+      id: Id<"users">;
+      email: string;
+      firstName: string;
+      lastName: string;
+      phone?: string;
+      accountType?: string;
+      membershipTier: string;
+      emailVerified: boolean;
+      kycStatus: string;
+      walletBalance: number;
+      buyingPower: number;
+      status: string;
+      role: string;
+      vendorCompany?: string;
+      vendorLicense?: string;
+      verificationFeeStatus?: string;
+    };
+  }> => {
     const user = await ctx.runQuery(internal.auth.getUserByEmail, {
       email: args.email,
-    });
+    }) as { _id: Id<"users">; passwordHash: string; status: string } | null;
 
     // Use a constant-time response to avoid user-enumeration via timing
     if (!user) {

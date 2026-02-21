@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
+import { Doc, Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -35,7 +35,11 @@ describe("Orders", () => {
 
       expect(Array.isArray(orders)).toBe(true);
       if (orders.length > 0) {
-        const order = orders[0];
+        const order = orders[0] as Doc<"orders"> & {
+          orderStatus?: string;
+          vehiclePrice?: number;
+          vehicle?: { make: string; model: string; year: number };
+        };
         expect(order).toHaveProperty("_id");
         expect(order).toHaveProperty("orderStatus");
         expect(order).toHaveProperty("vehiclePrice");
@@ -82,7 +86,7 @@ describe("Orders", () => {
       });
 
       expect(Array.isArray(result.orders)).toBe(true);
-      result.orders.forEach((order) => {
+      result.orders.forEach((order: Doc<"orders">) => {
         expect(order.status).toBe("pending_payment");
       });
     });
@@ -94,7 +98,7 @@ describe("Orders", () => {
       });
 
       expect(Array.isArray(result.orders)).toBe(true);
-      result.orders.forEach((order) => {
+      result.orders.forEach((order: Doc<"orders">) => {
         expect(order.orderType).toBe("auction_win");
       });
     });
@@ -114,7 +118,7 @@ describe("Orders", () => {
         });
 
         expect(Array.isArray(result.orders)).toBe(true);
-        result.orders.forEach((order) => {
+        result.orders.forEach((order: Doc<"orders">) => {
           expect(order.userId).toBe(userId);
         });
       }
@@ -145,7 +149,7 @@ describe("Orders", () => {
       });
 
       expect(Array.isArray(result.orders)).toBe(true);
-      result.orders.forEach((order) => {
+      result.orders.forEach((order: Doc<"orders">) => {
         // Buyer should only see their own orders
         expect(order.userId).toBeDefined();
       });
@@ -159,7 +163,7 @@ describe("Orders", () => {
 
       if (adminOrders.orders.length > 0) {
         const currentUser = await client.query(api.auth.getCurrentUser, { token: buyerToken });
-        const otherUserId = adminOrders.orders.find((o) => o.userId !== currentUser?.id)?.userId;
+        const otherUserId = adminOrders.orders.find((o: Doc<"orders">) => o.userId !== currentUser?.id)?.userId;
 
         if (otherUserId) {
           await expect(
@@ -220,7 +224,7 @@ describe("Orders", () => {
 
       if (adminOrders.orders.length > 0) {
         const currentUser = await client.query(api.auth.getCurrentUser, { token: buyerToken });
-        const otherOrderId = adminOrders.orders.find((o) => o.userId !== currentUser?.id)?._id;
+        const otherOrderId = adminOrders.orders.find((o: Doc<"orders">) => o.userId !== currentUser?.id)?._id;
 
         if (otherOrderId) {
           await expect(

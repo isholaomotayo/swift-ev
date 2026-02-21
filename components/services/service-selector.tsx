@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
     // Mutations
     const selectServiceMutation = useMutation(api.services.selectService);
 
-    const handleSelectService = async (service: any) => {
+    const handleSelectService = async (service: { id: string; name: string; estimatedCost: number; currency: string }) => {
         setSubmitting(service.id);
         try {
             await selectServiceMutation({
@@ -63,7 +63,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
     };
 
     const isServiceSelected = (serviceId: string) => {
-        return selectedServices?.some((s) => s.serviceType === serviceId && s.status !== "cancelled");
+        return selectedServices?.some((s: Doc<"additionalServices">) => s.serviceType === serviceId && s.status !== "cancelled");
     };
 
     const getServiceIcon = (id: string) => {
@@ -105,7 +105,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
                         </DialogHeader>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                            {availableServices?.map((service) => (
+                            {availableServices?.map((service: { id: string; name: string; description: string; estimatedCost: number; currency: string }) => (
                                 <Card
                                     key={service.id}
                                     className={`p-4 transition-all border-2 ${isServiceSelected(service.id)
@@ -156,7 +156,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
 
             <div className="space-y-3">
                 {selectedServices && selectedServices.length > 0 ? (
-                    selectedServices.map((service) => (
+                    selectedServices.map((service: Doc<"additionalServices">) => (
                         <div
                             key={service._id}
                             className="flex items-center justify-between p-3 rounded-lg bg-background border border-border/50 group hover:border-volt-green/30 transition-colors"

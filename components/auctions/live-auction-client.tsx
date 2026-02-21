@@ -344,7 +344,7 @@ export function LiveAuctionClient({
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-hide">
-                    {bidHistory.length > 0 ? bidHistory.map((bid) => (
+                    {bidHistory.length > 0 ? bidHistory.map((bid: { _id: string; amount: number; createdAt: number; user?: { firstName?: string } | null }) => (
                       <div key={bid._id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 animate-in slide-in-from-right-2 duration-300">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-electric-blue/10 flex items-center justify-center">

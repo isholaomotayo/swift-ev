@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
+import { Doc, Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -60,7 +60,7 @@ describe("Users", () => {
       });
 
       expect(Array.isArray(result.users)).toBe(true);
-      result.users.forEach((user) => {
+      result.users.forEach((user: { role?: string }) => {
         expect(user.role).toBe("buyer");
       });
     });
@@ -72,7 +72,7 @@ describe("Users", () => {
       });
 
       expect(Array.isArray(result.users)).toBe(true);
-      result.users.forEach((user) => {
+      result.users.forEach((user: { status?: string }) => {
         expect(user.status).toBe("active");
       });
     });
@@ -84,7 +84,7 @@ describe("Users", () => {
       });
 
       expect(Array.isArray(result.users)).toBe(true);
-      result.users.forEach((user) => {
+      result.users.forEach((user: { membershipTier?: string }) => {
         expect(user.membershipTier).toBe("basic");
       });
     });
@@ -96,7 +96,7 @@ describe("Users", () => {
       });
 
       expect(Array.isArray(result.users)).toBe(true);
-      result.users.forEach((user) => {
+      result.users.forEach((user: { kycStatus?: string }) => {
         expect(user.kycStatus).toBe("approved");
       });
     });
