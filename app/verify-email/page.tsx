@@ -7,6 +7,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Zap, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 type Status = "verifying" | "success" | "error";
 
@@ -16,9 +17,13 @@ function VerifyEmailContent() {
 
   const [status, setStatus] = useState<Status>("verifying");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const hasRun = useRef(false);
 
   const verifyEmail = useMutation(api.auth.verifyEmail);
+  const resendVerification = useMutation(api.auth.resendVerificationEmail);
 
   useEffect(() => {
     // Guard: only run once (React StrictMode double-invokes effects in dev)
@@ -35,7 +40,7 @@ function VerifyEmailContent() {
       .then(() => setStatus("success"))
       .catch((err) => {
         setErrorMessage(
-          err instanceof Error ? err.message : "Verification failed."
+          getAuthErrorMessage(err, "Verification failed. Please request a new link.")
         );
         setStatus("error");
       });
@@ -72,6 +77,18 @@ function VerifyEmailContent() {
   }
 
   // Error state
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resendEmail.trim()) return;
+    setResendLoading(true);
+    try {
+      await resendVerification({ email: resendEmail.trim().toLowerCase() });
+      setResendSent(true);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <div className="text-center space-y-4">
       <div className="flex justify-center">
@@ -85,6 +102,33 @@ function VerifyEmailContent() {
         <p className="text-sm text-muted-foreground">
           Need a new verification link?
         </p>
+        {resendSent ? (
+          <p className="text-sm text-volt-green font-medium">
+            Check your inbox for a new verification link.
+          </p>
+        ) : (
+          <form
+            onSubmit={handleResend}
+            className="flex flex-col gap-3 w-full max-w-xs mx-auto"
+          >
+            <input
+              type="email"
+              required
+              value={resendEmail}
+              onChange={(e) => setResendEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="h-12 rounded-2xl border border-border bg-muted/30 px-4 text-sm focus:border-electric-blue focus:outline-none"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              className="rounded-2xl font-bold"
+              disabled={resendLoading}
+            >
+              {resendLoading ? "Sending…" : "Resend verification link"}
+            </Button>
+          </form>
+        )}
         <Button asChild variant="outline" className="rounded-2xl font-bold">
           <Link href="/login">Go to login</Link>
         </Button>

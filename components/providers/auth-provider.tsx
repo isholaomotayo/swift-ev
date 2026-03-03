@@ -5,6 +5,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 interface User {
   id: string;
@@ -110,7 +111,7 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        description: getAuthErrorMessage(error, "Invalid credentials"),
         variant: "destructive",
       });
       throw error;
@@ -135,7 +136,7 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
     } catch (error) {
       toast({
         title: "Registration Failed",
-        description: error instanceof Error ? error.message : "Failed to create account",
+        description: getAuthErrorMessage(error, "Failed to create account"),
         variant: "destructive",
       });
       throw error;
@@ -190,7 +191,7 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
     } catch (error) {
       toast({
         title: "Update Failed",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description: getAuthErrorMessage(error, "Failed to update profile"),
         variant: "destructive",
       });
       throw error;

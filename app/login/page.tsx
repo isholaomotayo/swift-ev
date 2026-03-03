@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Zap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -11,13 +11,23 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { QuickLogin } from "@/components/auth/quick-login";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+
+  const resendVerification = useMutation(api.auth.resendVerificationEmail);
+  const isAccountInactive = searchParams.get("error") === "account_inactive";
 
   // Redirect based on user role when authenticated
   useEffect(() => {
@@ -48,6 +58,18 @@ export default function LoginPage() {
       // Error is handled by auth provider (toast)
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resendEmail.trim()) return;
+    setResendLoading(true);
+    try {
+      await resendVerification({ email: resendEmail.trim().toLowerCase() });
+      setResendSent(true);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -84,6 +106,48 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+
+          {isAccountInactive && (
+            <div className="mb-6 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                Your account is pending verification. Check your email or request
+                a new verification link.
+              </p>
+              {!showResend ? (
+                <button
+                  type="button"
+                  onClick={() => setShowResend(true)}
+                  className="mt-2 text-sm font-bold text-electric-blue hover:underline"
+                >
+                  Resend verification email
+                </button>
+              ) : resendSent ? (
+                <p className="mt-2 text-sm font-medium text-volt-green">
+                  Check your inbox for a new verification link.
+                </p>
+              ) : (
+                <form onSubmit={handleResend} className="mt-3 space-y-2">
+                  <Input
+                    type="email"
+                    required
+                    value={resendEmail}
+                    onChange={(e) => setResendEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="h-11 rounded-xl"
+                  />
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={resendLoading}
+                  >
+                    {resendLoading ? "Sending…" : "Send new link"}
+                  </Button>
+                </form>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">

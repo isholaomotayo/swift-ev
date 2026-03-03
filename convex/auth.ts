@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
@@ -50,7 +50,7 @@ export const createUser = internalMutation({
       .first();
 
     if (existingUser) {
-      throw new Error("Email already registered");
+      throw new ConvexError({ message: "Email already registered" });
     }
 
     if (args.phone) {
@@ -59,7 +59,7 @@ export const createUser = internalMutation({
         .withIndex("by_phone", (q) => q.eq("phone", args.phone))
         .first();
       if (existingPhone) {
-        throw new Error("Phone number already registered");
+        throw new ConvexError({ message: "Phone number already registered" });
       }
     }
 
@@ -114,7 +114,7 @@ export const createSession = internalMutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError({ message: "User not found" });
     }
 
     const token = crypto.randomUUID();
@@ -373,7 +373,7 @@ export const updateProfile = mutation({
       .first();
 
     if (!session) {
-      throw new Error("Unauthorized");
+      throw new ConvexError({ message: "Unauthorized" });
     }
 
     await ctx.db.patch(session.userId, {
@@ -398,13 +398,13 @@ export const verifyEmail = mutation({
       .first();
 
     if (!record) {
-      throw new Error("Invalid or expired verification link.");
+      throw new ConvexError({ message: "Invalid or expired verification link." });
     }
     if (record.expiresAt < Date.now()) {
-      throw new Error("Verification link has expired. Please request a new one.");
+      throw new ConvexError({ message: "Verification link has expired. Please request a new one." });
     }
     if (record.usedAt) {
-      throw new Error("This verification link has already been used.");
+      throw new ConvexError({ message: "This verification link has already been used." });
     }
 
     await ctx.db.patch(record._id, { usedAt: Date.now() });
@@ -443,6 +443,34 @@ export const requestPasswordReset = mutation({
     return {
       success: true,
       message: "If an account exists for that email, a reset link has been sent.",
+    };
+  },
+});
+
+/**
+ * Resend verification email — for users with pending status and unverified email.
+ * Always returns success to prevent email enumeration.
+ */
+export const resendVerificationEmail = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+
+    if (user && user.status === "pending" && !user.emailVerified) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendVerificationEmail, {
+        userId: user._id,
+        email: user.email,
+        firstName: user.firstName,
+      });
+    }
+
+    return {
+      success: true,
+      message:
+        "If an account exists and is pending verification, we've sent a new link.",
     };
   },
 });

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -73,8 +74,10 @@ function ResetPasswordForm() {
       setSuccess(true);
       setTimeout(() => router.push("/login"), 3000);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
+      const message = getAuthErrorMessage(
+        err,
+        "Something went wrong. Please request a new reset link."
+      );
       setError(message);
     } finally {
       setLoading(false);

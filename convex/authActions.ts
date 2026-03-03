@@ -1,6 +1,6 @@
 "use node";
 
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -82,19 +82,19 @@ export const login = action({
 
     // Use a constant-time response to avoid user-enumeration via timing
     if (!user) {
-      throw new Error("Invalid email or password");
+      throw new ConvexError({ message: "Invalid email or password" });
     }
 
     const isValid = await bcrypt.compare(args.password, user.passwordHash);
     if (!isValid) {
-      throw new Error("Invalid email or password");
+      throw new ConvexError({ message: "Invalid email or password" });
     }
 
     if (user.status === "suspended") {
-      throw new Error("Account suspended. Please contact support.");
+      throw new ConvexError({ message: "Account suspended. Please contact support." });
     }
     if (user.status === "banned") {
-      throw new Error("Account has been banned.");
+      throw new ConvexError({ message: "Account has been banned." });
     }
 
     return await ctx.runMutation(internal.auth.createSession, {
@@ -118,9 +118,9 @@ export const resetPassword = action({
     });
 
     if (!resetData) {
-      throw new Error(
-        "Invalid or expired password reset link. Please request a new one."
-      );
+      throw new ConvexError({
+        message: "Invalid or expired password reset link. Please request a new one.",
+      });
     }
 
     const passwordHash = await bcrypt.hash(args.newPassword, 12);
@@ -152,7 +152,7 @@ export const changePassword = action({
     });
 
     if (!sessionData) {
-      throw new Error("Unauthorized");
+      throw new ConvexError({ message: "Unauthorized" });
     }
 
     const isValid = await bcrypt.compare(
@@ -160,7 +160,7 @@ export const changePassword = action({
       sessionData.passwordHash
     );
     if (!isValid) {
-      throw new Error("Current password is incorrect");
+      throw new ConvexError({ message: "Current password is incorrect" });
     }
 
     const newPasswordHash = await bcrypt.hash(args.newPassword, 12);
