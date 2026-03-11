@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
@@ -24,8 +25,8 @@ type TaggedUploadFile = File & {
   __category?: string;
 };
 
-const REQUIRED_IMAGE_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"] as const;
-const OPTIONAL_IMAGE_CATEGORIES = ["Passenger Side", "Engine Bay"] as const;
+const REQUIRED_IMAGE_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)", "Engine Bay"] as const;
+const OPTIONAL_IMAGE_CATEGORIES = ["Passenger Side"] as const;
 
 const getRegionLabel = (country: string) => {
   switch (country) {
@@ -124,6 +125,7 @@ export function VehicleForm({
   submitButtonText = "Submit",
   showSteps = true,
 }: VehicleFormProps) {
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<UploadStep>("basic");
   const [formData, setFormData] = useState<VehicleFormData>(initialData);
   
@@ -223,6 +225,29 @@ export function VehicleForm({
   };
 
   const handleSubmit = () => {
+    if (!acceptedCommission) {
+      setCurrentStep("pricing");
+      setTimeout(() => {
+        document.getElementById("commissionTerms")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        toast({
+          title: "Commission Terms Required",
+          description: "Please accept the commission terms to submit the vehicle.",
+          variant: "destructive"
+        });
+      }, 300);
+      return;
+    }
+    
+    if (!allRequiredUploaded) {
+      setCurrentStep("images");
+      toast({
+        title: "Required Images Missing",
+        description: "Please upload all required vehicle photos before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Resolve "Other" values before submitting
     const resolvedData = {
       ...formData,
@@ -867,14 +892,7 @@ export function VehicleForm({
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || !acceptedCommission || !allRequiredUploaded}
-              title={
-                !acceptedCommission
-                  ? "Please accept the commission terms in the Pricing step"
-                  : !allRequiredUploaded
-                  ? `Please upload all required vehicle photos${requiresWalkthroughVideo ? " and walkthrough video" : ""}`
-                  : undefined
-              }
+              disabled={isSubmitting}
               className="bg-electric-blue hover:bg-electric-blue-dark text-white"
             >
               {isSubmitting ? (

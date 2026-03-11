@@ -476,7 +476,7 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
   return lotNumber;
 }
 
-const REQUIRED_MEDIA_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)"];
+const REQUIRED_MEDIA_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)", "Engine Bay"];
 
 const mapCategoryToImageType = (category: string) => {
   if (category === "Front View") return "hero" as const;

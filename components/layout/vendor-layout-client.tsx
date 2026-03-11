@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   Package,
+  CreditCard,
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -40,6 +41,11 @@ const vendorNavItems = [
     label: "Analytics",
     href: "/vendor/analytics",
     icon: BarChart3,
+  },
+  {
+    label: "Bank / Payout",
+    href: "/vendor/settings?tab=payout",
+    icon: CreditCard,
   },
   {
     label: "Settings",
