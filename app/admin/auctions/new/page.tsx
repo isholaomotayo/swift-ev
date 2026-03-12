@@ -176,14 +176,23 @@ export default function CreateAuctionPage() {
     }
   };
 
-  const canProceed = () => {
+  const handleNextClick = () => {
     if (step === 1) {
-      return auctionName.trim() && scheduledStart;
+      if (!auctionName.trim()) {
+        toast({ title: "Validation Error", description: "Please enter an auction name.", variant: "destructive" });
+        return;
+      }
+      if (!scheduledStart) {
+        toast({ title: "Validation Error", description: "Please set a scheduled start time.", variant: "destructive" });
+        return;
+      }
+    } else if (step === 2) {
+      if (selectedVehicles.size === 0) {
+        toast({ title: "Validation Error", description: "Please select at least one vehicle.", variant: "destructive" });
+        return;
+      }
     }
-    if (step === 2) {
-      return selectedVehicles.size > 0;
-    }
-    return true;
+    setStep((s) => s + 1);
   };
 
   return (
@@ -470,8 +479,7 @@ export default function CreateAuctionPage() {
 
           {step < 4 ? (
             <Button
-              onClick={() => setStep((s) => s + 1)}
-              disabled={!canProceed()}
+              onClick={handleNextClick}
               className="bg-electric-blue hover:bg-electric-blue-dark text-white"
             >
               Next
