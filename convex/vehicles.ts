@@ -460,6 +460,10 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
   const datePart = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
   let lotNumber: string = "";
   let attempts = 0;
+
+  // Note: While this has a minor race condition window between checking and inserting,
+  // the probability of generating the exact same random 5-character string
+  // concurrently is 1 in ~60 million, making it practically safe for this use case.
   do {
     const random = Math.random().toString(36).substring(2, 7).toUpperCase();
     lotNumber = `VB-${datePart}-${random}`;
@@ -580,9 +584,21 @@ export const createVehicle = mutation({
       throw new Error("Pricing values cannot be negative.");
     }
 
+    if (vehicleData.reservePrice < vehicleData.startingBid) {
+      throw new Error("Reserve price must be greater than or equal to the starting bid.");
+    }
+
+    if (vehicleData.buyItNowPrice !== undefined && vehicleData.buyItNowPrice < vehicleData.reservePrice) {
+      throw new Error("Buy it now price must be greater than or equal to the reserve price.");
+    }
+
     const allowedFuelTypes = new Set(["EV (Electric)", "Hybrid", "Gas/Petrol", "Solar"]);
     if (vehicleData.fuelType && !allowedFuelTypes.has(vehicleData.fuelType)) {
       throw new Error("Invalid fuel type.");
+    }
+
+    if (vehicleData.mediaUploads.length > 30) {
+      throw new Error("Exceeded maximum allowed media uploads (30).");
     }
 
     const requiredCategorySet = new Set(
