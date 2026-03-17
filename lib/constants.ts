@@ -4,7 +4,7 @@
 
 export const SITE_NAME = "autoexports.live";
 export const BRAND_TAGLINE = "Bid. Win. Export.";
-export const SUPPORT_EMAIL = "hello@autoexports.live";
+export const SUPPORT_EMAIL = "buy@autoexport.live";
 
 // UI Constants
 export const UPCOMING_LOTS_DISPLAY_COUNT = 10; // Number of upcoming lots to show in auction room
@@ -385,8 +385,8 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "im
 
 // Contact Information
 export const CONTACT_INFO = {
-  EMAIL: "support@autoexports.live",
-  PHONE: "+234 XXX XXX XXXX",
+  EMAIL: "buy@autoexport.live",
+  PHONE: "+2349167706772 / +8615914293428",
   ADDRESS: "Lagos, Nigeria",
   SUPPORT_HOURS: "Monday - Friday, 9AM - 6PM WAT",
 } as const;
