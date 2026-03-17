@@ -118,21 +118,6 @@ export default async function Home() {
                     className="object-cover object-center grayscale-[20%] hover:grayscale-0 transition-all duration-700"
                     priority
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-brand-primary/80 backdrop-blur-md border-t border-white/10">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-brand-gold font-black text-sm uppercase">
-                          {m.common_live_market_data()}
-                        </p>
-                        <p className="text-white text-lg font-bold">
-                          {m.common_12400_active_listings()}
-                        </p>
-                      </div>
-                      <div className="h-10 w-10 rounded-full bg-brand-success/20 flex items-center justify-center">
-                        <Zap className="h-5 w-5 text-brand-success" />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
