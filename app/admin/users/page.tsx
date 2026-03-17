@@ -37,7 +37,7 @@ export default async function AdminUsersPage() {
     ]);
   } catch (error) {
     console.error("Failed to fetch users data:", error);
-    // Continue with null data
+    // Continue with null data; client will show an error state
   }
 
   return (
@@ -45,6 +45,11 @@ export default async function AdminUsersPage() {
       initialUsersData={initialUsersData}
       initialStats={initialStats}
       token={token}
+      initialError={
+        !initialUsersData && !initialStats
+          ? "Unable to load users from the server. Please try again or check your connection."
+          : undefined
+      }
     />
   );
 }
