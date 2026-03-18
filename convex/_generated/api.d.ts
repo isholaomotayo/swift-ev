@@ -22,6 +22,7 @@ import type * as emails from "../emails.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as files from "../files.js";
 import type * as financials from "../financials.js";
+import type * as http from "../http.js";
 import type * as kyc from "../kyc.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_flutterwave from "../lib/flutterwave.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   exchangeRates: typeof exchangeRates;
   files: typeof files;
   financials: typeof financials;
+  http: typeof http;
   kyc: typeof kyc;
   "lib/auth": typeof lib_auth;
   "lib/flutterwave": typeof lib_flutterwave;

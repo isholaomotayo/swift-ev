@@ -4,11 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
 import { MailSidebar, type MailFolder } from "./mail/mail-sidebar";
 import { MailList } from "./mail/mail-list";
 import { MailDetail } from "./mail/mail-detail";
@@ -59,6 +54,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   const starEmailMutation = useMutation(api.adminMail.starEmail);
   const sendEmailMutation = useMutation(api.adminMail.sendEmail);
   const saveDraftMutation = useMutation(api.adminMail.saveDraft);
+  const retryFetchBodyMutation = useMutation(api.adminMail.retryFetchEmailBody);
 
   // Use real-time data, fallback to initial data
   const emails = searchQuery.trim().length > 1
@@ -76,6 +72,20 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       }).catch(console.error);
     }
   }, [selectedEmail?._id, selectedEmail?.isRead]);
+
+  // Retry fetching body if empty and has resendEmailId
+  useEffect(() => {
+    if (
+      selectedEmail &&
+      !selectedEmail.bodyHtml &&
+      selectedEmail.resendEmailId
+    ) {
+      retryFetchBodyMutation({
+        token,
+        emailId: selectedEmail._id,
+      }).catch(console.error);
+    }
+  }, [selectedEmail?._id, selectedEmail?.bodyHtml]);
 
   // Clear selection when changing folders
   const handleFolderChange = useCallback((folder: MailFolder) => {
@@ -258,21 +268,19 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
   return (
     <div className="h-[calc(100vh-6rem)] rounded-lg border border-border bg-card overflow-hidden">
-      <ResizablePanelGroup orientation="horizontal">
-        {/* Sidebar */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+      <div className="flex h-full">
+        {/* Sidebar - fixed width */}
+        <div className="w-56 shrink-0 border-r border-border overflow-y-auto">
           <MailSidebar
             currentFolder={currentFolder}
             onFolderChange={handleFolderChange}
             onCompose={handleCompose}
             stats={stats}
           />
-        </ResizablePanel>
+        </div>
 
-        <ResizableHandle withHandle />
-
-        {/* Email List */}
-        <ResizablePanel defaultSize={35} minSize={25}>
+        {/* Email List - flexible width */}
+        <div className="w-[340px] shrink-0 border-r border-border overflow-hidden">
           <MailList
             emails={emails}
             selectedEmailId={selectedEmailId}
@@ -283,12 +291,10 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
             filterTab={filterTab}
             onFilterTabChange={setFilterTab}
           />
-        </ResizablePanel>
+        </div>
 
-        <ResizableHandle withHandle />
-
-        {/* Email Detail */}
-        <ResizablePanel defaultSize={45} minSize={30}>
+        {/* Email Detail - takes remaining space */}
+        <div className="flex-1 min-w-0 overflow-hidden">
           <MailDetail
             email={selectedEmail || null}
             onArchive={handleArchive}
@@ -298,8 +304,8 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
             onStar={handleStar}
             onToggleRead={handleToggleRead}
           />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+      </div>
 
       {/* Compose Modal */}
       {composeOpen && (

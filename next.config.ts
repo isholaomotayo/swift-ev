@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Prevent trailing-slash redirects that break webhook POST requests (307)
+  skipTrailingSlashRedirect: true,
   // Ensure Turbopack uses this project as root (avoids wrong root when parent has a lockfile).
   turbopack: { root: path.join(process.cwd()) },
   // Prefer this project's node_modules so "tailwindcss" and other deps resolve

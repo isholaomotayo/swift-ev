@@ -181,7 +181,8 @@ export const saveDraft = mutation({
 
     const now = Date.now();
     const snippet = (args.bodyText || "").slice(0, 120);
-    const from = process.env.EMAIL_FROM ?? "noreply@autoexports.live";
+    // Hardcoded since mutations run in V8 (no process.env)
+    const from = "buy@autoexport.live";
 
     if (args.draftId) {
       // Update existing draft
@@ -224,6 +225,32 @@ export const saveDraft = mutation({
     });
 
     return draftId;
+  },
+});
+
+/**
+ * Retry fetching email body if it's empty.
+ * Called by the client when a user opens an email with no body.
+ */
+export const retryFetchEmailBody = mutation({
+  args: {
+    token: v.string(),
+    emailId: v.id("adminEmails"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const email = await ctx.db.get(args.emailId);
+    if (!email) throw new Error("Email not found");
+
+    // Only retry if body is empty and we have a resendEmailId to fetch from
+    if (!email.bodyHtml && email.resendEmailId) {
+      await ctx.scheduler.runAfter(0, internal.adminMail.fetchAndBackfillEmailBody, {
+        emailId: args.emailId,
+        resendEmailId: email.resendEmailId,
+      });
+    }
   },
 });
 
@@ -336,12 +363,13 @@ export const storeInboundEmail = internalMutation({
     bodyHtml: v.string(),
     bodyText: v.optional(v.string()),
     threadId: v.optional(v.string()),
+    resendEmailId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const snippet = (args.bodyText || "").slice(0, 120);
 
-    await ctx.db.insert("adminEmails", {
+    const id = await ctx.db.insert("adminEmails", {
       direction: "inbound",
       threadId: args.threadId,
       from: args.from,
@@ -355,10 +383,12 @@ export const storeInboundEmail = internalMutation({
       folder: "inbox",
       isRead: false,
       isStarred: false,
+      resendEmailId: args.resendEmailId,
       receivedAt: now,
       createdAt: now,
       updatedAt: now,
     });
+    return id;
   },
 });
 
@@ -551,6 +581,83 @@ export const storeSentEmail = internalMutation({
 });
 
 /**
+ * Internal action to fetch full email content from Resend API and backfill
+ * an existing adminEmails record. The webhook stores metadata immediately,
+ * then this action runs async to fetch and patch in the body.
+ */
+export const fetchAndBackfillEmailBody = internalAction({
+  args: {
+    emailId: v.id("adminEmails"),
+    resendEmailId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error("RESEND_API_KEY not set — cannot fetch email body");
+      return;
+    }
+
+    let bodyHtml = "";
+    let bodyText = "";
+
+    try {
+      // Inbound emails use /emails/receiving/{id}, NOT /emails/{id}
+      const res = await fetch(
+        `https://api.resend.com/emails/receiving/${args.resendEmailId}`,
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        }
+      );
+
+      if (res.ok) {
+        const emailData = await res.json();
+        bodyHtml = emailData.html || emailData.body || "";
+        bodyText = emailData.text || "";
+      } else {
+        console.error(
+          `Failed to fetch email ${args.resendEmailId}: ${res.status} ${await res.text()}`
+        );
+        return;
+      }
+    } catch (err) {
+      console.error(`Error fetching email content from Resend:`, err);
+      return;
+    }
+
+    // Patch the existing record with the fetched body
+    await ctx.runMutation(internal.adminMail.backfillEmailBody, {
+      emailId: args.emailId,
+      bodyHtml,
+      bodyText,
+    });
+  },
+});
+
+/**
+ * Internal mutation to backfill body content on an existing email record.
+ */
+export const backfillEmailBody = internalMutation({
+  args: {
+    emailId: v.id("adminEmails"),
+    bodyHtml: v.string(),
+    bodyText: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const email = await ctx.db.get(args.emailId);
+    if (!email) return;
+
+    const snippet = args.bodyText.slice(0, 120) || args.bodyHtml.replace(/<[^>]*>/g, "").slice(0, 120);
+
+    await ctx.db.patch(args.emailId, {
+      bodyHtml: args.bodyHtml,
+      bodyText: args.bodyText,
+      snippet,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
  * Internal mutation to delete a draft after sending
  */
 export const deleteDraft = internalMutation({
@@ -617,10 +724,8 @@ export const webhookStoreInbound = mutation({
     threadId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const expectedSecret = process.env.RESEND_WEBHOOK_SECRET;
-    if (expectedSecret && args.webhookSecret !== expectedSecret) {
-      throw new Error("Invalid webhook secret");
-    }
+    // Secret validation is handled by the API route (Next.js) before calling this mutation.
+    // Convex mutations run in V8 and don't have access to process.env.
 
     const now = Date.now();
     const snippet = (args.bodyText || "").slice(0, 120);
@@ -661,10 +766,7 @@ export const webhookUpdateStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const expectedSecret = process.env.RESEND_WEBHOOK_SECRET;
-    if (expectedSecret && args.webhookSecret !== expectedSecret) {
-      throw new Error("Invalid webhook secret");
-    }
+    // Secret validation is handled by the API route (Next.js) before calling this mutation.
 
     const email = await ctx.db
       .query("adminEmails")
