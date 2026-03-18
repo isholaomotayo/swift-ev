@@ -387,7 +387,7 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "im
 export const CONTACT_INFO = {
   EMAIL: "buy@autoexport.live",
   PHONE: "+2349167706772 / +8615914293428",
-  ADDRESS: "Lagos, Nigeria",
+  ADDRESS: "Plot 777, Wole Olanipekun Street, Central Business District, Abuja",
   SUPPORT_HOURS: "Monday - Friday, 9AM - 6PM WAT",
 } as const;
 
