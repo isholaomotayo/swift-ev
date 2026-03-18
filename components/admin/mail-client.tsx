@@ -117,6 +117,26 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
     setComposeOpen(true);
   }, [selectedEmail]);
 
+  const handleReplyAll = useCallback(() => {
+    if (!selectedEmail) return;
+    // Include all recipients except our own address
+    const allRecipients = [
+      selectedEmail.from,
+      ...(selectedEmail.cc || []),
+    ].filter((addr) => addr !== "buy@autoexport.live" && addr !== "noreply@autoexports.live");
+
+    setComposeData({
+      to: selectedEmail.from,
+      cc: allRecipients.filter((a) => a !== selectedEmail.from).join(", "),
+      subject: selectedEmail.subject.startsWith("Re:")
+        ? selectedEmail.subject
+        : `Re: ${selectedEmail.subject}`,
+      body: `\n\n---\nOn ${new Date(selectedEmail.createdAt).toLocaleString()}, ${selectedEmail.fromName || selectedEmail.from} wrote:\n> ${selectedEmail.bodyText || ""}`,
+      inReplyTo: selectedEmail._id,
+    });
+    setComposeOpen(true);
+  }, [selectedEmail]);
+
   const handleForward = useCallback(() => {
     if (!selectedEmail) return;
     setComposeData({
@@ -300,6 +320,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
             onArchive={handleArchive}
             onTrash={handleTrash}
             onReply={handleReply}
+            onReplyAll={handleReplyAll}
             onForward={handleForward}
             onStar={handleStar}
             onToggleRead={handleToggleRead}

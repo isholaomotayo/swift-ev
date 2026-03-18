@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Webhook } from "svix";
 
 const http = httpRouter();
 
@@ -11,17 +12,49 @@ const http = httpRouter();
  * Configure this URL in the Resend dashboard as your webhook endpoint.
  *
  * Events handled:
- *   - email.received  → stores inbound email in adminEmails table
+ *   - email.received  → stores inbound email, fetches body from Resend API
  *   - email.delivered  → updates delivery status
- *   - email.bounced    → updates delivery status
- *   - email.complained → updates delivery status
+ *   - email.bounced    → updates delivery status + adds to suppression list
+ *   - email.complained → updates delivery status + adds to suppression list
  */
 http.route({
   path: "/webhooks/resend",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {
-      const body = await request.json();
+      const rawBody = await request.text();
+
+      // Verify Svix webhook signature
+      const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+      if (webhookSecret) {
+        const svixId = request.headers.get("svix-id");
+        const svixTimestamp = request.headers.get("svix-timestamp");
+        const svixSignature = request.headers.get("svix-signature");
+
+        if (!svixId || !svixTimestamp || !svixSignature) {
+          return new Response(
+            JSON.stringify({ error: "Missing webhook signature headers" }),
+            { status: 401, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        try {
+          const wh = new Webhook(webhookSecret);
+          wh.verify(rawBody, {
+            "svix-id": svixId,
+            "svix-timestamp": svixTimestamp,
+            "svix-signature": svixSignature,
+          });
+        } catch {
+          console.error("Webhook signature verification failed");
+          return new Response(
+            JSON.stringify({ error: "Invalid webhook signature" }),
+            { status: 401, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      const body = JSON.parse(rawBody);
       const eventType = body.type;
 
       switch (eventType) {
@@ -31,6 +64,9 @@ http.route({
           const to = Array.isArray(data.to) ? data.to : [data.to];
           const subject = data.subject || "(no subject)";
           const resendEmailId = data.email_id;
+          const messageId = data.message_id || undefined;
+          const cc = Array.isArray(data.cc) && data.cc.length > 0 ? data.cc : undefined;
+          const attachmentsMeta = Array.isArray(data.attachments) ? data.attachments : [];
 
           // Generate threadId from normalized subject
           const normalizedSubject = subject
@@ -39,17 +75,27 @@ http.route({
             .toLowerCase();
           const threadId = normalizedSubject || undefined;
 
+          // Build attachments metadata array
+          const attachments = attachmentsMeta.map((a: any) => ({
+            id: a.id || "",
+            filename: a.filename || "unknown",
+            contentType: a.content_type || "application/octet-stream",
+          }));
+
           // 1) Store metadata immediately so it's never lost
           const emailId = await ctx.runMutation(internal.adminMail.storeInboundEmail, {
             from,
             fromName: data.from_name || undefined,
             to,
-            cc: data.cc || undefined,
+            cc,
             subject,
             bodyHtml: "",
             bodyText: "",
             threadId,
             resendEmailId: resendEmailId || undefined,
+            messageId,
+            attachments: attachments.length > 0 ? attachments : undefined,
+            hasAttachments: attachments.length > 0,
           });
 
           // 2) Fetch body from Resend API and backfill the record
@@ -62,23 +108,63 @@ http.route({
           break;
         }
 
-        case "email.delivered":
-        case "email.bounced":
-        case "email.complained": {
+        case "email.delivered": {
           const data = body.data;
-          const resendEmailId = data.email_id;
-
+          const resendEmailId = data.email_id || data.id;
           if (resendEmailId) {
-            const statusMap: Record<string, "delivered" | "bounced" | "complained"> = {
-              "email.delivered": "delivered",
-              "email.bounced": "bounced",
-              "email.complained": "complained",
-            };
-
             await ctx.runMutation(internal.adminMail.updateDeliveryStatus, {
               resendEmailId,
-              status: statusMap[eventType],
+              status: "delivered",
             });
+          }
+          break;
+        }
+
+        case "email.bounced": {
+          const data = body.data;
+          const resendEmailId = data.email_id || data.id;
+          if (resendEmailId) {
+            await ctx.runMutation(internal.adminMail.updateDeliveryStatus, {
+              resendEmailId,
+              status: "bounced",
+              bounceType: data.bounce?.type,
+              bounceSubType: data.bounce?.subType,
+              bounceMessage: data.bounce?.message,
+            });
+          }
+          // Add recipients to suppression list
+          const bouncedTo = Array.isArray(data.to) ? data.to : [data.to];
+          for (const email of bouncedTo) {
+            if (email) {
+              await ctx.runMutation(internal.adminMail.addSuppression, {
+                email: email.toLowerCase().trim(),
+                reason: "bounce",
+                bounceType: data.bounce?.type,
+                bounceMessage: data.bounce?.message,
+              });
+            }
+          }
+          break;
+        }
+
+        case "email.complained": {
+          const data = body.data;
+          const resendEmailId = data.email_id || data.id;
+          if (resendEmailId) {
+            await ctx.runMutation(internal.adminMail.updateDeliveryStatus, {
+              resendEmailId,
+              status: "complained",
+            });
+          }
+          // Add to suppression list
+          const complainedTo = Array.isArray(data.to) ? data.to : [data.to];
+          for (const email of complainedTo) {
+            if (email) {
+              await ctx.runMutation(internal.adminMail.addSuppression, {
+                email: email.toLowerCase().trim(),
+                reason: "complaint",
+              });
+            }
           }
           break;
         }

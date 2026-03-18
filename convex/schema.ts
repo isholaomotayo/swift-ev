@@ -698,11 +698,16 @@ export default defineSchema({
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
     threadId: v.optional(v.string()),
     inReplyTo: v.optional(v.id("adminEmails")),
+    // RFC Message-ID / In-Reply-To / References for proper threading
+    messageId: v.optional(v.string()),
+    inReplyToMessageId: v.optional(v.string()),
+    referencesMessageIds: v.optional(v.array(v.string())),
     from: v.string(),
     fromName: v.optional(v.string()),
     to: v.array(v.string()),
     cc: v.optional(v.array(v.string())),
     bcc: v.optional(v.array(v.string())),
+    replyTo: v.optional(v.array(v.string())),
     subject: v.string(),
     bodyHtml: v.string(),
     bodyText: v.optional(v.string()),
@@ -727,6 +732,23 @@ export default defineSchema({
         v.literal("complained")
       )
     ),
+    // Bounce details
+    bounceType: v.optional(v.string()),
+    bounceSubType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
+    // Attachments metadata
+    attachments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          filename: v.string(),
+          contentType: v.string(),
+          size: v.optional(v.number()),
+          storageId: v.optional(v.id("_storage")),
+        })
+      )
+    ),
+    hasAttachments: v.optional(v.boolean()),
     sentAt: v.optional(v.number()),
     receivedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -738,10 +760,21 @@ export default defineSchema({
     .index("by_threadId", ["threadId"])
     .index("by_isRead", ["isRead"])
     .index("by_resendEmailId", ["resendEmailId"])
+    .index("by_messageId", ["messageId"])
     .searchIndex("search_emails", {
       searchField: "subject",
       filterFields: ["folder"],
     }),
+
+  // Bounce suppression list — tracks addresses that should not be emailed
+  emailSuppressions: defineTable({
+    email: v.string(),
+    reason: v.union(v.literal("bounce"), v.literal("complaint")),
+    bounceType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"]),
 
   // ============================================
   // SELLER/SUPPLIER TABLES

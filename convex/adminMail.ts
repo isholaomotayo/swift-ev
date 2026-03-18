@@ -9,7 +9,7 @@ import { requireAuth, requireAdmin } from "./lib/auth";
 // ============================================
 
 /**
- * List emails by folder with pagination
+ * List emails by folder — uses by_folder_date index for efficient ordering.
  */
 export const listEmails = query({
   args: {
@@ -23,34 +23,27 @@ export const listEmails = query({
     ),
     unreadOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
     requireAdmin(user);
 
+    const limit = args.limit || 50;
+
+    // Use the compound index for ordering — no .collect() needed
     let emails = await ctx.db
       .query("adminEmails")
-      .withIndex("by_folder", (q) => q.eq("folder", args.folder))
-      .collect();
+      .withIndex("by_folder_date", (q) => q.eq("folder", args.folder))
+      .order("desc")
+      .take(limit * 2); // Take extra to accommodate unread filtering
 
-    // Filter unread only
     if (args.unreadOnly) {
       emails = emails.filter((e) => !e.isRead);
     }
 
-    // Sort newest first
-    emails.sort((a, b) => b.createdAt - a.createdAt);
-
-    const total = emails.length;
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
-    const paginated = emails.slice(offset, offset + limit);
-
     return {
-      emails: paginated,
-      total,
-      hasMore: offset + limit < total,
+      emails: emails.slice(0, limit),
+      hasMore: emails.length > limit,
     };
   },
 });
@@ -76,7 +69,7 @@ export const getEmail = query({
 });
 
 /**
- * Get mail stats (unread counts per folder)
+ * Get mail stats — uses indexed queries per folder instead of loading everything.
  */
 export const getMailStats = query({
   args: {
@@ -86,33 +79,39 @@ export const getMailStats = query({
     const user = await requireAuth(ctx, args.token);
     requireAdmin(user);
 
-    const allEmails = await ctx.db.query("adminEmails").collect();
+    // Query each folder separately using the index — much more efficient
+    const [inboxEmails, sentEmails, draftEmails, trashEmails, archiveEmails] =
+      await Promise.all([
+        ctx.db
+          .query("adminEmails")
+          .withIndex("by_folder", (q) => q.eq("folder", "inbox"))
+          .collect(),
+        ctx.db
+          .query("adminEmails")
+          .withIndex("by_folder", (q) => q.eq("folder", "sent"))
+          .collect(),
+        ctx.db
+          .query("adminEmails")
+          .withIndex("by_folder", (q) => q.eq("folder", "drafts"))
+          .collect(),
+        ctx.db
+          .query("adminEmails")
+          .withIndex("by_folder", (q) => q.eq("folder", "trash"))
+          .collect(),
+        ctx.db
+          .query("adminEmails")
+          .withIndex("by_folder", (q) => q.eq("folder", "archive"))
+          .collect(),
+      ]);
 
-    const stats = {
-      inbox: 0,
-      inboxUnread: 0,
-      sent: 0,
-      drafts: 0,
-      trash: 0,
-      archive: 0,
+    return {
+      inbox: inboxEmails.length,
+      inboxUnread: inboxEmails.filter((e) => !e.isRead).length,
+      sent: sentEmails.length,
+      drafts: draftEmails.length,
+      trash: trashEmails.length,
+      archive: archiveEmails.length,
     };
-
-    for (const email of allEmails) {
-      if (email.folder === "inbox") {
-        stats.inbox++;
-        if (!email.isRead) stats.inboxUnread++;
-      } else if (email.folder === "sent") {
-        stats.sent++;
-      } else if (email.folder === "drafts") {
-        stats.drafts++;
-      } else if (email.folder === "trash") {
-        stats.trash++;
-      } else if (email.folder === "archive") {
-        stats.archive++;
-      }
-    }
-
-    return stats;
   },
 });
 
@@ -141,7 +140,7 @@ export const searchEmails = query({
       return [];
     }
 
-    let searchQuery = ctx.db
+    const searchQuery = ctx.db
       .query("adminEmails")
       .withSearchIndex("search_emails", (q) => {
         let search = q.search("subject", args.query);
@@ -153,6 +152,38 @@ export const searchEmails = query({
 
     const results = await searchQuery.take(50);
     return results;
+  },
+});
+
+/**
+ * Check if any addresses in the list are suppressed (bounced/complained).
+ */
+export const checkSuppressions = query({
+  args: {
+    token: v.string(),
+    emails: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const suppressed: Array<{ email: string; reason: string; bounceType?: string }> = [];
+
+    for (const email of args.emails) {
+      const record = await ctx.db
+        .query("emailSuppressions")
+        .withIndex("by_email", (q) => q.eq("email", email.toLowerCase().trim()))
+        .first();
+      if (record) {
+        suppressed.push({
+          email: record.email,
+          reason: record.reason,
+          bounceType: record.bounceType,
+        });
+      }
+    }
+
+    return suppressed;
   },
 });
 
@@ -181,11 +212,9 @@ export const saveDraft = mutation({
 
     const now = Date.now();
     const snippet = (args.bodyText || "").slice(0, 120);
-    // Hardcoded since mutations run in V8 (no process.env)
     const from = "buy@autoexport.live";
 
     if (args.draftId) {
-      // Update existing draft
       const existing = await ctx.db.get(args.draftId);
       if (!existing || existing.folder !== "drafts") {
         throw new Error("Draft not found");
@@ -204,7 +233,6 @@ export const saveDraft = mutation({
       return args.draftId;
     }
 
-    // Create new draft
     const draftId = await ctx.db.insert("adminEmails", {
       direction: "outbound",
       from,
@@ -244,7 +272,6 @@ export const retryFetchEmailBody = mutation({
     const email = await ctx.db.get(args.emailId);
     if (!email) throw new Error("Email not found");
 
-    // Only retry if body is empty and we have a resendEmailId to fetch from
     if (!email.bodyHtml && email.resendEmailId) {
       await ctx.scheduler.runAfter(0, internal.adminMail.fetchAndBackfillEmailBody, {
         emailId: args.emailId,
@@ -350,8 +377,12 @@ export const deleteEmail = mutation({
   },
 });
 
+// ============================================
+// INTERNAL MUTATIONS (webhook + actions)
+// ============================================
+
 /**
- * Internal mutation to store an inbound email from webhook
+ * Store an inbound email from webhook. Returns the new record ID.
  */
 export const storeInboundEmail = internalMutation({
   args: {
@@ -364,6 +395,17 @@ export const storeInboundEmail = internalMutation({
     bodyText: v.optional(v.string()),
     threadId: v.optional(v.string()),
     resendEmailId: v.optional(v.string()),
+    messageId: v.optional(v.string()),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          filename: v.string(),
+          contentType: v.string(),
+        })
+      )
+    ),
+    hasAttachments: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -384,6 +426,13 @@ export const storeInboundEmail = internalMutation({
       isRead: false,
       isStarred: false,
       resendEmailId: args.resendEmailId,
+      messageId: args.messageId,
+      attachments: args.attachments?.map((a) => ({
+        id: a.id,
+        filename: a.filename,
+        contentType: a.contentType,
+      })),
+      hasAttachments: args.hasAttachments,
       receivedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -393,7 +442,7 @@ export const storeInboundEmail = internalMutation({
 });
 
 /**
- * Internal mutation to update delivery status from webhook
+ * Update delivery status from webhook
  */
 export const updateDeliveryStatus = internalMutation({
   args: {
@@ -405,6 +454,9 @@ export const updateDeliveryStatus = internalMutation({
       v.literal("bounced"),
       v.literal("complained")
     ),
+    bounceType: v.optional(v.string()),
+    bounceSubType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = await ctx.db
@@ -417,126 +469,46 @@ export const updateDeliveryStatus = internalMutation({
     if (email) {
       await ctx.db.patch(email._id, {
         deliveryStatus: args.status,
+        bounceType: args.bounceType,
+        bounceSubType: args.bounceSubType,
+        bounceMessage: args.bounceMessage,
         updatedAt: Date.now(),
       });
     }
   },
 });
 
-// ============================================
-// ACTIONS (Node.js runtime)
-// ============================================
-
 /**
- * Send an email via Resend API, then store in adminEmails as sent
+ * Add an email address to the suppression list
  */
-export const sendEmailAction = internalAction({
+export const addSuppression = internalMutation({
   args: {
-    userId: v.id("users"),
-    to: v.array(v.string()),
-    cc: v.optional(v.array(v.string())),
-    bcc: v.optional(v.array(v.string())),
-    subject: v.string(),
-    bodyHtml: v.string(),
-    bodyText: v.optional(v.string()),
-    inReplyTo: v.optional(v.id("adminEmails")),
-    draftId: v.optional(v.id("adminEmails")),
+    email: v.string(),
+    reason: v.union(v.literal("bounce"), v.literal("complaint")),
+    bounceType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.EMAIL_FROM ?? "noreply@autoexports.live";
+    // Check if already suppressed
+    const existing = await ctx.db
+      .query("emailSuppressions")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
 
-    if (!apiKey) {
-      console.log("[EMAIL STUB — set RESEND_API_KEY to enable sending]", {
-        to: args.to,
-        from,
-        subject: args.subject,
-      });
-      // Still store in DB for development
-    }
-
-    let resendEmailId: string | undefined;
-
-    if (apiKey) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          from,
-          to: args.to,
-          cc: args.cc,
-          bcc: args.bcc,
-          subject: args.subject,
-          html: args.bodyHtml,
-          text: args.bodyText,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Email send failed (${res.status}): ${body}`);
-      }
-
-      const data = await res.json();
-      resendEmailId = data.id;
-    }
-
-    // Determine threadId from parent if replying
-    let threadId: string | undefined;
-    if (args.inReplyTo) {
-      const parent = await ctx.runQuery(
-        internal.adminMail.getEmailInternal,
-        { emailId: args.inReplyTo }
-      );
-      if (parent) {
-        threadId = parent.threadId || args.inReplyTo;
-      }
-    }
-
-    const now = Date.now();
-    const snippet = (args.bodyText || "").slice(0, 120);
-
-    // Store sent email
-    await ctx.runMutation(internal.adminMail.storeSentEmail, {
-      from,
-      to: args.to,
-      cc: args.cc,
-      bcc: args.bcc,
-      subject: args.subject,
-      bodyHtml: args.bodyHtml,
-      bodyText: args.bodyText,
-      snippet,
-      threadId,
-      inReplyTo: args.inReplyTo,
-      resendEmailId,
-      createdBy: args.userId,
-      sentAt: now,
-    });
-
-    // Delete draft if sending from a draft
-    if (args.draftId) {
-      await ctx.runMutation(internal.adminMail.deleteDraft, {
-        draftId: args.draftId,
+    if (!existing) {
+      await ctx.db.insert("emailSuppressions", {
+        email: args.email,
+        reason: args.reason,
+        bounceType: args.bounceType,
+        bounceMessage: args.bounceMessage,
+        createdAt: Date.now(),
       });
     }
   },
 });
 
 /**
- * Internal query to get email (for use in actions)
- */
-export const getEmailInternal = internalQuery({
-  args: { emailId: v.id("adminEmails") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.emailId);
-  },
-});
-
-/**
- * Internal mutation to store a sent email
+ * Store a sent email record
  */
 export const storeSentEmail = internalMutation({
   args: {
@@ -550,6 +522,8 @@ export const storeSentEmail = internalMutation({
     snippet: v.optional(v.string()),
     threadId: v.optional(v.string()),
     inReplyTo: v.optional(v.id("adminEmails")),
+    inReplyToMessageId: v.optional(v.string()),
+    referencesMessageIds: v.optional(v.array(v.string())),
     resendEmailId: v.optional(v.string()),
     createdBy: v.id("users"),
     sentAt: v.number(),
@@ -559,6 +533,8 @@ export const storeSentEmail = internalMutation({
       direction: "outbound",
       threadId: args.threadId,
       inReplyTo: args.inReplyTo,
+      inReplyToMessageId: args.inReplyToMessageId,
+      referencesMessageIds: args.referencesMessageIds,
       from: args.from,
       to: args.to,
       cc: args.cc,
@@ -581,9 +557,212 @@ export const storeSentEmail = internalMutation({
 });
 
 /**
- * Internal action to fetch full email content from Resend API and backfill
- * an existing adminEmails record. The webhook stores metadata immediately,
- * then this action runs async to fetch and patch in the body.
+ * Backfill body content on an existing email record.
+ */
+export const backfillEmailBody = internalMutation({
+  args: {
+    emailId: v.id("adminEmails"),
+    bodyHtml: v.string(),
+    bodyText: v.string(),
+    messageId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const email = await ctx.db.get(args.emailId);
+    if (!email) return;
+
+    const snippet =
+      args.bodyText.slice(0, 120) ||
+      args.bodyHtml.replace(/<[^>]*>/g, "").slice(0, 120);
+
+    await ctx.db.patch(args.emailId, {
+      bodyHtml: args.bodyHtml,
+      bodyText: args.bodyText,
+      snippet,
+      messageId: args.messageId || email.messageId,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Delete a draft after sending
+ */
+export const deleteDraft = internalMutation({
+  args: { draftId: v.id("adminEmails") },
+  handler: async (ctx, args) => {
+    const draft = await ctx.db.get(args.draftId);
+    if (draft && draft.folder === "drafts") {
+      await ctx.db.delete(args.draftId);
+    }
+  },
+});
+
+/**
+ * Internal query to get email (for use in actions)
+ */
+export const getEmailInternal = internalQuery({
+  args: { emailId: v.id("adminEmails") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.emailId);
+  },
+});
+
+// ============================================
+// ACTIONS (Node.js runtime)
+// ============================================
+
+/**
+ * Send an email via Resend API with proper threading headers, then store.
+ */
+export const sendEmailAction = internalAction({
+  args: {
+    userId: v.id("users"),
+    to: v.array(v.string()),
+    cc: v.optional(v.array(v.string())),
+    bcc: v.optional(v.array(v.string())),
+    subject: v.string(),
+    bodyHtml: v.string(),
+    bodyText: v.optional(v.string()),
+    inReplyTo: v.optional(v.id("adminEmails")),
+    draftId: v.optional(v.id("adminEmails")),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM ?? "buy@autoexport.live";
+
+    // Look up parent email for threading
+    let threadId: string | undefined;
+    let inReplyToMessageId: string | undefined;
+    let referencesMessageIds: string[] | undefined;
+
+    if (args.inReplyTo) {
+      const parent = await ctx.runQuery(
+        internal.adminMail.getEmailInternal,
+        { emailId: args.inReplyTo }
+      );
+      if (parent) {
+        threadId = parent.threadId || args.inReplyTo;
+        inReplyToMessageId = parent.messageId;
+        // Build References chain
+        if (parent.referencesMessageIds && parent.messageId) {
+          referencesMessageIds = [...parent.referencesMessageIds, parent.messageId];
+        } else if (parent.messageId) {
+          referencesMessageIds = [parent.messageId];
+        }
+      }
+    }
+
+    // Build threading headers for Resend API
+    const headers: Record<string, string> = {};
+    if (inReplyToMessageId) {
+      headers["In-Reply-To"] = inReplyToMessageId;
+    }
+    if (referencesMessageIds && referencesMessageIds.length > 0) {
+      headers["References"] = referencesMessageIds.join(" ");
+    }
+
+    let resendEmailId: string | undefined;
+    const now = Date.now();
+    const snippet = (args.bodyText || "").slice(0, 120);
+
+    if (apiKey) {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            from,
+            to: args.to,
+            cc: args.cc,
+            bcc: args.bcc,
+            subject: args.subject,
+            html: args.bodyHtml,
+            text: args.bodyText,
+            ...(Object.keys(headers).length > 0 ? { headers } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          const errorBody = await res.text();
+          console.error(`Email send failed (${res.status}): ${errorBody}`);
+          // Still store as failed send so user can see it
+          await ctx.runMutation(internal.adminMail.storeSentEmail, {
+            from,
+            to: args.to,
+            cc: args.cc,
+            bcc: args.bcc,
+            subject: args.subject,
+            bodyHtml: args.bodyHtml,
+            bodyText: args.bodyText,
+            snippet,
+            threadId,
+            inReplyTo: args.inReplyTo,
+            inReplyToMessageId,
+            referencesMessageIds,
+            createdBy: args.userId,
+            sentAt: now,
+          });
+          return;
+        }
+
+        const data = await res.json();
+        resendEmailId = data.id;
+      } catch (err) {
+        console.error("Email send error:", err);
+        // Store as failed
+        await ctx.runMutation(internal.adminMail.storeSentEmail, {
+          from,
+          to: args.to,
+          cc: args.cc,
+          bcc: args.bcc,
+          subject: args.subject,
+          bodyHtml: args.bodyHtml,
+          bodyText: args.bodyText,
+          snippet,
+          threadId,
+          inReplyTo: args.inReplyTo,
+          inReplyToMessageId,
+          referencesMessageIds,
+          createdBy: args.userId,
+          sentAt: now,
+        });
+        return;
+      }
+    }
+
+    // Store sent email
+    await ctx.runMutation(internal.adminMail.storeSentEmail, {
+      from,
+      to: args.to,
+      cc: args.cc,
+      bcc: args.bcc,
+      subject: args.subject,
+      bodyHtml: args.bodyHtml,
+      bodyText: args.bodyText,
+      snippet,
+      threadId,
+      inReplyTo: args.inReplyTo,
+      inReplyToMessageId,
+      referencesMessageIds,
+      resendEmailId,
+      createdBy: args.userId,
+      sentAt: now,
+    });
+
+    // Delete draft if sending from a draft
+    if (args.draftId) {
+      await ctx.runMutation(internal.adminMail.deleteDraft, {
+        draftId: args.draftId,
+      });
+    }
+  },
+});
+
+/**
+ * Fetch full email content from Resend Receiving API and backfill the record.
  */
 export const fetchAndBackfillEmailBody = internalAction({
   args: {
@@ -597,9 +776,6 @@ export const fetchAndBackfillEmailBody = internalAction({
       return;
     }
 
-    let bodyHtml = "";
-    let bodyText = "";
-
     try {
       // Inbound emails use /emails/receiving/{id}, NOT /emails/{id}
       const res = await fetch(
@@ -609,69 +785,36 @@ export const fetchAndBackfillEmailBody = internalAction({
         }
       );
 
-      if (res.ok) {
-        const emailData = await res.json();
-        bodyHtml = emailData.html || emailData.body || "";
-        bodyText = emailData.text || "";
-      } else {
+      if (!res.ok) {
         console.error(
           `Failed to fetch email ${args.resendEmailId}: ${res.status} ${await res.text()}`
         );
         return;
       }
+
+      const emailData = await res.json();
+      const bodyHtml = emailData.html || "";
+      const bodyText = emailData.text || "";
+      const messageId = emailData.message_id || undefined;
+
+      await ctx.runMutation(internal.adminMail.backfillEmailBody, {
+        emailId: args.emailId,
+        bodyHtml,
+        bodyText,
+        messageId,
+      });
     } catch (err) {
       console.error(`Error fetching email content from Resend:`, err);
-      return;
-    }
-
-    // Patch the existing record with the fetched body
-    await ctx.runMutation(internal.adminMail.backfillEmailBody, {
-      emailId: args.emailId,
-      bodyHtml,
-      bodyText,
-    });
-  },
-});
-
-/**
- * Internal mutation to backfill body content on an existing email record.
- */
-export const backfillEmailBody = internalMutation({
-  args: {
-    emailId: v.id("adminEmails"),
-    bodyHtml: v.string(),
-    bodyText: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const email = await ctx.db.get(args.emailId);
-    if (!email) return;
-
-    const snippet = args.bodyText.slice(0, 120) || args.bodyHtml.replace(/<[^>]*>/g, "").slice(0, 120);
-
-    await ctx.db.patch(args.emailId, {
-      bodyHtml: args.bodyHtml,
-      bodyText: args.bodyText,
-      snippet,
-      updatedAt: Date.now(),
-    });
-  },
-});
-
-/**
- * Internal mutation to delete a draft after sending
- */
-export const deleteDraft = internalMutation({
-  args: { draftId: v.id("adminEmails") },
-  handler: async (ctx, args) => {
-    const draft = await ctx.db.get(args.draftId);
-    if (draft && draft.folder === "drafts") {
-      await ctx.db.delete(args.draftId);
     }
   },
 });
 
+// ============================================
+// PUBLIC MUTATION — SEND EMAIL
+// ============================================
+
 /**
- * Public mutation to trigger sending (calls internal action)
+ * Public mutation to trigger sending (calls internal action via scheduler)
  */
 export const sendEmail = mutation({
   args: {
@@ -700,86 +843,5 @@ export const sendEmail = mutation({
       inReplyTo: args.inReplyTo,
       draftId: args.draftId,
     });
-  },
-});
-
-// ============================================
-// WEBHOOK MUTATIONS (called from API route)
-// ============================================
-
-/**
- * Public mutation for webhook to store inbound emails.
- * Validates via a shared webhook secret.
- */
-export const webhookStoreInbound = mutation({
-  args: {
-    webhookSecret: v.string(),
-    from: v.string(),
-    fromName: v.optional(v.string()),
-    to: v.array(v.string()),
-    cc: v.optional(v.array(v.string())),
-    subject: v.string(),
-    bodyHtml: v.string(),
-    bodyText: v.optional(v.string()),
-    threadId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    // Secret validation is handled by the API route (Next.js) before calling this mutation.
-    // Convex mutations run in V8 and don't have access to process.env.
-
-    const now = Date.now();
-    const snippet = (args.bodyText || "").slice(0, 120);
-
-    await ctx.db.insert("adminEmails", {
-      direction: "inbound",
-      threadId: args.threadId,
-      from: args.from,
-      fromName: args.fromName,
-      to: args.to,
-      cc: args.cc,
-      subject: args.subject,
-      bodyHtml: args.bodyHtml,
-      bodyText: args.bodyText,
-      snippet,
-      folder: "inbox",
-      isRead: false,
-      isStarred: false,
-      receivedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-  },
-});
-
-/**
- * Public mutation for webhook to update delivery status.
- * Validates via a shared webhook secret.
- */
-export const webhookUpdateStatus = mutation({
-  args: {
-    webhookSecret: v.string(),
-    resendEmailId: v.string(),
-    status: v.union(
-      v.literal("delivered"),
-      v.literal("bounced"),
-      v.literal("complained")
-    ),
-  },
-  handler: async (ctx, args) => {
-    // Secret validation is handled by the API route (Next.js) before calling this mutation.
-
-    const email = await ctx.db
-      .query("adminEmails")
-      .withIndex("by_resendEmailId", (q) =>
-        q.eq("resendEmailId", args.resendEmailId)
-      )
-      .first();
-
-    if (email) {
-      await ctx.db.patch(email._id, {
-        deliveryStatus: args.status,
-        updatedAt: Date.now(),
-      });
-    }
   },
 });

@@ -7,10 +7,12 @@ import {
   Archive,
   Trash2,
   Reply,
+  ReplyAll,
   Forward,
   Star,
   MailOpen,
   Mail,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -37,6 +39,10 @@ interface EmailDetail {
   isStarred: boolean;
   labels?: string[];
   deliveryStatus?: string;
+  bounceType?: string;
+  bounceMessage?: string;
+  hasAttachments?: boolean;
+  attachments?: Array<{ id: string; filename: string; contentType: string; size?: number }>;
   createdAt: number;
   sentAt?: number;
   receivedAt?: number;
@@ -48,6 +54,7 @@ interface MailDetailProps {
   onArchive: () => void;
   onTrash: () => void;
   onReply: () => void;
+  onReplyAll: () => void;
   onForward: () => void;
   onStar: () => void;
   onToggleRead: () => void;
@@ -58,6 +65,7 @@ export function MailDetail({
   onArchive,
   onTrash,
   onReply,
+  onReplyAll,
   onForward,
   onStar,
   onToggleRead,
@@ -187,6 +195,20 @@ export function MailDetail({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                onClick={onReplyAll}
+              >
+                <ReplyAll className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Reply All</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={onForward}
               >
                 <Forward className="h-4 w-4" />
@@ -222,12 +244,35 @@ export function MailDetail({
               )}
             </div>
             {email.deliveryStatus && email.direction === "outbound" && (
-              <Badge
-                variant="secondary"
-                className="mt-1 text-xs capitalize"
-              >
-                {email.deliveryStatus}
-              </Badge>
+              <div className="mt-1 flex items-center gap-1">
+                <Badge
+                  variant="secondary"
+                  className={`text-xs capitalize ${
+                    email.deliveryStatus === "bounced"
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      : email.deliveryStatus === "complained"
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                        : email.deliveryStatus === "delivered"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : ""
+                  }`}
+                >
+                  {email.deliveryStatus}
+                </Badge>
+                {email.bounceType && (
+                  <Badge variant="outline" className="text-xs">
+                    {email.bounceType}
+                  </Badge>
+                )}
+              </div>
+            )}
+            {email.hasAttachments && (
+              <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Paperclip className="h-3 w-3" />
+                <span>
+                  {email.attachments?.length || 0} attachment{(email.attachments?.length || 0) !== 1 ? "s" : ""}
+                </span>
+              </div>
             )}
           </div>
         </div>
