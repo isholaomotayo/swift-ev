@@ -10,6 +10,7 @@ import {
   Settings,
   Package,
   TrendingUp,
+  Mail,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -46,6 +47,11 @@ const adminNavItems = [
     label: "Analytics",
     href: "/admin/analytics",
     icon: TrendingUp,
+  },
+  {
+    label: "Mail",
+    href: "/admin/mail",
+    icon: Mail,
   },
   {
     label: "Settings",

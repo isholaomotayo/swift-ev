@@ -691,6 +691,59 @@ export default defineSchema({
     .index("by_user_unread", ["userId", "read"]),
 
   // ============================================
+  // ADMIN EMAIL TABLES
+  // ============================================
+
+  adminEmails: defineTable({
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+    threadId: v.optional(v.string()),
+    inReplyTo: v.optional(v.id("adminEmails")),
+    from: v.string(),
+    fromName: v.optional(v.string()),
+    to: v.array(v.string()),
+    cc: v.optional(v.array(v.string())),
+    bcc: v.optional(v.array(v.string())),
+    subject: v.string(),
+    bodyHtml: v.string(),
+    bodyText: v.optional(v.string()),
+    snippet: v.optional(v.string()),
+    folder: v.union(
+      v.literal("inbox"),
+      v.literal("sent"),
+      v.literal("drafts"),
+      v.literal("trash"),
+      v.literal("archive")
+    ),
+    isRead: v.boolean(),
+    isStarred: v.boolean(),
+    labels: v.optional(v.array(v.string())),
+    resendEmailId: v.optional(v.string()),
+    deliveryStatus: v.optional(
+      v.union(
+        v.literal("queued"),
+        v.literal("sent"),
+        v.literal("delivered"),
+        v.literal("bounced"),
+        v.literal("complained")
+      )
+    ),
+    sentAt: v.optional(v.number()),
+    receivedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.optional(v.id("users")),
+  })
+    .index("by_folder", ["folder"])
+    .index("by_folder_date", ["folder", "createdAt"])
+    .index("by_threadId", ["threadId"])
+    .index("by_isRead", ["isRead"])
+    .index("by_resendEmailId", ["resendEmailId"])
+    .searchIndex("search_emails", {
+      searchField: "subject",
+      filterFields: ["folder"],
+    }),
+
+  // ============================================
   // SELLER/SUPPLIER TABLES
   // ============================================
 
