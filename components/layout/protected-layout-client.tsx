@@ -11,6 +11,7 @@ import {
   Gavel,
   ShoppingBag,
   User,
+  Mail,
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,6 +28,11 @@ const navItems = [
     title: "Watchlist",
     href: "/watchlist",
     icon: Heart,
+  },
+  {
+    title: "Inbox",
+    href: "/inbox",
+    icon: Mail,
   },
   {
     title: "My Bids",

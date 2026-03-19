@@ -704,6 +704,11 @@ export default defineSchema({
     referencesMessageIds: v.optional(v.array(v.string())),
     from: v.string(),
     fromName: v.optional(v.string()),
+    // When an inbound/outbound email is associated with a specific in-app account,
+    // these fields store the matched platform-domain recipient + owning user.
+    // If unset, the email is treated as catch-all (admin-managed).
+    mailAccountUserId: v.optional(v.id("users")),
+    mailAccountEmail: v.optional(v.string()),
     to: v.array(v.string()),
     cc: v.optional(v.array(v.string())),
     bcc: v.optional(v.array(v.string())),
@@ -757,13 +762,15 @@ export default defineSchema({
   })
     .index("by_folder", ["folder"])
     .index("by_folder_date", ["folder", "createdAt"])
+    .index("by_mailAccountUserId", ["mailAccountUserId"])
+    .index("by_mailAccountUserId_folder_date", ["mailAccountUserId", "folder", "createdAt"])
     .index("by_threadId", ["threadId"])
     .index("by_isRead", ["isRead"])
     .index("by_resendEmailId", ["resendEmailId"])
     .index("by_messageId", ["messageId"])
     .searchIndex("search_emails", {
       searchField: "subject",
-      filterFields: ["folder"],
+      filterFields: ["folder", "mailAccountUserId"],
     }),
 
   // Bounce suppression list — tracks addresses that should not be emailed

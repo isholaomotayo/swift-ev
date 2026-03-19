@@ -4,10 +4,10 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { MailSidebar, type MailFolder } from "./mail/mail-sidebar";
-import { MailList } from "./mail/mail-list";
-import { MailDetail } from "./mail/mail-detail";
-import { MailCompose } from "./mail/mail-compose";
+import { MailSidebar, type MailFolder } from "@/components/admin/mail/mail-sidebar";
+import { MailList } from "@/components/admin/mail/mail-list";
+import { MailDetail } from "@/components/admin/mail/mail-detail";
+import { MailCompose } from "@/components/admin/mail/mail-compose";
 
 interface MailClientProps {
   initialEmails: any;
@@ -15,7 +15,7 @@ interface MailClientProps {
   token: string;
 }
 
-export function MailClient({ initialEmails, initialStats, token }: MailClientProps) {
+export function UserMailClient({ initialEmails, initialStats, token }: MailClientProps) {
   const [currentFolder, setCurrentFolder] = useState<MailFolder>("inbox");
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -25,41 +25,45 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   const [isSending, setIsSending] = useState(false);
 
   // Real-time queries
-  const emailsData = useQuery(api.adminMail.listEmails, {
+  const emailsData = useQuery(api.userMail.listEmails, {
     token,
     folder: currentFolder,
     unreadOnly: filterTab === "unread" ? true : undefined,
     limit: 50,
   });
 
-  const mailStats = useQuery(api.adminMail.getMailStats, { token });
+  const mailStats = useQuery(api.userMail.getMailStats, { token });
 
   const selectedEmail = useQuery(
-    api.adminMail.getEmail,
+    api.userMail.getEmail,
     selectedEmailId
       ? { token, emailId: selectedEmailId as Id<"adminEmails"> }
       : "skip"
   );
 
   const searchResults = useQuery(
-    api.adminMail.searchEmails,
+    api.userMail.searchEmails,
     searchQuery.trim().length > 1
       ? { token, query: searchQuery, folder: currentFolder }
       : "skip"
   );
 
   // Mutations
-  const markAsReadMutation = useMutation(api.adminMail.markAsRead);
-  const moveToFolderMutation = useMutation(api.adminMail.moveToFolder);
-  const starEmailMutation = useMutation(api.adminMail.starEmail);
-  const sendEmailMutation = useMutation(api.adminMail.sendEmail);
-  const saveDraftMutation = useMutation(api.adminMail.saveDraft);
-  const retryFetchBodyMutation = useMutation(api.adminMail.retryFetchEmailBody);
+  const markAsReadMutation = useMutation(api.userMail.markAsRead);
+  const moveToFolderMutation = useMutation(api.userMail.moveToFolder);
+  const starEmailMutation = useMutation(api.userMail.starEmail);
+  const sendEmailMutation = useMutation(api.userMail.sendEmail);
+  const saveDraftMutation = useMutation(api.userMail.saveDraft);
+  const retryFetchBodyMutation = useMutation(
+    api.userMail.retryFetchEmailBody
+  );
 
   // Use real-time data, fallback to initial data
-  const emails = searchQuery.trim().length > 1
-    ? searchResults || []
-    : emailsData?.emails || initialEmails?.emails || [];
+  const emails =
+    searchQuery.trim().length > 1
+      ? searchResults || []
+      : emailsData?.emails || initialEmails?.emails || [];
+
   const stats = mailStats || initialStats;
 
   // Auto-mark as read when selecting email
@@ -111,7 +115,9 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       subject: selectedEmail.subject.startsWith("Re:")
         ? selectedEmail.subject
         : `Re: ${selectedEmail.subject}`,
-      body: `\n\n---\nOn ${new Date(selectedEmail.createdAt).toLocaleString()}, ${selectedEmail.fromName || selectedEmail.from} wrote:\n> ${selectedEmail.bodyText || ""}`,
+      body: `\n\n---\nOn ${new Date(selectedEmail.createdAt).toLocaleString()}, ${
+        selectedEmail.fromName || selectedEmail.from
+      } wrote:\n> ${selectedEmail.bodyText || ""}`,
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
@@ -119,19 +125,26 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
   const handleReplyAll = useCallback(() => {
     if (!selectedEmail) return;
-    // Include all recipients except our own address
     const allRecipients = [
       selectedEmail.from,
       ...(selectedEmail.cc || []),
-    ].filter((addr) => addr !== "buy@autoexport.live" && addr !== "noreply@autoexports.live");
+    ].filter(
+      (addr) =>
+        addr !== "buy@autoexport.live" &&
+        addr !== "noreply@autoexports.live"
+    );
 
     setComposeData({
       to: selectedEmail.from,
-      cc: allRecipients.filter((a) => a !== selectedEmail.from).join(", "),
+      cc: allRecipients
+        .filter((a) => a !== selectedEmail.from)
+        .join(", "),
       subject: selectedEmail.subject.startsWith("Re:")
         ? selectedEmail.subject
         : `Re: ${selectedEmail.subject}`,
-      body: `\n\n---\nOn ${new Date(selectedEmail.createdAt).toLocaleString()}, ${selectedEmail.fromName || selectedEmail.from} wrote:\n> ${selectedEmail.bodyText || ""}`,
+      body: `\n\n---\nOn ${new Date(selectedEmail.createdAt).toLocaleString()}, ${
+        selectedEmail.fromName || selectedEmail.from
+      } wrote:\n> ${selectedEmail.bodyText || ""}`,
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
@@ -144,7 +157,11 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       subject: selectedEmail.subject.startsWith("Fwd:")
         ? selectedEmail.subject
         : `Fwd: ${selectedEmail.subject}`,
-      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.fromName || selectedEmail.from}\nDate: ${new Date(selectedEmail.createdAt).toLocaleString()}\nSubject: ${selectedEmail.subject}\n\n${selectedEmail.bodyText || ""}`,
+      body: `\n\n---\nForwarded message:\nFrom: ${
+        selectedEmail.fromName || selectedEmail.from
+      }\nDate: ${new Date(selectedEmail.createdAt).toLocaleString()}\nSubject: ${
+        selectedEmail.subject
+      }\n\n${selectedEmail.bodyText || ""}`,
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
@@ -203,12 +220,14 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           .split(",")
           .map((e) => e.trim())
           .filter(Boolean);
+
         const ccAddresses = data.cc
           ? data.cc
               .split(",")
               .map((e) => e.trim())
               .filter(Boolean)
           : undefined;
+
         const bccAddresses = data.bcc
           ? data.bcc
               .split(",")
@@ -222,7 +241,10 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           cc: ccAddresses && ccAddresses.length > 0 ? ccAddresses : undefined,
           bcc: bccAddresses && bccAddresses.length > 0 ? bccAddresses : undefined,
           subject: data.subject,
-          bodyHtml: `<div style="font-family:Arial,sans-serif;">${data.body.replace(/\n/g, "<br>")}</div>`,
+          bodyHtml: `<div style="font-family:Arial,sans-serif;">${data.body.replace(
+            /\n/g,
+            "<br>"
+          )}</div>`,
           bodyText: data.body,
           inReplyTo: data.inReplyTo
             ? (data.inReplyTo as Id<"adminEmails">)
@@ -231,6 +253,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
             ? (data.draftId as Id<"adminEmails">)
             : undefined,
         });
+
         setComposeOpen(false);
         setComposeData(null);
       } catch (error) {
@@ -257,6 +280,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           .split(",")
           .map((e) => e.trim())
           .filter(Boolean);
+
         const ccAddresses = data.cc
           ? data.cc
               .split(",")
@@ -272,12 +296,16 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           to: toAddresses,
           cc: ccAddresses && ccAddresses.length > 0 ? ccAddresses : undefined,
           subject: data.subject,
-          bodyHtml: `<div style="font-family:Arial,sans-serif;">${data.body.replace(/\n/g, "<br>")}</div>`,
+          bodyHtml: `<div style="font-family:Arial,sans-serif;">${data.body.replace(
+            /\n/g,
+            "<br>"
+          )}</div>`,
           bodyText: data.body,
           inReplyTo: data.inReplyTo
             ? (data.inReplyTo as Id<"adminEmails">)
             : undefined,
         });
+
         setComposeOpen(false);
         setComposeData(null);
       } catch (error) {
@@ -290,7 +318,6 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   return (
     <div className="h-[calc(100vh-6rem)] rounded-lg border border-border bg-card overflow-hidden">
       <div className="flex h-full">
-        {/* Sidebar - fixed width */}
         <div className="w-56 shrink-0 border-r border-border overflow-y-auto">
           <MailSidebar
             currentFolder={currentFolder}
@@ -300,7 +327,6 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           />
         </div>
 
-        {/* Email List - flexible width */}
         <div className="w-[340px] shrink-0 border-r border-border overflow-hidden">
           <MailList
             emails={emails}
@@ -314,7 +340,6 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
           />
         </div>
 
-        {/* Email Detail - takes remaining space */}
         <div className="flex-1 min-w-0 overflow-hidden">
           <MailDetail
             email={selectedEmail || null}
@@ -329,7 +354,6 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
         </div>
       </div>
 
-      {/* Compose Modal */}
       {composeOpen && (
         <MailCompose
           initialData={composeData || undefined}
@@ -345,3 +369,4 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
     </div>
   );
 }
+

@@ -394,6 +394,8 @@ export const storeInboundEmail = internalMutation({
     bodyHtml: v.string(),
     bodyText: v.optional(v.string()),
     threadId: v.optional(v.string()),
+    mailAccountUserId: v.optional(v.id("users")),
+    mailAccountEmail: v.optional(v.string()),
     resendEmailId: v.optional(v.string()),
     messageId: v.optional(v.string()),
     attachments: v.optional(
@@ -425,6 +427,8 @@ export const storeInboundEmail = internalMutation({
       folder: "inbox",
       isRead: false,
       isStarred: false,
+      mailAccountUserId: args.mailAccountUserId,
+      mailAccountEmail: args.mailAccountEmail,
       resendEmailId: args.resendEmailId,
       messageId: args.messageId,
       attachments: args.attachments?.map((a) => ({
@@ -524,6 +528,8 @@ export const storeSentEmail = internalMutation({
     inReplyTo: v.optional(v.id("adminEmails")),
     inReplyToMessageId: v.optional(v.string()),
     referencesMessageIds: v.optional(v.array(v.string())),
+    mailAccountUserId: v.optional(v.id("users")),
+    mailAccountEmail: v.optional(v.string()),
     resendEmailId: v.optional(v.string()),
     createdBy: v.id("users"),
     sentAt: v.number(),
@@ -546,6 +552,8 @@ export const storeSentEmail = internalMutation({
       folder: "sent",
       isRead: true,
       isStarred: false,
+      mailAccountUserId: args.mailAccountUserId,
+      mailAccountEmail: args.mailAccountEmail,
       resendEmailId: args.resendEmailId,
       deliveryStatus: args.resendEmailId ? "sent" : undefined,
       sentAt: args.sentAt,
@@ -628,7 +636,12 @@ export const sendEmailAction = internalAction({
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.EMAIL_FROM ?? "buy@autoexport.live";
+    const catchAllFrom = process.env.EMAIL_FROM ?? "buy@autoexport.live";
+
+    // If we can attribute this outgoing message to a specific platform account,
+    // we set Resend's `from` to that in-domain address (otherwise we fall back).
+    let mailAccountUserId: any = undefined;
+    let mailAccountEmail: string | undefined = undefined;
 
     // Look up parent email for threading
     let threadId: string | undefined;
@@ -643,6 +656,8 @@ export const sendEmailAction = internalAction({
       if (parent) {
         threadId = parent.threadId || args.inReplyTo;
         inReplyToMessageId = parent.messageId;
+        mailAccountUserId = parent.mailAccountUserId;
+        mailAccountEmail = parent.mailAccountEmail;
         // Build References chain
         if (parent.referencesMessageIds && parent.messageId) {
           referencesMessageIds = [...parent.referencesMessageIds, parent.messageId];
@@ -651,6 +666,45 @@ export const sendEmailAction = internalAction({
         }
       }
     }
+
+    // If this isn't a reply, try using the draft's mapping first (if present).
+    if (!mailAccountEmail && args.draftId) {
+      const draft = await ctx.runQuery(
+        internal.adminMail.getEmailInternal,
+        { emailId: args.draftId }
+      );
+      if (draft) {
+        mailAccountUserId = draft.mailAccountUserId;
+        mailAccountEmail = draft.mailAccountEmail;
+      }
+    }
+
+    // Otherwise, derive mapping from the outbound `to` list.
+    if (!mailAccountEmail) {
+      const platformDomain =
+        process.env.MAIL_PLATFORM_DOMAIN ?? "autoexports.live";
+      const platformDomainLower = platformDomain.toLowerCase().trim();
+
+      const normalizedRecipients = args.to
+        .map((addr) => addr?.toLowerCase().trim())
+        .filter(Boolean);
+
+      for (const recipient of normalizedRecipients) {
+        if (!recipient.endsWith(`@${platformDomainLower}`)) continue;
+
+        const user = await ctx.runQuery(internal.auth.getUserByEmail, {
+          email: recipient,
+        });
+
+        if (user) {
+          mailAccountUserId = user._id;
+          mailAccountEmail = recipient;
+          break;
+        }
+      }
+    }
+
+    const from = mailAccountEmail ?? catchAllFrom;
 
     // Build threading headers for Resend API
     const headers: Record<string, string> = {};
@@ -702,6 +756,8 @@ export const sendEmailAction = internalAction({
             inReplyTo: args.inReplyTo,
             inReplyToMessageId,
             referencesMessageIds,
+            mailAccountUserId,
+            mailAccountEmail,
             createdBy: args.userId,
             sentAt: now,
           });
@@ -726,6 +782,8 @@ export const sendEmailAction = internalAction({
           inReplyTo: args.inReplyTo,
           inReplyToMessageId,
           referencesMessageIds,
+          mailAccountUserId,
+          mailAccountEmail,
           createdBy: args.userId,
           sentAt: now,
         });
@@ -747,6 +805,8 @@ export const sendEmailAction = internalAction({
       inReplyTo: args.inReplyTo,
       inReplyToMessageId,
       referencesMessageIds,
+      mailAccountUserId,
+      mailAccountEmail,
       resendEmailId,
       createdBy: args.userId,
       sentAt: now,
