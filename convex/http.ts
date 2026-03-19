@@ -2,7 +2,6 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Webhook } from "svix";
-import { resolveMailAccountFromRecipients } from "./mailRouting";
 
 const http = httpRouter();
 
@@ -84,7 +83,7 @@ http.route({
           }));
 
           // Map the inbound email to an in-app account (if the recipient matches).
-          const mailMapping = await resolveMailAccountFromRecipients(ctx, to);
+          const mailMapping = await ctx.runQuery(internal.mailRouting.resolveMailAccount, { to });
 
           // 1) Store metadata immediately so it's never lost
           const emailId = await ctx.runMutation(internal.adminMail.storeInboundEmail, {

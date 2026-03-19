@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Zap, CheckCircle2 } from "lucide-react";
+import { Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +43,18 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, authLoading, router]);
 
-  // Prevent UI flash for authenticated sessions
+  // Show loading indicator instead of white screen during auth check or redirect
   if (authLoading || isAuthenticated) {
-    return null;
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-electric-blue" />
+          <p className="text-muted-foreground font-medium">
+            {isAuthenticated ? "Signing you in..." : "Loading..."}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
