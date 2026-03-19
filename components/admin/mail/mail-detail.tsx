@@ -51,8 +51,10 @@ interface EmailDetail {
 
 interface MailDetailProps {
   email: EmailDetail | null;
+  currentFolder?: string;
   onArchive: () => void;
   onTrash: () => void;
+  onDelete?: () => void;
   onReply: () => void;
   onReplyAll: () => void;
   onForward: () => void;
@@ -62,8 +64,10 @@ interface MailDetailProps {
 
 export function MailDetail({
   email,
+  currentFolder,
   onArchive,
   onTrash,
+  onDelete,
   onReply,
   onReplyAll,
   onForward,
@@ -123,13 +127,15 @@ export function MailDetail({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
-                onClick={onTrash}
+                className={`h-8 w-8 ${currentFolder === "trash" ? "text-destructive hover:text-destructive" : ""}`}
+                onClick={currentFolder === "trash" && onDelete ? onDelete : onTrash}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Move to trash</TooltipContent>
+            <TooltipContent>
+              {currentFolder === "trash" ? "Delete permanently" : "Move to trash"}
+            </TooltipContent>
           </Tooltip>
 
           <Separator orientation="vertical" className="mx-1 h-5" />

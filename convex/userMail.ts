@@ -326,6 +326,28 @@ export const saveDraft = mutation({
   },
 });
 
+export const deleteEmail = mutation({
+  args: {
+    token: v.string(),
+    emailId: v.id("adminEmails"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireActiveStatus(user);
+
+    const email = await ctx.db.get(args.emailId);
+    if (!email) throw new Error("Email not found");
+    if (email.mailAccountUserId !== user._id) {
+      throw new Error("Not authorized to delete this email");
+    }
+    if (email.folder !== "trash") {
+      throw new Error("Can only permanently delete emails from trash");
+    }
+
+    await ctx.db.delete(args.emailId);
+  },
+});
+
 export const sendEmail = mutation({
   args: {
     token: v.string(),

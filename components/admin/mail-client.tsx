@@ -54,6 +54,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   const starEmailMutation = useMutation(api.adminMail.starEmail);
   const sendEmailMutation = useMutation(api.adminMail.sendEmail);
   const saveDraftMutation = useMutation(api.adminMail.saveDraft);
+  const deleteEmailMutation = useMutation(api.adminMail.deleteEmail);
   const retryFetchBodyMutation = useMutation(api.adminMail.retryFetchEmailBody);
 
   // Use real-time data, fallback to initial data
@@ -169,6 +170,15 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
     });
     setSelectedEmailId(null);
   }, [selectedEmailId, token, moveToFolderMutation]);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedEmailId) return;
+    await deleteEmailMutation({
+      token,
+      emailId: selectedEmailId as Id<"adminEmails">,
+    });
+    setSelectedEmailId(null);
+  }, [selectedEmailId, token, deleteEmailMutation]);
 
   const handleStar = useCallback(async () => {
     if (!selectedEmailId) return;
@@ -318,8 +328,10 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
         <div className="flex-1 min-w-0 overflow-hidden">
           <MailDetail
             email={selectedEmail || null}
+            currentFolder={currentFolder}
             onArchive={handleArchive}
             onTrash={handleTrash}
+            onDelete={handleDelete}
             onReply={handleReply}
             onReplyAll={handleReplyAll}
             onForward={handleForward}
