@@ -31,6 +31,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  /** True while login/register/logout is in progress */
+  actionLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -201,6 +203,7 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
   const value: AuthContextType = {
     user: user ?? null,
     token,
+    actionLoading,
     // Loading is true while:
     //  (a) a login/register/logout action is in flight, OR
     //  (b) a token exists but Convex hasn't returned the user object yet.

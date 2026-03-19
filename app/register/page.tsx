@@ -25,7 +25,7 @@ type RegistrationStep = "account_type" | "form" | "payment";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { register, isAuthenticated, loading: authLoading, actionLoading, user } = useAuth();
 
   const [step, setStep] = useState<RegistrationStep>("account_type");
   const [accountType, setAccountType] = useState<AccountType | null>(null);
@@ -49,7 +49,7 @@ export default function RegisterPage() {
   const verificationFeeEnabled = feeEnabled === true || feeEnabled === "true";
   const verificationFeeAmount = feeAmount ? String(feeAmount) : "3";
 
-  const loadingOrRedirecting = (
+  const loadingScreen = (
     <div className="flex min-h-screen bg-background items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-electric-blue" />
@@ -60,8 +60,9 @@ export default function RegisterPage() {
     </div>
   );
 
-  if (authLoading) {
-    return loadingOrRedirecting;
+  // Only show full-screen loading when redirecting or initial auth check, not during register attempt
+  if (authLoading && !actionLoading) {
+    return loadingScreen;
   }
 
   if (isAuthenticated) {
@@ -72,7 +73,7 @@ export default function RegisterPage() {
     } else {
       router.push("/dashboard");
     }
-    return loadingOrRedirecting;
+    return loadingScreen;
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
