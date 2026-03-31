@@ -5,13 +5,20 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { MailSidebar, type MailFolder } from "./mail/mail-sidebar";
-import { MailList } from "./mail/mail-list";
+import { MailList, type Email } from "./mail/mail-list";
 import { MailDetail } from "./mail/mail-detail";
 import { MailCompose } from "./mail/mail-compose";
 
 interface MailClientProps {
-  initialEmails: any;
-  initialStats: any;
+  initialEmails: { emails?: Email[] } | null;
+  initialStats: {
+    inbox: number;
+    inboxUnread: number;
+    sent: number;
+    drafts: number;
+    trash: number;
+    archive: number;
+  } | null;
   token: string;
 }
 
@@ -19,7 +26,16 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   const [currentFolder, setCurrentFolder] = useState<MailFolder>("inbox");
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [composeData, setComposeData] = useState<any>(null);
+  const [composeData, setComposeData] = useState<{
+    sendAs?: string;
+    to?: string;
+    cc?: string;
+    bcc?: string;
+    subject?: string;
+    body?: string;
+    inReplyTo?: string;
+    draftId?: string;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "unread">("all");
   const [isSending, setIsSending] = useState(false);
@@ -33,6 +49,12 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   });
 
   const mailStats = useQuery(api.adminMail.getMailStats, { token });
+  const sendAsData = useQuery(api.adminMail.getSendAsOptions, { token });
+  const sendAsOptions = sendAsData?.options ?? [
+    "hello@autoexports.live",
+    "buy@autoexports.live",
+  ];
+  const defaultSendAs = sendAsData?.defaultValue ?? "buy@autoexports.live";
 
   const selectedEmail = useQuery(
     api.adminMail.getEmail,
@@ -54,8 +76,10 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   const starEmailMutation = useMutation(api.adminMail.starEmail);
   const sendEmailMutation = useMutation(api.adminMail.sendEmail);
   const saveDraftMutation = useMutation(api.adminMail.saveDraft);
+  const updateSendAsOptionsMutation = useMutation(api.adminMail.updateSendAsOptions);
   const deleteEmailMutation = useMutation(api.adminMail.deleteEmail);
   const retryFetchBodyMutation = useMutation(api.adminMail.retryFetchEmailBody);
+  const [isUpdatingSendAs, setIsUpdatingSendAs] = useState(false);
 
   // Use real-time data, fallback to initial data
   const emails = searchQuery.trim().length > 1
@@ -101,13 +125,16 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
   }, []);
 
   const handleCompose = useCallback(() => {
-    setComposeData(null);
+    setComposeData({
+      sendAs: defaultSendAs,
+    });
     setComposeOpen(true);
-  }, []);
+  }, [defaultSendAs]);
 
   const handleReply = useCallback(() => {
     if (!selectedEmail) return;
     setComposeData({
+      sendAs: defaultSendAs,
       to: selectedEmail.from,
       subject: selectedEmail.subject.startsWith("Re:")
         ? selectedEmail.subject
@@ -116,7 +143,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleReplyAll = useCallback(() => {
     if (!selectedEmail) return;
@@ -127,6 +154,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
     ].filter((addr) => addr !== "buy@autoexport.live" && addr !== "noreply@autoexports.live");
 
     setComposeData({
+      sendAs: defaultSendAs,
       to: selectedEmail.from,
       cc: allRecipients.filter((a) => a !== selectedEmail.from).join(", "),
       subject: selectedEmail.subject.startsWith("Re:")
@@ -136,11 +164,12 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleForward = useCallback(() => {
     if (!selectedEmail) return;
     setComposeData({
+      sendAs: defaultSendAs,
       to: "",
       subject: selectedEmail.subject.startsWith("Fwd:")
         ? selectedEmail.subject
@@ -149,7 +178,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleArchive = useCallback(async () => {
     if (!selectedEmailId) return;
@@ -199,6 +228,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
   const handleSend = useCallback(
     async (data: {
+      sendAs: string;
       to: string;
       cc: string;
       bcc: string;
@@ -228,6 +258,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
         await sendEmailMutation({
           token,
+          sendAs: data.sendAs,
           to: toAddresses,
           cc: ccAddresses && ccAddresses.length > 0 ? ccAddresses : undefined,
           bcc: bccAddresses && bccAddresses.length > 0 ? bccAddresses : undefined,
@@ -254,6 +285,7 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
   const handleSaveDraft = useCallback(
     async (data: {
+      sendAs: string;
       to: string;
       cc: string;
       bcc: string;
@@ -276,11 +308,18 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
 
         await saveDraftMutation({
           token,
+          sendAs: data.sendAs,
           draftId: data.draftId
             ? (data.draftId as Id<"adminEmails">)
             : undefined,
           to: toAddresses,
           cc: ccAddresses && ccAddresses.length > 0 ? ccAddresses : undefined,
+          bcc: data.bcc
+            ? data.bcc
+                .split(",")
+                .map((e) => e.trim())
+                .filter(Boolean)
+            : undefined,
           subject: data.subject,
           bodyHtml: `<div style="font-family:Arial,sans-serif;">${data.body.replace(/\n/g, "<br>")}</div>`,
           bodyText: data.body,
@@ -295,6 +334,20 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       }
     },
     [token, saveDraftMutation]
+  );
+
+  const handleUpdateSendAsOptions = useCallback(
+    async (aliases: string[]) => {
+      setIsUpdatingSendAs(true);
+      try {
+        await updateSendAsOptionsMutation({ token, aliases });
+      } catch (error) {
+        console.error("Failed to update send-as aliases:", error);
+      } finally {
+        setIsUpdatingSendAs(false);
+      }
+    },
+    [token, updateSendAsOptionsMutation]
   );
 
   return (
@@ -345,6 +398,10 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
       {composeOpen && (
         <MailCompose
           initialData={composeData || undefined}
+          sendAsOptions={sendAsOptions}
+          defaultSendAs={defaultSendAs}
+          onUpdateSendAsOptions={handleUpdateSendAsOptions}
+          isUpdatingSendAs={isUpdatingSendAs}
           onSend={handleSend}
           onSaveDraft={handleSaveDraft}
           onClose={() => {

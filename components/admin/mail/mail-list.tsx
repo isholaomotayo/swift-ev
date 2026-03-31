@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MailListItem } from "./mail-list-item";
 import type { MailFolder } from "./mail-sidebar";
 
-interface Email {
+export interface Email {
   _id: string;
   from: string;
   fromName?: string;

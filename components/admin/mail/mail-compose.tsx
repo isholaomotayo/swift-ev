@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { X, ChevronDown, ChevronUp } from "lucide-react";
+import { X, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 
 interface ComposeData {
+  sendAs: string;
   to: string;
   cc: string;
   bcc: string;
@@ -20,6 +20,10 @@ interface ComposeData {
 
 interface MailComposeProps {
   initialData?: Partial<ComposeData>;
+  sendAsOptions: readonly string[];
+  defaultSendAs: string;
+  onUpdateSendAsOptions: (aliases: string[]) => void;
+  isUpdatingSendAs?: boolean;
   onSend: (data: ComposeData) => void;
   onSaveDraft: (data: ComposeData) => void;
   onClose: () => void;
@@ -28,11 +32,17 @@ interface MailComposeProps {
 
 export function MailCompose({
   initialData,
+  sendAsOptions,
+  defaultSendAs,
+  onUpdateSendAsOptions,
+  isUpdatingSendAs,
   onSend,
   onSaveDraft,
   onClose,
   isSending,
 }: MailComposeProps) {
+  const [sendAs, setSendAs] = useState(initialData?.sendAs || defaultSendAs);
+  const [newAlias, setNewAlias] = useState("");
   const [to, setTo] = useState(initialData?.to || "");
   const [cc, setCc] = useState(initialData?.cc || "");
   const [bcc, setBcc] = useState(initialData?.bcc || "");
@@ -41,10 +51,26 @@ export function MailCompose({
   const [showCcBcc, setShowCcBcc] = useState(
     !!(initialData?.cc || initialData?.bcc)
   );
+  const [isEditingAliases, setIsEditingAliases] = useState(false);
+
+  const handleAddAlias = () => {
+    const normalized = newAlias.trim().toLowerCase();
+    if (!normalized || sendAsOptions.includes(normalized)) return;
+    onUpdateSendAsOptions([...sendAsOptions, normalized]);
+    setNewAlias("");
+  };
+
+  const handleRemoveAlias = (alias: string) => {
+    onUpdateSendAsOptions(sendAsOptions.filter((entry) => entry !== alias));
+    if (sendAs === alias) {
+      setSendAs(defaultSendAs);
+    }
+  };
 
   const handleSend = () => {
     if (!to.trim()) return;
     onSend({
+      sendAs,
       to,
       cc,
       bcc,
@@ -57,6 +83,7 @@ export function MailCompose({
 
   const handleSaveDraft = () => {
     onSaveDraft({
+      sendAs,
       to,
       cc,
       bcc,
@@ -86,6 +113,64 @@ export function MailCompose({
 
         {/* Form */}
         <div className="flex flex-col gap-0">
+          {/* Send As */}
+          <div className="flex items-center border-b border-border px-4 py-2">
+            <Label className="w-12 text-xs text-muted-foreground">From</Label>
+            <select
+              value={sendAs}
+              onChange={(e) => setSendAs(e.target.value)}
+              className="h-8 flex-1 rounded-md border-0 bg-transparent px-2 text-sm focus-visible:outline-none"
+            >
+              {sendAsOptions.map((address) => (
+                <option key={address} value={address}>
+                  {address}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => setIsEditingAliases((value) => !value)}
+            >
+              {isEditingAliases ? "Done" : "Edit"}
+            </Button>
+          </div>
+          {isEditingAliases && (
+            <div className="border-b border-border px-4 py-2">
+              <div className="flex gap-2">
+                <Input
+                  value={newAlias}
+                  onChange={(e) => setNewAlias(e.target.value)}
+                  placeholder="new@autoexports.live"
+                  className="h-8 text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddAlias}
+                  disabled={isUpdatingSendAs || !newAlias.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {sendAsOptions.map((alias) => (
+                  <Button
+                    key={alias}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => handleRemoveAlias(alias)}
+                    disabled={isUpdatingSendAs || alias === defaultSendAs}
+                  >
+                    {alias} {alias === defaultSendAs ? "(default)" : "x"}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* To */}
           <div className="flex items-center border-b border-border px-4 py-2">
             <Label className="w-12 text-xs text-muted-foreground">To</Label>

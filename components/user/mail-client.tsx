@@ -5,21 +5,39 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { MailSidebar, type MailFolder } from "@/components/admin/mail/mail-sidebar";
-import { MailList } from "@/components/admin/mail/mail-list";
+import { MailList, type Email } from "@/components/admin/mail/mail-list";
 import { MailDetail } from "@/components/admin/mail/mail-detail";
 import { MailCompose } from "@/components/admin/mail/mail-compose";
 
 interface MailClientProps {
-  initialEmails: any;
-  initialStats: any;
+  initialEmails: { emails?: Email[] } | null;
+  initialStats: {
+    inbox: number;
+    inboxUnread: number;
+    sent: number;
+    drafts: number;
+    trash: number;
+    archive: number;
+  } | null;
   token: string;
 }
 
 export function UserMailClient({ initialEmails, initialStats, token }: MailClientProps) {
+  const sendAsOptions = ["buy@autoexports.live"] as const;
+  const defaultSendAs = "buy@autoexports.live";
   const [currentFolder, setCurrentFolder] = useState<MailFolder>("inbox");
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [composeData, setComposeData] = useState<any>(null);
+  const [composeData, setComposeData] = useState<{
+    sendAs?: string;
+    to?: string;
+    cc?: string;
+    bcc?: string;
+    subject?: string;
+    body?: string;
+    inReplyTo?: string;
+    draftId?: string;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "unread">("all");
   const [isSending, setIsSending] = useState(false);
@@ -105,13 +123,14 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
   }, []);
 
   const handleCompose = useCallback(() => {
-    setComposeData(null);
+    setComposeData({ sendAs: defaultSendAs });
     setComposeOpen(true);
-  }, []);
+  }, [defaultSendAs]);
 
   const handleReply = useCallback(() => {
     if (!selectedEmail) return;
     setComposeData({
+      sendAs: defaultSendAs,
       to: selectedEmail.from,
       subject: selectedEmail.subject.startsWith("Re:")
         ? selectedEmail.subject
@@ -122,7 +141,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleReplyAll = useCallback(() => {
     if (!selectedEmail) return;
@@ -136,6 +155,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
     );
 
     setComposeData({
+      sendAs: defaultSendAs,
       to: selectedEmail.from,
       cc: allRecipients
         .filter((a) => a !== selectedEmail.from)
@@ -149,11 +169,12 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleForward = useCallback(() => {
     if (!selectedEmail) return;
     setComposeData({
+      sendAs: defaultSendAs,
       to: "",
       subject: selectedEmail.subject.startsWith("Fwd:")
         ? selectedEmail.subject
@@ -166,7 +187,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
       inReplyTo: selectedEmail._id,
     });
     setComposeOpen(true);
-  }, [selectedEmail]);
+  }, [defaultSendAs, selectedEmail]);
 
   const handleArchive = useCallback(async () => {
     if (!selectedEmailId) return;
@@ -216,6 +237,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
 
   const handleSend = useCallback(
     async (data: {
+      sendAs: string;
       to: string;
       cc: string;
       bcc: string;
@@ -277,6 +299,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
 
   const handleSaveDraft = useCallback(
     async (data: {
+      sendAs: string;
       to: string;
       cc: string;
       bcc: string;
@@ -325,6 +348,10 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
     [token, saveDraftMutation]
   );
 
+  const handleNoopUpdateSendAsOptions = useCallback(() => {
+    // User mailbox doesn't manage global send-as aliases.
+  }, []);
+
   return (
     <div className="h-[calc(100vh-6rem)] rounded-lg border border-border bg-card overflow-hidden">
       <div className="flex h-full">
@@ -369,6 +396,10 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
       {composeOpen && (
         <MailCompose
           initialData={composeData || undefined}
+          sendAsOptions={sendAsOptions}
+          defaultSendAs={defaultSendAs}
+          onUpdateSendAsOptions={handleNoopUpdateSendAsOptions}
+          isUpdatingSendAs={false}
           onSend={handleSend}
           onSaveDraft={handleSaveDraft}
           onClose={() => {

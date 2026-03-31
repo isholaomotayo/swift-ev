@@ -1,8 +1,79 @@
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
-import { internalAction } from "./_generated/server";
+import {
+  mutation,
+  query,
+  internalMutation,
+  internalQuery,
+  internalAction,
+  type QueryCtx,
+  type MutationCtx,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireAdmin } from "./lib/auth";
+
+const SEND_AS_ALLOWED_ADDRESSES = [
+  "hello@autoexports.live",
+  "buy@autoexports.live",
+] as const;
+
+const DEFAULT_SEND_AS = "buy@autoexports.live";
+const SEND_AS_SETTINGS_KEY = "mail.sendAsAliases";
+const SEND_AS_DOMAIN = "autoexports.live";
+
+function normalizeSendAs(value?: string): string | undefined {
+  if (!value) return undefined;
+  return value.trim().toLowerCase();
+}
+
+function isValidSendAsEmail(email: string): boolean {
+  if (!email.includes("@")) return false;
+  const [, domain] = email.split("@");
+  return domain === SEND_AS_DOMAIN;
+}
+
+async function getConfiguredSendAsAliases(
+  ctx: QueryCtx | MutationCtx
+): Promise<string[]> {
+  const setting = await ctx.db
+    .query("systemSettings")
+    .withIndex("by_key", (q) => q.eq("key", SEND_AS_SETTINGS_KEY))
+    .first();
+
+  if (!setting) {
+    return [...SEND_AS_ALLOWED_ADDRESSES];
+  }
+
+  try {
+    const parsed = JSON.parse(setting.value);
+    if (!Array.isArray(parsed)) return [...SEND_AS_ALLOWED_ADDRESSES];
+    const normalized = parsed
+      .map((entry) => normalizeSendAs(String(entry)))
+      .filter((entry): entry is string => Boolean(entry))
+      .filter(isValidSendAsEmail);
+    return Array.from(new Set(normalized));
+  } catch {
+    return [...SEND_AS_ALLOWED_ADDRESSES];
+  }
+}
+
+export const getSendAsAliasesInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await getConfiguredSendAsAliases(ctx);
+  },
+});
+
+function resolveAllowedSendAsOrThrow(value: string, allowedAliases: string[]): string {
+  const normalized = normalizeSendAs(value);
+  if (!normalized) {
+    throw new Error("Missing send-as address");
+  }
+  if (!allowedAliases.includes(normalized)) {
+    throw new Error("Invalid send-as address");
+  }
+  return normalized;
+}
 
 // ============================================
 // QUERIES
@@ -187,6 +258,96 @@ export const checkSuppressions = query({
   },
 });
 
+/**
+ * Get allowed sender addresses for admin send-as.
+ */
+export const getSendAsOptions = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+    const aliases = await getConfiguredSendAsAliases(ctx);
+    const recentOutbound = await ctx.db
+      .query("adminEmails")
+      .withIndex("by_folder_date", (q) => q.eq("folder", "sent"))
+      .order("desc")
+      .take(100);
+    const recentByUser = recentOutbound
+      .filter((email) => email.createdBy === user._id)
+      .map((email) => normalizeSendAs(email.from))
+      .filter((email): email is string => Boolean(email))
+      .filter((email) => aliases.includes(email));
+    const options = Array.from(new Set([...aliases, ...recentByUser]));
+    const defaultValue = options.includes(DEFAULT_SEND_AS)
+      ? DEFAULT_SEND_AS
+      : (options[0] ?? DEFAULT_SEND_AS);
+    return {
+      options,
+      defaultValue,
+    };
+  },
+});
+
+export const updateSendAsOptions = mutation({
+  args: {
+    token: v.string(),
+    aliases: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const normalizedAliases = Array.from(
+      new Set(
+        args.aliases
+          .map((alias) => normalizeSendAs(alias))
+          .filter((alias): alias is string => Boolean(alias))
+      )
+    );
+
+    if (normalizedAliases.length === 0) {
+      throw new Error("At least one send-as alias is required");
+    }
+    if (!normalizedAliases.every(isValidSendAsEmail)) {
+      throw new Error(`All aliases must use @${SEND_AS_DOMAIN}`);
+    }
+
+    const defaultAlias = normalizeSendAs(DEFAULT_SEND_AS)!;
+    if (!normalizedAliases.includes(defaultAlias)) {
+      normalizedAliases.push(defaultAlias);
+    }
+
+    const existing = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", SEND_AS_SETTINGS_KEY))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: JSON.stringify(normalizedAliases),
+        updatedAt: Date.now(),
+        updatedBy: user._id,
+      });
+    } else {
+      await ctx.db.insert("systemSettings", {
+        key: SEND_AS_SETTINGS_KEY,
+        value: JSON.stringify(normalizedAliases),
+        updatedAt: Date.now(),
+        updatedBy: user._id,
+      });
+    }
+
+    return {
+      options: normalizedAliases,
+      defaultValue: normalizedAliases.includes(defaultAlias)
+        ? defaultAlias
+        : normalizedAliases[0],
+    };
+  },
+});
+
 // ============================================
 // MUTATIONS
 // ============================================
@@ -205,6 +366,7 @@ export const saveDraft = mutation({
     bodyHtml: v.string(),
     bodyText: v.optional(v.string()),
     inReplyTo: v.optional(v.id("adminEmails")),
+    sendAs: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
@@ -212,7 +374,8 @@ export const saveDraft = mutation({
 
     const now = Date.now();
     const snippet = (args.bodyText || "").slice(0, 120);
-    const from = "buy@autoexport.live";
+    const aliases = await ctx.runQuery(internal.adminMail.getSendAsAliasesInternal, {});
+    const from = resolveAllowedSendAsOrThrow(args.sendAs, aliases);
 
     if (args.draftId) {
       const existing = await ctx.db.get(args.draftId);
@@ -228,6 +391,7 @@ export const saveDraft = mutation({
         bodyText: args.bodyText,
         snippet,
         inReplyTo: args.inReplyTo,
+        from,
         updatedAt: now,
       });
       return args.draftId;
@@ -633,6 +797,7 @@ export const sendEmailAction = internalAction({
     bodyText: v.optional(v.string()),
     inReplyTo: v.optional(v.id("adminEmails")),
     draftId: v.optional(v.id("adminEmails")),
+    sendAs: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const apiKey = process.env.RESEND_API_KEY;
@@ -640,7 +805,7 @@ export const sendEmailAction = internalAction({
 
     // If we can attribute this outgoing message to a specific platform account,
     // we set Resend's `from` to that in-domain address (otherwise we fall back).
-    let mailAccountUserId: any = undefined;
+    let mailAccountUserId: Id<"users"> | undefined = undefined;
     let mailAccountEmail: string | undefined = undefined;
 
     // Look up parent email for threading
@@ -704,7 +869,14 @@ export const sendEmailAction = internalAction({
       }
     }
 
-    const from = mailAccountEmail ?? catchAllFrom;
+    const aliases = await ctx.runQuery(
+      internal.adminMail.getSendAsAliasesInternal,
+      {}
+    );
+    const validatedSendAs = args.sendAs
+      ? resolveAllowedSendAsOrThrow(args.sendAs, aliases)
+      : undefined;
+    const from = validatedSendAs ?? mailAccountEmail ?? catchAllFrom;
 
     // Build threading headers for Resend API
     const headers: Record<string, string> = {};
@@ -887,10 +1059,14 @@ export const sendEmail = mutation({
     bodyText: v.optional(v.string()),
     inReplyTo: v.optional(v.id("adminEmails")),
     draftId: v.optional(v.id("adminEmails")),
+    sendAs: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
     requireAdmin(user);
+
+    const aliases = await getConfiguredSendAsAliases(ctx);
+    const validatedSendAs = resolveAllowedSendAsOrThrow(args.sendAs, aliases);
 
     await ctx.scheduler.runAfter(0, internal.adminMail.sendEmailAction, {
       userId: user._id,
@@ -902,6 +1078,7 @@ export const sendEmail = mutation({
       bodyText: args.bodyText,
       inReplyTo: args.inReplyTo,
       draftId: args.draftId,
+      sendAs: validatedSendAs,
     });
   },
 });
