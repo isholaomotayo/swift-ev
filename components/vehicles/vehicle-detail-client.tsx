@@ -272,12 +272,7 @@ export function VehicleDetailClient({
                   <TabsContent value="overview" className="mt-0 space-y-8">
                     {/* Specs Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">VIN</p>
-                        <p className="font-mono font-medium">
-                          {formatVIN(vehicle.vin)}
-                        </p>
-                      </div>
+
                       <div className="space-y-1 py-2 border-b border-dashed">
                         <p className="text-muted-foreground">Mileage</p>
                         <p className="font-medium">

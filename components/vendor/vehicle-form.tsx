@@ -48,7 +48,7 @@ export interface VehicleFormData {
   makeCustom?: string;
   model: string;
   year: number;
-  vin: string;
+  vin?: string;
 
   // Fuel type
   fuelType: string;
@@ -380,10 +380,10 @@ export function VehicleForm({
               </div>
 
               <div>
-                <Label htmlFor="vin">VIN</Label>
+                <Label htmlFor="vin">VIN (Optional)</Label>
                 <Input
                   id="vin"
-                  value={formData.vin}
+                  value={formData.vin || ""}
                   onChange={(e) => updateFormData("vin", e.target.value.toUpperCase())}
                   placeholder="17-character VIN"
                   maxLength={17}

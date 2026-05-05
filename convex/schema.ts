@@ -168,7 +168,7 @@ export default defineSchema({
 
   vehicles: defineTable({
     lotNumber: v.string(),
-    vin: v.string(),
+    vin: v.optional(v.string()),
     make: v.string(),
     model: v.string(),
     year: v.number(),
@@ -243,12 +243,14 @@ export default defineSchema({
     updatedAt: v.number(),
     approvedAt: v.optional(v.number()),
     approvedBy: v.optional(v.id("users")),
+    searchableText: v.optional(v.string()), // Added for FTS
   })
     .index("by_lot_number", ["lotNumber"])
     .index("by_vin", ["vin"])
     .index("by_status", ["status"])
     .index("by_make_model", ["make", "model"])
-    .index("by_seller", ["sellerId"]),
+    .index("by_seller", ["sellerId"])
+    .searchIndex("search_text", { searchField: "searchableText" }),
 
   vehicleImages: defineTable({
     vehicleId: v.id("vehicles"),
