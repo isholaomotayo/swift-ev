@@ -146,15 +146,13 @@ export const listVehicles = query({
       sortBy = "newest",
     } = args;
 
-    // Start with base query
-    let query = ctx.db.query("vehicles");
-
-    if (status) {
-      query = query.withIndex("by_status", (q) => q.eq("status", status));
-    }
+    // Start with base query and optionally narrow via status index.
+    const vehiclesQuery = status
+      ? ctx.db.query("vehicles").withIndex("by_status", (q) => q.eq("status", status))
+      : ctx.db.query("vehicles");
 
     // Apply filters at the database level
-    let vehicles = await query.filter((q) => {
+    const vehicles = await vehiclesQuery.filter((q) => {
       const conditions = [];
       if (make) conditions.push(q.eq(q.field("make"), make));
       if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
@@ -185,7 +183,7 @@ export const listVehicles = query({
     );
 
     // Filter by price (using current bid from auction lot)
-    let filtered = vehiclesWithLots.filter(({ vehicle, auctionLot }) => {
+    const filtered = vehiclesWithLots.filter(({ vehicle, auctionLot }) => {
       const currentPrice = auctionLot?.currentBid || vehicle.startingBid || 0;
       if (priceMin && currentPrice < priceMin) return false;
       if (priceMax && currentPrice > priceMax) return false;
