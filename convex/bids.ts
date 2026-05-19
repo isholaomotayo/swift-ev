@@ -15,6 +15,7 @@ export const placeBid = mutation({
     token: v.string(),
     lotId: v.id("auctionLots"),
     amount: v.number(),
+    expectedCurrentBid: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Get user from session
@@ -73,6 +74,11 @@ export const placeBid = mutation({
       throw new Error("This auction has already ended");
     }
 
+    // Optimistic concurrency control to prevent race conditions
+    if (args.expectedCurrentBid !== undefined && lot.currentBid !== args.expectedCurrentBid) {
+      throw new Error("The current bid has changed. Please refresh and try again.");
+    }
+
     // Validate bid amount
     const minimumBid = lot.currentBid + (lot.bidIncrement || 100);
     if (args.amount < minimumBid) {
@@ -81,10 +87,10 @@ export const placeBid = mutation({
 
     // Check 10% wallet balance requirement (FEAT-001)
     const walletBalance = user.walletBalance ?? 0;
-    const requiredBalance = Math.ceil(args.amount * 0.1);
-    if (walletBalance < requiredBalance) {
+    const requiredReserve = Math.ceil(args.amount * 0.1);
+    if (walletBalance < requiredReserve) {
       throw new Error(
-        `Insufficient wallet balance. Need ₦${(requiredBalance / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
+        `Insufficient wallet balance. Need ₦${(requiredReserve / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
       );
     }
 
@@ -136,7 +142,32 @@ export const placeBid = mutation({
       bidCount: lot.bidCount + 1,
     });
 
-    // Mark previous bids as outbid
+    // Move funds from available to reserved (locking the 10% reserve)
+    const newBalance = walletBalance - requiredReserve;
+    const newReserved = (user.reservedBalance ?? 0) + requiredReserve;
+
+    await ctx.db.patch(session.userId, {
+      walletBalance: newBalance,
+      reservedBalance: newReserved,
+      updatedAt: Date.now(),
+    });
+
+    // Create transaction record for reserving funds
+    const reference = `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    await ctx.db.insert("walletTransactions", {
+      userId: session.userId,
+      type: "bid_reserve",
+      amount: requiredReserve,
+      currency: "NGN",
+      status: "completed",
+      reference,
+      description: `Bid reserve for ₦${(args.amount / 100).toLocaleString()} bid`,
+      relatedBidId: bidId,
+      createdAt: Date.now(),
+      completedAt: Date.now(),
+    });
+
+    // Mark previous bids as outbid and release their reserved funds
     const previousBids = await ctx.db
       .query("bids")
       .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", args.lotId))
@@ -150,6 +181,41 @@ export const placeBid = mutation({
 
     for (const bid of previousBids) {
       await ctx.db.patch(bid._id, { status: "outbid" });
+
+      // Get user who was outbid
+      const outbidUser = await ctx.db.get(bid.userId);
+      if (outbidUser) {
+        // Calculate the reserve that was held for this outbid amount
+        const outbidReserve = Math.ceil(bid.bidAmount * 0.1);
+        const userReserved = outbidUser.reservedBalance ?? 0;
+
+        // Release up to what was actually reserved
+        const releaseAmount = Math.min(outbidReserve, userReserved);
+
+        if (releaseAmount > 0) {
+          // Return reserved funds to active wallet balance
+          await ctx.db.patch(bid.userId, {
+            walletBalance: (outbidUser.walletBalance ?? 0) + releaseAmount,
+            reservedBalance: userReserved - releaseAmount,
+            updatedAt: Date.now(),
+          });
+
+          // Create transaction record for releasing funds
+          const releaseReference = `RL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          await ctx.db.insert("walletTransactions", {
+            userId: bid.userId,
+            type: "bid_release",
+            amount: releaseAmount,
+            currency: "NGN",
+            status: "completed",
+            reference: releaseReference,
+            description: `Funds released: Outbid on ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+            relatedBidId: bid._id,
+            createdAt: Date.now(),
+            completedAt: Date.now(),
+          });
+        }
+      }
     }
 
     // Increment user's daily bids

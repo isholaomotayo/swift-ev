@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 
 /**
@@ -137,84 +137,116 @@ export const confirmVerificationFeePayment = mutation({
             throw new Error("User not found");
         }
 
+        return await processKycFeePayment(ctx, args.txRef, args.transactionId, session.userId);
+    },
+});
+
+export const processKycFeeWebhook = internalMutation({
+    args: {
+        txRef: v.string(),
+        transactionId: v.union(v.number(), v.string()),
+    },
+    handler: async (ctx, args) => {
         const transaction = await ctx.db
             .query("walletTransactions")
             .withIndex("by_reference", (q) => q.eq("reference", args.txRef))
             .first();
 
-        if (!transaction || transaction.userId !== session.userId) {
+        if (!transaction) {
             throw new Error("Transaction not found");
         }
 
-        if (transaction.status === "completed" && user.verificationFeeStatus === "paid") {
-            return {
-                success: true,
-                reference: transaction.reference,
-                message: "Verification fee already confirmed",
-            };
-        }
-
-        const verification = await verifyFlutterwaveTransaction(args.transactionId);
-
-        if (verification.tx_ref !== args.txRef) {
-            throw new Error("Flutterwave reference mismatch");
-        }
-
-        if (verification.status !== "successful") {
-            await ctx.db.patch(transaction._id, {
-                status: "failed",
-                completedAt: Date.now(),
-                paymentReference: verification.flw_ref ?? String(verification.id),
-            });
-            await ctx.db.patch(session.userId, {
-                verificationFeeStatus: "not_paid",
-                verificationFeeReference: undefined,
-                updatedAt: Date.now(),
-            });
-            throw new Error("Payment not successful");
-        }
-
-        if (verification.currency !== "NGN") {
-            throw new Error("Invalid payment currency");
-        }
-
-        const expectedAmount = transaction.amount / 100;
-        const paidAmount = verification.charged_amount ?? verification.amount;
-        if (paidAmount + 0.01 < expectedAmount) {
-            await ctx.db.patch(transaction._id, {
-                status: "failed",
-                completedAt: Date.now(),
-                paymentReference: verification.flw_ref ?? String(verification.id),
-            });
-            await ctx.db.patch(session.userId, {
-                verificationFeeStatus: "not_paid",
-                verificationFeeReference: undefined,
-                updatedAt: Date.now(),
-            });
-            throw new Error("Payment amount is insufficient");
-        }
-
-        await ctx.db.patch(transaction._id, {
-            status: "completed",
-            completedAt: Date.now(),
-            paymentProvider: "flutterwave",
-            paymentReference: verification.flw_ref ?? String(verification.id),
-        });
-
-        await ctx.db.patch(session.userId, {
-            verificationFeeStatus: "paid",
-            verificationFeeReference: args.txRef,
-            verificationFeePaidAt: Date.now(),
-            updatedAt: Date.now(),
-        });
-
-        return {
-            success: true,
-            reference: args.txRef,
-            message: "Verification fee paid successfully",
-        };
+        return await processKycFeePayment(ctx, args.txRef, args.transactionId, transaction.userId);
     },
 });
+
+async function processKycFeePayment(ctx: any, txRef: string, transactionId: number | string, expectedUserId: string) {
+    const user = await ctx.db.get(expectedUserId);
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    const transaction = await ctx.db
+        .query("walletTransactions")
+        .withIndex("by_reference", (q: any) => q.eq("reference", txRef))
+        .first();
+
+    if (!transaction || transaction.userId !== expectedUserId) {
+        throw new Error("Transaction not found");
+    }
+
+    if (transaction.status === "completed" && user.verificationFeeStatus === "paid") {
+        return {
+            success: true,
+            reference: transaction.reference,
+            message: "Verification fee already confirmed",
+        };
+    }
+
+    if (transaction.status === "failed") {
+        throw new Error("Transaction already marked as failed.");
+    }
+
+    const verification = await verifyFlutterwaveTransaction(transactionId);
+
+    if (verification.tx_ref !== txRef) {
+        throw new Error("Flutterwave reference mismatch");
+    }
+
+    if (verification.status !== "successful") {
+        await ctx.db.patch(transaction._id, {
+            status: "failed",
+            completedAt: Date.now(),
+            paymentReference: verification.flw_ref ?? String(verification.id),
+        });
+        await ctx.db.patch(expectedUserId, {
+            verificationFeeStatus: "not_paid",
+            verificationFeeReference: undefined,
+            updatedAt: Date.now(),
+        });
+        throw new Error("Payment not successful");
+    }
+
+    if (verification.currency !== "NGN") {
+        throw new Error("Invalid payment currency");
+    }
+
+    const expectedAmount = transaction.amount / 100;
+    const paidAmount = verification.charged_amount ?? verification.amount;
+    if (paidAmount + 0.01 < expectedAmount) {
+        await ctx.db.patch(transaction._id, {
+            status: "failed",
+            completedAt: Date.now(),
+            paymentReference: verification.flw_ref ?? String(verification.id),
+        });
+        await ctx.db.patch(expectedUserId, {
+            verificationFeeStatus: "not_paid",
+            verificationFeeReference: undefined,
+            updatedAt: Date.now(),
+        });
+        throw new Error("Payment amount is insufficient");
+    }
+
+    await ctx.db.patch(transaction._id, {
+        status: "completed",
+        completedAt: Date.now(),
+        paymentProvider: "flutterwave",
+        paymentReference: verification.flw_ref ?? String(verification.id),
+    });
+
+    await ctx.db.patch(expectedUserId, {
+        verificationFeeStatus: "paid",
+        verificationFeeReference: txRef,
+        verificationFeePaidAt: Date.now(),
+        updatedAt: Date.now(),
+    });
+
+    return {
+        success: true,
+        reference: txRef,
+        message: "Verification fee paid successfully",
+    };
+}
 
 /**
  * Generate Sumsub access token (STUBBED)

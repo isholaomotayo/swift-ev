@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 
 /**
@@ -150,77 +150,104 @@ export const confirmWalletFunding = mutation({
             throw new Error("Unauthorized");
         }
 
-        // Find the pending transaction
+        return await processWalletFunding(ctx, args.txRef, args.transactionId, session.userId);
+    },
+});
+
+export const processWalletFundingWebhook = internalMutation({
+    args: {
+        txRef: v.string(),
+        transactionId: v.union(v.number(), v.string()),
+    },
+    handler: async (ctx, args) => {
         const transaction = await ctx.db
             .query("walletTransactions")
             .withIndex("by_reference", (q) => q.eq("reference", args.txRef))
             .first();
 
-        if (!transaction || transaction.userId !== session.userId) {
+        if (!transaction) {
             throw new Error("Transaction not found");
         }
 
-        if (transaction.status === "completed") {
-            return {
-                success: true,
-                newBalance: (await ctx.db.get(transaction.userId))?.walletBalance ?? 0,
-                message: "Wallet already funded",
-            };
-        }
-
-        const verification = await verifyFlutterwaveTransaction(args.transactionId);
-
-        if (verification.tx_ref !== args.txRef) {
-            throw new Error("Flutterwave reference mismatch");
-        }
-
-        if (verification.status !== "successful") {
-            await ctx.db.patch(transaction._id, {
-                status: "failed",
-                completedAt: Date.now(),
-                paymentReference: verification.flw_ref ?? String(verification.id),
-            });
-            throw new Error("Payment not successful");
-        }
-
-        if (verification.currency !== "NGN") {
-            throw new Error("Invalid payment currency");
-        }
-
-        const expectedAmount = transaction.amount / 100;
-        const paidAmount = verification.charged_amount ?? verification.amount;
-        if (paidAmount + 0.01 < expectedAmount) {
-            throw new Error("Payment amount is insufficient");
-        }
-
-        // Update transaction status
-        await ctx.db.patch(transaction._id, {
-            status: "completed",
-            completedAt: Date.now(),
-            paymentProvider: "flutterwave",
-            paymentReference: verification.flw_ref ?? String(verification.id),
-        });
-
-        // Get user and update wallet balance
-        const user = await ctx.db.get(transaction.userId);
-        if (!user) {
-            throw new Error("User not found");
-        }
-
-        const newBalance = (user.walletBalance ?? 0) + transaction.amount;
-
-        await ctx.db.patch(transaction.userId, {
-            walletBalance: newBalance,
-            updatedAt: Date.now(),
-        });
-
-        return {
-            success: true,
-            newBalance,
-            message: "Wallet funded successfully",
-        };
+        return await processWalletFunding(ctx, args.txRef, args.transactionId, transaction.userId);
     },
 });
+
+async function processWalletFunding(ctx: any, txRef: string, transactionId: number | string, expectedUserId: string) {
+    // Find the pending transaction
+    const transaction = await ctx.db
+        .query("walletTransactions")
+        .withIndex("by_reference", (q: any) => q.eq("reference", txRef))
+        .first();
+
+    if (!transaction || transaction.userId !== expectedUserId) {
+        throw new Error("Transaction not found");
+    }
+
+    if (transaction.status === "completed") {
+        return {
+            success: true,
+            newBalance: (await ctx.db.get(transaction.userId))?.walletBalance ?? 0,
+            message: "Wallet already funded",
+        };
+    }
+
+    if (transaction.status === "failed") {
+        throw new Error("Transaction already marked as failed.");
+    }
+
+    const verification = await verifyFlutterwaveTransaction(transactionId);
+
+    if (verification.tx_ref !== txRef) {
+        throw new Error("Flutterwave reference mismatch");
+    }
+
+    if (verification.status !== "successful") {
+        await ctx.db.patch(transaction._id, {
+            status: "failed",
+            completedAt: Date.now(),
+            paymentReference: verification.flw_ref ?? String(verification.id),
+        });
+        throw new Error("Payment not successful");
+    }
+
+    if (verification.currency !== "NGN") {
+        throw new Error("Invalid payment currency");
+    }
+
+    const expectedAmount = transaction.amount / 100;
+    const paidAmount = verification.charged_amount ?? verification.amount;
+    if (paidAmount + 0.01 < expectedAmount) {
+        throw new Error("Payment amount is insufficient");
+    }
+
+    // Update transaction status
+    await ctx.db.patch(transaction._id, {
+        status: "completed",
+        completedAt: Date.now(),
+        paymentProvider: "flutterwave",
+        paymentReference: verification.flw_ref ?? String(verification.id),
+    });
+
+    // Get user and update wallet balance
+    const user = await ctx.db.get(transaction.userId);
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    const newBalance = (user.walletBalance ?? 0) + transaction.amount;
+
+    await ctx.db.patch(transaction.userId, {
+        walletBalance: newBalance,
+        updatedAt: Date.now(),
+    });
+
+    return {
+        success: true,
+        newBalance,
+        message: "Wallet funded successfully",
+    };
+}
 
 /**
  * Reserve funds for a bid
