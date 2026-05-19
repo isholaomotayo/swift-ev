@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAuth, requireSeller } from "./lib/auth";
+import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 
 /**
  * List all auctions with optional status filter
@@ -541,36 +542,6 @@ export const advanceLot = mutation({
   },
 });
 
-/**
- * Generate a unique order number
- */
-async function generateUniqueOrderNumber(ctx: any): Promise<string> {
-  let orderNumber: string;
-  let exists = true;
-  let attempts = 0;
-  const maxAttempts = 10;
-
-  // Generate order number and check for duplicates
-  while (exists && attempts < maxAttempts) {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-    orderNumber = `VB-${timestamp}-${random}`;
-
-    const existing = await ctx.db
-      .query("orders")
-      .withIndex("by_order_number", (q: any) => q.eq("orderNumber", orderNumber))
-      .first();
-
-    exists = !!existing;
-    attempts++;
-  }
-
-  if (exists) {
-    throw new Error("Failed to generate unique order number after multiple attempts");
-  }
-
-  return orderNumber!;
-}
 
 /**
  * Internal: End a lot and create order if sold
@@ -639,20 +610,6 @@ async function endLot(ctx: any, lotId: Id<"auctionLots">) {
   }
 }
 
-/**
- * Calculate service fee
- */
-function calculateServiceFee(bidAmount: number): number {
-  if (bidAmount <= 1_000_000) {
-    return 75_000;
-  } else if (bidAmount <= 5_000_000) {
-    return bidAmount * 0.07; // 7%
-  } else if (bidAmount <= 15_000_000) {
-    return bidAmount * 0.06; // 6%
-  } else {
-    return bidAmount * 0.05; // 5%
-  }
-}
 
 /**
  * Internal: Start scheduled auctions

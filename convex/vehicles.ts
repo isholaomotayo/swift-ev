@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireSeller } from "./lib/auth";
+import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 
 /**
  * Get featured vehicles for homepage
@@ -882,6 +883,78 @@ export const updateVehicle = mutation({
     }
 
     return { success: true };
+  },
+});
+
+/**
+ * Direct purchase of a vehicle without an auction lot
+ */
+export const purchaseVehicleDirectly = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    // 1. Authenticate user
+    const user = await requireAuth(ctx, args.token);
+
+    // 2. Get vehicle and verify it can be purchased
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    if (!vehicle.buyItNowPrice || !vehicle.buyItNowEnabled) {
+      throw new Error("Direct purchase is not available for this vehicle");
+    }
+
+    if (vehicle.status !== "approved" && vehicle.status !== "ready_for_auction") {
+      throw new Error(`Vehicle cannot be purchased directly because it is in status: ${vehicle.status}`);
+    }
+
+    // 3. Ensure no active auction lot exists
+    const activeLot = await ctx.db
+      .query("auctionLots")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (activeLot) {
+      throw new Error("Vehicle is currently in an active auction. Please purchase through the auction lot.");
+    }
+
+    // 4. Mark vehicle as sold
+    await ctx.db.patch(vehicle._id, {
+      status: "sold",
+      buyItNowPurchasedAt: Date.now(),
+      buyItNowPurchasedBy: user._id,
+    });
+
+    // 5. Create Order
+    const orderNumber = await generateUniqueOrderNumber(ctx);
+    const serviceFee = calculateServiceFee(vehicle.buyItNowPrice);
+    const documentationFee = 50_000;
+    const totalAmount = vehicle.buyItNowPrice + serviceFee + documentationFee;
+
+    const orderId = await ctx.db.insert("orders", {
+      orderNumber,
+      userId: user._id,
+      vehicleId: vehicle._id,
+      orderType: "buy_it_now",
+      winningBid: vehicle.buyItNowPrice,
+      serviceFee,
+      documentationFee,
+      subtotal: vehicle.buyItNowPrice,
+      totalAmount,
+      paidAmount: 0,
+      balanceDue: totalAmount,
+      status: "pending_payment",
+      paymentDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, orderId, orderNumber };
   },
 });
 
