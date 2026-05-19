@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adminMail from "../adminMail.js";
 import type * as analytics from "../analytics.js";
 import type * as auctions from "../auctions.js";
 import type * as auth from "../auth.js";
@@ -21,14 +22,17 @@ import type * as emails from "../emails.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as files from "../files.js";
 import type * as financials from "../financials.js";
+import type * as http from "../http.js";
 import type * as kyc from "../kyc.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_flutterwave from "../lib/flutterwave.js";
 import type * as logistics from "../logistics.js";
+import type * as mailRouting from "../mailRouting.js";
 import type * as orders from "../orders.js";
 import type * as seedData from "../seedData.js";
 import type * as services from "../services.js";
 import type * as settings from "../settings.js";
+import type * as userMail from "../userMail.js";
 import type * as users from "../users.js";
 import type * as vehicles from "../vehicles.js";
 import type * as wallet from "../wallet.js";
@@ -41,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adminMail: typeof adminMail;
   analytics: typeof analytics;
   auctions: typeof auctions;
   auth: typeof auth;
@@ -54,14 +59,17 @@ declare const fullApi: ApiFromModules<{
   exchangeRates: typeof exchangeRates;
   files: typeof files;
   financials: typeof financials;
+  http: typeof http;
   kyc: typeof kyc;
   "lib/auth": typeof lib_auth;
   "lib/flutterwave": typeof lib_flutterwave;
   logistics: typeof logistics;
+  mailRouting: typeof mailRouting;
   orders: typeof orders;
   seedData: typeof seedData;
   services: typeof services;
   settings: typeof settings;
+  userMail: typeof userMail;
   users: typeof users;
   vehicles: typeof vehicles;
   wallet: typeof wallet;

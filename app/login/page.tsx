@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Zap, CheckCircle2 } from "lucide-react";
+import { Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { api } from "@/convex/_generated/api";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, user, loading: authLoading, actionLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,9 +43,28 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, authLoading, router]);
 
-  // Prevent UI flash for authenticated sessions
-  if (authLoading || isAuthenticated) {
-    return null;
+  // Only show full-screen loading when redirecting after success, not during login attempt.
+  // During login attempt (actionLoading), keep form visible with button in loading state.
+  if (isAuthenticated) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-electric-blue" />
+          <p className="text-muted-foreground font-medium">Signing you in...</p>
+        </div>
+      </div>
+    );
+  }
+  // Initial auth check: user has session, loading user data before redirect
+  if (authLoading && !actionLoading) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-electric-blue" />
+          <p className="text-muted-foreground font-medium">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

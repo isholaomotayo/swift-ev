@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -30,19 +31,23 @@ interface UsersListClientProps {
   initialUsersData: any;
   initialStats: any;
   token: string;
+  initialError?: string;
 }
 
 export function UsersListClient({
   initialUsersData,
   initialStats,
   token,
+  initialError,
 }: UsersListClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [kycFilter, setKycFilter] = useState<string>("");
   const [page, setPage] = useState(0);
   const pageSize = 25;
+  const [loadError, setLoadError] = useState<string | null>(initialError ?? null);
 
   // Use useQuery for real-time updates
   const usersData = useQuery(
@@ -64,6 +69,9 @@ export function UsersListClient({
     api.users.getUserStats,
     token ? { token } : "skip"
   ) ?? initialStats;
+
+  // If both queries failed and we have no initial data, show an error banner
+  const showErrorBanner = loadError && !usersData && !stats;
 
   const handleExport = () => {
     // TODO: Implement CSV export
@@ -89,6 +97,13 @@ export function UsersListClient({
           </Button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {showErrorBanner && (
+        <Card className="p-4 border-red-200 bg-red-50">
+          <p className="text-sm text-red-700">{loadError}</p>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       {stats && (
@@ -249,7 +264,11 @@ export function UsersListClient({
                   </TableCell>
                   <TableCell>{formatDate(user.createdAt)}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/admin/users/${user._id}`)}
+                    >
                       View
                     </Button>
                   </TableCell>

@@ -178,7 +178,8 @@ export function calculateServiceFee(bidAmount: number): number {
 /**
  * Format VIN number (add spacing for readability)
  */
-export function formatVIN(vin: string): string {
+export function formatVIN(vin?: string): string {
+  if (!vin) return "N/A";
   if (vin.length !== 17) return vin;
   return `${vin.slice(0, 3)} ${vin.slice(3, 9)} ${vin.slice(9)}`;
 }

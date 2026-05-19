@@ -260,7 +260,17 @@ export const updateUserStatus = mutation({
     });
 
     // TODO: Create notification for user
-    // TODO: If suspended/banned, invalidate all active sessions
+    // Invalidate active sessions when account is no longer active
+    if (args.status === "suspended" || args.status === "banned") {
+      const sessions = await ctx.db
+        .query("sessions")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
+
+      for (const session of sessions) {
+        await ctx.db.delete(session._id);
+      }
+    }
 
     return { success: true };
   },
@@ -315,6 +325,13 @@ export const updateKYCStatus = mutation({
           rejectionReason: args.notes,
           reviewedAt: Date.now(),
           reviewedBy: currentUser._id,
+        });
+      } else if (args.kycStatus === "not_started") {
+        await ctx.db.patch(doc._id, {
+          status: "pending",
+          rejectionReason: undefined,
+          reviewedAt: undefined,
+          reviewedBy: undefined,
         });
       }
     }

@@ -95,7 +95,7 @@ export const seedDatabase = mutation({
     let adminId;
     const existingAdmin = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", "admin@autoexports.live"))
+      .withIndex("by_email", (q) => q.eq("email", "admin@voltbid.africa"))
       .first();
 
     if (existingAdmin) {
@@ -103,7 +103,7 @@ export const seedDatabase = mutation({
       console.log("✓ Admin user already exists, skipping creation");
     } else {
       adminId = await ctx.db.insert("users", {
-        email: "admin@autoexports.live",
+        email: "admin@voltbid.africa",
         firstName: "System",
         lastName: "Administrator",
         passwordHash: "$2a$10$guhGBa7/c2jbqJt9i8gkrOKyueMx6CpCg6IZAfSJBTjN/UhJOG88K", // admin123
@@ -836,7 +836,7 @@ export const seedDatabase = mutation({
         watchlist: 4,
       },
       credentials: {
-        admin: { email: "admin@autoexports.live", password: "admin123" },
+        admin: { email: "admin@voltbid.africa", password: "admin123" },
         vendor1: { email: "vendor@bydnigeria.com", password: "vendor123" },
         vendor2: { email: "sales@xpeng-ng.com", password: "vendor456" },
         buyer1: { email: "john.doe@example.com", password: "buyer123" },

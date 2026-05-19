@@ -218,7 +218,7 @@ export function VehicleActionsModal({
                                 </DialogTitle>
                             </div>
                             <DialogDescription>
-                                {vehicle.year} {vehicle.make} {vehicle.model} • VIN: {vehicle.vin}
+                                {vehicle.year} {vehicle.make} {vehicle.model}{vehicle.vin ? ` • VIN: ${vehicle.vin}` : ""}
                             </DialogDescription>
                         </div>
                         {mode === "view" && (
@@ -404,8 +404,8 @@ function EditModeContent({
                         <Input id="year" type="number" value={formData.year} onChange={(e) => handleInputChange("year", e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="vin">VIN</Label>
-                        <Input id="vin" value={formData.vin} onChange={(e) => handleInputChange("vin", e.target.value)} />
+                        <Label htmlFor="vin">VIN (Optional)</Label>
+                        <Input id="vin" value={formData.vin || ""} onChange={(e) => handleInputChange("vin", e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="exteriorColor">Exterior Color</Label>

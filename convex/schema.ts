@@ -168,7 +168,7 @@ export default defineSchema({
 
   vehicles: defineTable({
     lotNumber: v.string(),
-    vin: v.string(),
+    vin: v.optional(v.string()),
     make: v.string(),
     model: v.string(),
     year: v.number(),
@@ -243,12 +243,14 @@ export default defineSchema({
     updatedAt: v.number(),
     approvedAt: v.optional(v.number()),
     approvedBy: v.optional(v.id("users")),
+    searchableText: v.optional(v.string()), // Added for FTS
   })
     .index("by_lot_number", ["lotNumber"])
     .index("by_vin", ["vin"])
     .index("by_status", ["status"])
     .index("by_make_model", ["make", "model"])
-    .index("by_seller", ["sellerId"]),
+    .index("by_seller", ["sellerId"])
+    .searchIndex("search_text", { searchField: "searchableText" }),
 
   vehicleImages: defineTable({
     vehicleId: v.id("vehicles"),
@@ -689,6 +691,99 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"]),
+
+  // ============================================
+  // ADMIN EMAIL TABLES
+  // ============================================
+
+  adminEmails: defineTable({
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+    threadId: v.optional(v.string()),
+    inReplyTo: v.optional(v.id("adminEmails")),
+    // RFC Message-ID / In-Reply-To / References for proper threading
+    messageId: v.optional(v.string()),
+    inReplyToMessageId: v.optional(v.string()),
+    referencesMessageIds: v.optional(v.array(v.string())),
+    from: v.string(),
+    fromName: v.optional(v.string()),
+    // When an inbound/outbound email is associated with a specific in-app account,
+    // these fields store the matched platform-domain recipient + owning user.
+    // If unset, the email is treated as catch-all (admin-managed).
+    mailAccountUserId: v.optional(v.id("users")),
+    mailAccountEmail: v.optional(v.string()),
+    to: v.array(v.string()),
+    cc: v.optional(v.array(v.string())),
+    bcc: v.optional(v.array(v.string())),
+    replyTo: v.optional(v.array(v.string())),
+    subject: v.string(),
+    bodyHtml: v.string(),
+    bodyText: v.optional(v.string()),
+    snippet: v.optional(v.string()),
+    folder: v.union(
+      v.literal("inbox"),
+      v.literal("sent"),
+      v.literal("drafts"),
+      v.literal("trash"),
+      v.literal("archive")
+    ),
+    isRead: v.boolean(),
+    isStarred: v.boolean(),
+    labels: v.optional(v.array(v.string())),
+    resendEmailId: v.optional(v.string()),
+    deliveryStatus: v.optional(
+      v.union(
+        v.literal("queued"),
+        v.literal("sent"),
+        v.literal("delivered"),
+        v.literal("bounced"),
+        v.literal("complained")
+      )
+    ),
+    // Bounce details
+    bounceType: v.optional(v.string()),
+    bounceSubType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
+    // Attachments metadata
+    attachments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          filename: v.string(),
+          contentType: v.string(),
+          size: v.optional(v.number()),
+          storageId: v.optional(v.id("_storage")),
+        })
+      )
+    ),
+    hasAttachments: v.optional(v.boolean()),
+    sentAt: v.optional(v.number()),
+    receivedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.optional(v.id("users")),
+  })
+    .index("by_folder", ["folder"])
+    .index("by_folder_date", ["folder", "createdAt"])
+    .index("by_mailAccountUserId", ["mailAccountUserId"])
+    .index("by_mailAccountUserId_folder_date", ["mailAccountUserId", "folder", "createdAt"])
+    .index("by_threadId", ["threadId"])
+    .index("by_isRead", ["isRead"])
+    .index("by_resendEmailId", ["resendEmailId"])
+    .index("by_messageId", ["messageId"])
+    .searchIndex("search_emails", {
+      searchField: "subject",
+      filterFields: ["folder", "mailAccountUserId"],
+    }),
+
+  // Bounce suppression list — tracks addresses that should not be emailed
+  emailSuppressions: defineTable({
+    email: v.string(),
+    reason: v.union(v.literal("bounce"), v.literal("complaint")),
+    bounceType: v.optional(v.string()),
+    bounceMessage: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"]),
 
   // ============================================
   // SELLER/SUPPLIER TABLES

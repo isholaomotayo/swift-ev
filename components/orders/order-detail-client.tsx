@@ -92,7 +92,6 @@ export function OrderDetailClient({
                 <p className="text-lg font-medium">
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </p>
-                <p className="text-sm text-gray-500">VIN: {vehicle.vin}</p>
                 <p className="text-sm text-gray-500">Lot Number: {vehicle.lotNumber}</p>
               </div>
             </Card>

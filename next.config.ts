@@ -1,6 +1,21 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Prevent trailing-slash redirects that break webhook POST requests (307)
+  skipTrailingSlashRedirect: true,
+  // Ensure Turbopack uses this project as root (avoids wrong root when parent has a lockfile).
+  turbopack: { root: path.join(process.cwd()) },
+  // Prefer this project's node_modules so "tailwindcss" and other deps resolve
+  // here instead of a parent directory (e.g. $HOME with its own package.json).
+  webpack: (config, { dir }) => {
+    const projectDir = path.resolve(dir ?? process.cwd());
+    const projectNodeModules = path.join(projectDir, "node_modules");
+    config.resolve = config.resolve ?? {};
+    const existing = Array.isArray(config.resolve.modules) ? config.resolve.modules : [];
+    config.resolve.modules = [projectNodeModules, ...existing];
+    return config;
+  },
   images: {
     remotePatterns: [
       {

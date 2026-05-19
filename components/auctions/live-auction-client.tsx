@@ -234,10 +234,7 @@ export function LiveAuctionClient({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">VIN</span>
-                        <span className="font-mono font-medium">{formatVIN(currentVehicle.vin)}</span>
-                      </div>
+
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Exterior Color</span>
                         <span className="font-medium">{currentVehicle.exteriorColor}</span>

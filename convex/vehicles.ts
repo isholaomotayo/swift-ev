@@ -146,19 +146,28 @@ export const listVehicles = query({
       sortBy = "newest",
     } = args;
 
-    // Start with base query
-    let vehicles = await ctx.db.query("vehicles").collect();
+    // Start with base query and optionally narrow via status index.
+    const vehiclesQuery = status
+      ? ctx.db.query("vehicles").withIndex("by_status", (q) => q.eq("status", status))
+      : ctx.db.query("vehicles");
 
-    // Apply filters
-    vehicles = vehicles.filter((vehicle) => {
-      if (make && vehicle.make !== make) return false;
-      if (yearMin && vehicle.year < yearMin) return false;
-      if (yearMax && vehicle.year > yearMax) return false;
-      if (batteryHealthMin && (vehicle.batteryHealthPercent || 0) < batteryHealthMin) return false;
-      if (condition && vehicle.condition !== condition) return false;
-      if (status && vehicle.status !== status) return false;
-      return true;
-    });
+    // Apply filters at the database level
+    const vehicles = await vehiclesQuery.filter((q) => {
+      const conditions = [];
+      if (make) conditions.push(q.eq(q.field("make"), make));
+      if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
+      if (yearMax) conditions.push(q.lte(q.field("year"), yearMax));
+      if (batteryHealthMin) conditions.push(q.gte(q.field("batteryHealthPercent"), batteryHealthMin));
+      if (condition) conditions.push(q.eq(q.field("condition"), condition));
+
+      if (conditions.length === 0) return q.neq(q.field("_id"), "dummy" as any);
+      
+      let expr = conditions[0];
+      for (let i = 1; i < conditions.length; i++) {
+        expr = q.and(expr, conditions[i]);
+      }
+      return expr;
+    }).collect();
 
     // Get auction lots for price filtering and sorting
     const vehiclesWithLots = await Promise.all(
@@ -174,7 +183,7 @@ export const listVehicles = query({
     );
 
     // Filter by price (using current bid from auction lot)
-    let filtered = vehiclesWithLots.filter(({ vehicle, auctionLot }) => {
+    const filtered = vehiclesWithLots.filter(({ vehicle, auctionLot }) => {
       const currentPrice = auctionLot?.currentBid || vehicle.startingBid || 0;
       if (priceMin && currentPrice < priceMin) return false;
       if (priceMax && currentPrice > priceMax) return false;
@@ -269,24 +278,33 @@ export const searchVehicles = query({
     const { searchTerm, limit = 20 } = args;
     const term = searchTerm.toLowerCase();
 
-    const vehicles = await ctx.db.query("vehicles").collect();
+    let matchedVehicles;
+    if (term) {
+      matchedVehicles = await ctx.db
+        .query("vehicles")
+        .withSearchIndex("search_text", (q) => q.search("searchableText", term))
+        .take(limit);
 
-    // Simple text search across make, model, VIN, lot number
-    const matchedVehicles = vehicles
-      .filter((vehicle) => {
-        const searchableText = [
-          vehicle.make,
-          vehicle.model,
-          vehicle.vin,
-          vehicle.lotNumber,
-          vehicle.year.toString(),
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(term);
-      })
-      .slice(0, limit);
+      // Fallback for existing records that haven't been migrated
+      if (matchedVehicles.length === 0) {
+        const allVehicles = await ctx.db.query("vehicles").collect();
+        matchedVehicles = allVehicles
+          .filter((vehicle) => {
+            if (vehicle.searchableText) return false;
+            const text = [
+              vehicle.make,
+              vehicle.model,
+              vehicle.vin || "",
+              vehicle.lotNumber,
+              vehicle.year.toString(),
+            ].join(" ").toLowerCase();
+            return text.includes(term);
+          })
+          .slice(0, limit);
+      }
+    } else {
+      matchedVehicles = await ctx.db.query("vehicles").take(limit);
+    }
 
     // Get images for matched vehicles
     const vehiclesWithImages = await Promise.all(
@@ -480,6 +498,19 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
   return lotNumber;
 }
 
+async function checkDuplicateVin(ctx: MutationCtx, vin?: string, excludeVehicleId?: Id<"vehicles">) {
+  if (!vin) return;
+  const existingVIN = await ctx.db
+    .query("vehicles")
+    .withIndex("by_vin", (q) => q.eq("vin", vin))
+    .first();
+
+  if (existingVIN && existingVIN._id !== excludeVehicleId) {
+    console.warn(`Duplicate VIN attempt: ${vin}`);
+    throw new Error(`A vehicle with VIN ${vin} already exists`);
+  }
+}
+
 const REQUIRED_MEDIA_CATEGORIES = ["Front View", "Rear View", "Driver Side", "Interior (Dashboard)", "Engine Bay"];
 
 const mapCategoryToImageType = (category: string) => {
@@ -500,7 +531,7 @@ export const createVehicle = mutation({
       make: v.string(),
       model: v.string(),
       year: v.number(),
-      vin: v.string(),
+      vin: v.optional(v.string()),
       odometer: v.number(),
       exteriorColor: v.string(),
       interiorColor: v.string(),
@@ -623,19 +654,20 @@ export const createVehicle = mutation({
     }
 
     // Check for duplicate VIN
-    const existingVIN = await ctx.db
-      .query("vehicles")
-      .withIndex("by_vin", (q) => q.eq("vin", vehicleData.vin))
-      .first();
-
-    if (existingVIN) {
-      throw new Error(`A vehicle with VIN ${vehicleData.vin} already exists`);
-    }
+    await checkDuplicateVin(ctx, vehicleData.vin);
 
     // Auto-generate a unique lot number
     const lotNumber = await generateUniqueLotNumber(ctx);
 
     const now = Date.now();
+
+    const searchableText = [
+      vehicleData.make,
+      vehicleData.model,
+      vehicleData.vin || "",
+      lotNumber,
+      vehicleData.year.toString()
+    ].join(" ").toLowerCase();
 
     // Create vehicle record matching exact schema
     const vehicleId = await ctx.db.insert("vehicles", {
@@ -674,6 +706,7 @@ export const createVehicle = mutation({
       status: "pending_approval",
       createdAt: now,
       updatedAt: now,
+      searchableText,
     });
 
     // Create image records matching exact schema
@@ -816,11 +849,27 @@ export const updateVehicle = mutation({
       }
     }
 
+    // Check for duplicate VIN if it's being updated
+    if (updates.vin !== undefined) {
+      await checkDuplicateVin(ctx, updates.vin, vehicleId);
+    }
+
     // 1. Update vehicle fields
     // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
     const { imageUrls, ...vehicleUpdates } = updates;
 
-    await ctx.db.patch(vehicleId, vehicleUpdates);
+    const make = vehicleUpdates.make ?? vehicle.make;
+    const model = vehicleUpdates.model ?? vehicle.model;
+    const vin = vehicleUpdates.vin !== undefined ? vehicleUpdates.vin : (vehicle.vin || "");
+    const lotNumber = vehicle.lotNumber;
+    const year = vehicleUpdates.year ?? vehicle.year;
+    
+    const searchableText = [make, model, vin, lotNumber, year.toString()].join(" ").toLowerCase();
+
+    await ctx.db.patch(vehicleId, {
+      ...vehicleUpdates,
+      searchableText,
+    });
 
     // 2. Update images if provided
     if (imageUrls) {
