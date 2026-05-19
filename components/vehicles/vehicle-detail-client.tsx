@@ -78,6 +78,8 @@ interface Vehicle {
     country: string;
   };
   startingBid?: number;
+  buyItNowPrice?: number;
+  buyItNowEnabled?: boolean;
   status: string;
   images: Array<{
     url: string;
@@ -141,6 +143,9 @@ export function VehicleDetailClient({
   const isLive = auctionLot?.status === "active";
   const isPreBid = auctionLot?.status === "pending";
   const canBid = isLive || isPreBid;
+
+  const isDirectPurchaseAvailable = !auctionLot && vehicle.buyItNowEnabled && vehicle.buyItNowPrice &&
+    (vehicle.status === "approved" || vehicle.status === "ready_for_auction");
 
   // Hero Image Handling
   const heroImageUrl =
@@ -523,9 +528,14 @@ export function VehicleDetailClient({
                           • Pre-Bidding Open
                         </Badge>
                       )}
-                      {!canBid && (
+                      {!canBid && !isDirectPurchaseAvailable && (
                         <Badge variant="secondary">
                           {vehicle.status.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                      {isDirectPurchaseAvailable && (
+                        <Badge variant="outline" className="bg-volt-green/10 text-volt-green border-volt-green/20 px-3 py-1">
+                          • Available Now
                         </Badge>
                       )}
                     </div>
@@ -585,6 +595,17 @@ export function VehicleDetailClient({
                           : "shadow-trust-blue/20 bg-trust-blue hover:bg-blue-700 text-white",
                       )}
                       label={isPreBid ? "Place Pre-Bid" : "Place Bid Now"}
+                    />
+                  ) : isDirectPurchaseAvailable ? (
+                    <BidButton
+                      vehicleId={vehicle._id}
+                      currentBid={currentBid}
+                      bidIncrement={50000}
+                      buyNowPrice={vehicle.buyItNowPrice}
+                      buyNowEnabled={vehicle.buyItNowEnabled}
+                      status={vehicle.status}
+                      className="w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full shadow-volt-green/20 bg-volt-green hover:bg-volt-green/90 text-slate-950"
+                      label="Purchase Now"
                     />
                   ) : (
                     <Button disabled className="w-full h-12">

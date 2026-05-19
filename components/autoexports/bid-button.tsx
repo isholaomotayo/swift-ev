@@ -23,7 +23,8 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface BidButtonProps {
-  lotId: Id<"auctionLots">;
+  lotId?: Id<"auctionLots">;
+  vehicleId?: Id<"vehicles">;
   currentBid: number;
   bidIncrement: number;
   isUserHighBidder?: boolean;
@@ -39,6 +40,7 @@ interface BidButtonProps {
 
 export function BidButton({
   lotId,
+  vehicleId,
   currentBid,
   bidIncrement,
   isUserHighBidder = false,
@@ -60,7 +62,8 @@ export function BidButton({
 
   const placeBidMutation = useMutation(api.bids.placeBid);
   const setMaxBidMutation = useMutation(api.bids.setMaxBid);
-  const purchaseMutation = useMutation(api.auctions.purchaseBuyItNow);
+  const purchaseAuctionLotMutation = useMutation(api.auctions.purchaseBuyItNow);
+  const purchaseVehicleDirectlyMutation = useMutation(api.vehicles.purchaseVehicleDirectly);
 
   // Get Wallet Info
   const walletData = useQuery(
@@ -93,6 +96,15 @@ export function BidButton({
         variant: "destructive",
       });
       window.location.href = "/login";
+      return;
+    }
+
+    if (!lotId) {
+      toast({
+        title: "Action Not Available",
+        description: "This vehicle is not in an active auction.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -146,6 +158,15 @@ export function BidButton({
 
     if (!token) {
       window.location.href = "/login";
+      return;
+    }
+
+    if (!lotId) {
+      toast({
+        title: "Action Not Available",
+        description: "This vehicle is not in an active auction.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -203,6 +224,15 @@ export function BidButton({
       return;
     }
 
+    if (!lotId) {
+      toast({
+        title: "Action Not Available",
+        description: "This vehicle is not in an active auction.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await setMaxBidMutation({
@@ -234,7 +264,15 @@ export function BidButton({
     if (!token) return;
     setLoading(true);
     try {
-      const result = await purchaseMutation({ token, lotId });
+      let result;
+      if (lotId) {
+        result = await purchaseAuctionLotMutation({ token, lotId });
+      } else if (vehicleId) {
+        result = await purchaseVehicleDirectlyMutation({ token, vehicleId });
+      } else {
+        throw new Error("Missing item identifier for purchase");
+      }
+
       toast({
         title: "Purchase Successful!",
         description: `Order Created: ${result.orderNumber}`,
@@ -359,7 +397,7 @@ export function BidButton({
               </div>
 
               {/* Buy Now Option */}
-              {buyNowEnabled && buyNowPrice && status === "pending" && (
+              {buyNowEnabled && buyNowPrice && (!status || status === "pending" || status === "approved" || status === "ready_for_auction") && (
                 <div className="pt-2 border-t mt-2">
                   <Button
                     variant="outline"
@@ -371,7 +409,7 @@ export function BidButton({
                     Buy Now for {formatCurrency(buyNowPrice)}
                   </Button>
                   <p className="text-[10px] text-center text-muted-foreground mt-2 uppercase tracking-widest font-bold">
-                    Skip the auction & win instantly
+                    {lotId ? "Skip the auction & win instantly" : "Purchase instantly"}
                   </p>
                 </div>
               )}
