@@ -187,8 +187,13 @@ export function VehicleForm({
   const hasExistingRequiredPhotoCoverage = existingImages.length >= REQUIRED_IMAGE_CATEGORIES.length;
   const requiresWalkthroughVideo = !isEditMode;
   const hasRequiredWalkthroughVideo = !requiresWalkthroughVideo || !!videoWalkthrough;
-  const allRequiredUploaded =
-    (requiredPhotosUploaded || hasExistingRequiredPhotoCoverage) && hasRequiredWalkthroughVideo;
+
+  // In edit mode, if they have any existing image OR any new image uploaded, it's valid enough.
+  // We relax the strict validation for updates as long as there is at least one image overall.
+  const hasAnyImage = existingImages.length > 0 || Object.values(categoryImages).some((img) => !!img);
+  const allRequiredUploaded = isEditMode
+    ? hasAnyImage
+    : ((requiredPhotosUploaded || hasExistingRequiredPhotoCoverage) && hasRequiredWalkthroughVideo);
 
   const steps: UploadStep[] = ["basic", "specs", "condition", "pricing", "images"];
   const stepTitles: Record<UploadStep, string> = {
@@ -225,7 +230,8 @@ export function VehicleForm({
   };
 
   const handleSubmit = () => {
-    if (!acceptedCommission) {
+    // We only enforce commission acceptance for new vehicles
+    if (!isEditMode && !acceptedCommission) {
       setCurrentStep("pricing");
       setTimeout(() => {
         document.getElementById("commissionTerms")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -695,22 +701,24 @@ export function VehicleForm({
                 </p>
               </div>
 
-              <div className="md:col-span-2">
-                <div className="flex items-start space-x-3 p-4 bg-muted/20 rounded-xl border border-border mt-2">
-                  <Checkbox
-                    id="commissionTerms"
-                    checked={acceptedCommission}
-                    onCheckedChange={(checked) => setAcceptedCommission(checked as boolean)}
-                    className="mt-1"
-                  />
-                  <label htmlFor="commissionTerms" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
-                    I agree to the platform commission structure: <strong className="text-foreground">7%</strong> for bids up to ₦5M,{" "}
-                    <strong className="text-foreground">6%</strong> for bids up to ₦15M, and{" "}
-                    <strong className="text-foreground">5%</strong> for bids above ₦15M.
-                    Deducted from the final sale amount upon successful auction completion.
-                  </label>
+              {!isEditMode && (
+                <div className="md:col-span-2">
+                  <div className="flex items-start space-x-3 p-4 bg-muted/20 rounded-xl border border-border mt-2">
+                    <Checkbox
+                      id="commissionTerms"
+                      checked={acceptedCommission}
+                      onCheckedChange={(checked) => setAcceptedCommission(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <label htmlFor="commissionTerms" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
+                      I agree to the platform commission structure: <strong className="text-foreground">7%</strong> for bids up to ₦5M,{" "}
+                      <strong className="text-foreground">6%</strong> for bids up to ₦15M, and{" "}
+                      <strong className="text-foreground">5%</strong> for bids above ₦15M.
+                      Deducted from the final sale amount upon successful auction completion.
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
