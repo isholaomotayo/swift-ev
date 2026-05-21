@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { Doc, Id } from "../convex/_generated/dataModel";
+import type { Doc, Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL =
   process.env.NEXT_PUBLIC_CONVEX_URL ||
@@ -13,8 +13,6 @@ describe("Auctions", () => {
   let vendorToken: string;
   let buyerToken: string;
   let testAuctionId: Id<"auctions">;
-  let testVehicleId: Id<"vehicles">;
-  let testLotId: Id<"auctionLots">;
 
   beforeAll(async () => {
     // Login as admin
@@ -91,7 +89,7 @@ describe("Auctions", () => {
 
     test("returns null for non-existent auction", async () => {
       const result = await client.query(api.auctions.getAuctionById, {
-        auctionId: "j1234567890abcdef" as any,
+        auctionId: "j1234567890abcdef" as Id<"auctions">,
       });
 
       expect(result).toBeNull();
@@ -193,7 +191,6 @@ describe("Auctions", () => {
 
       if (vehicles.vehicles.length > 0 && testAuctionId) {
         const vehicleId = vehicles.vehicles[0]._id;
-        testVehicleId = vehicleId;
 
         const result = await client.mutation(api.auctions.addLotToAuction, {
           token: adminToken,
@@ -206,7 +203,6 @@ describe("Auctions", () => {
         expect(result).toHaveProperty("success");
         expect(result.success).toBe(true);
         expect(result).toHaveProperty("lotId");
-        testLotId = result.lotId;
 
         const vehicle = await client.query(api.vehicles.getVehicleById, {
           vehicleId,
@@ -298,7 +294,7 @@ describe("Auctions", () => {
             token: adminToken,
             auctionId: testAuctionId,
           });
-        } catch (e) {
+        } catch {
           // Auction might already be started
         }
 

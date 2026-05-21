@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireSeller } from "./lib/auth";
 import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 
@@ -163,7 +163,7 @@ export const listVehicles = query({
       if (batteryHealthMin) conditions.push(q.gte(q.field("batteryHealthPercent"), batteryHealthMin));
       if (condition) conditions.push(q.eq(q.field("condition"), condition));
 
-      if (conditions.length === 0) return q.neq(q.field("_id"), "dummy" as any);
+      if (conditions.length === 0) return q.neq(q.field("_id"), "" as Id<"vehicles">);
       
       let expr = conditions[0];
       for (let i = 1; i < conditions.length; i++) {
@@ -281,7 +281,7 @@ export const searchVehicles = query({
     const { searchTerm, limit = 20 } = args;
     const term = searchTerm.toLowerCase();
 
-    let matchedVehicles;
+    let matchedVehicles: Doc<"vehicles">[];
     if (term) {
       matchedVehicles = await ctx.db
         .query("vehicles")
@@ -1089,7 +1089,7 @@ export const getVendorStats = query({
         .filter((q) => q.eq(q.field("status"), "sold"))
         .first();
 
-      if (lot && lot.winningBid) {
+      if (lot?.winningBid) {
         totalRevenue += lot.winningBid;
       }
     }
@@ -1144,7 +1144,7 @@ export const getVendorRevenueHistory = query({
         .filter((q) => q.eq(q.field("status"), "sold"))
         .first();
 
-      if (lot && lot.soldAt && lot.winningBid) {
+      if (lot?.soldAt && lot.winningBid) {
         const date = new Date(lot.soldAt);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 

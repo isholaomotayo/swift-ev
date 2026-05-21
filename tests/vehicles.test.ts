@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import type { Doc } from "../convex/_generated/dataModel";
+import type { Doc, Id } from "../convex/_generated/dataModel";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -10,7 +10,7 @@ describe("Vehicles", () => {
   let adminToken: string;
   let vendorToken: string;
   let buyerToken: string;
-  let testVehicleId: string;
+  let testVehicleId: Id<"vehicles"> | undefined;
 
   beforeAll(async () => {
     // Login as admin
@@ -222,7 +222,7 @@ describe("Vehicles", () => {
       // Use a fake ID format - this will fail validation but tests error handling
       // In practice, we'd need a valid ID format
       const result = await client.query(api.vehicles.getVehicleById, {
-        vehicleId: "j1234567890abcdef" as any,
+        vehicleId: "j1234567890abcdef" as Id<"vehicles">,
       });
 
       // Should return null or throw error
@@ -470,7 +470,7 @@ describe("Vehicles", () => {
 
       const result = await client.mutation(api.vehicles.updateVehicle, {
         token: vendorToken,
-        vehicleId: testVehicleId as any,
+        vehicleId: testVehicleId,
         updates: {
           exteriorColor: "Blue",
           imageUrls: ["https://example.com/updated-hero.jpg"],
@@ -480,7 +480,7 @@ describe("Vehicles", () => {
       expect(result).toEqual({ success: true });
 
       const vehicle = await client.query(api.vehicles.getVehicleById, {
-        vehicleId: testVehicleId as any,
+        vehicleId: testVehicleId,
       });
       expect(vehicle?.exteriorColor).toBe("Blue");
       expect(vehicle?.images?.[0]?.storageRef).toBe("https://example.com/updated-hero.jpg");

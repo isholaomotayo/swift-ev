@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireSeller } from "./lib/auth";
 import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 
@@ -422,7 +423,7 @@ export const startAuction = mutation({
       .order("asc")
       .first();
 
-    if (firstLot && firstLot.lotDuration) {
+    if (firstLot?.lotDuration) {
       const endsAt = Date.now() + firstLot.lotDuration;
       await ctx.db.patch(firstLot._id, {
         status: "active",
@@ -516,7 +517,7 @@ export const advanceLot = mutation({
       .order("asc")
       .first();
 
-    if (nextLot && nextLot.lotDuration) {
+    if (nextLot?.lotDuration) {
       const endsAt = Date.now() + nextLot.lotDuration;
       await ctx.db.patch(nextLot._id, {
         status: "active",
@@ -546,7 +547,7 @@ export const advanceLot = mutation({
 /**
  * Internal: End a lot and create order if sold
  */
-async function endLot(ctx: any, lotId: Id<"auctionLots">) {
+async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
   const lot = await ctx.db.get(lotId);
   if (!lot) return;
 
@@ -641,7 +642,7 @@ export const startScheduledAuctions = internalMutation({
         .order("asc")
         .first();
 
-      if (firstLot && firstLot.lotDuration) {
+      if (firstLot?.lotDuration) {
         const endsAt = now + firstLot.lotDuration;
         await ctx.db.patch(firstLot._id, {
           status: "active",
@@ -685,7 +686,7 @@ export const endExpiredLots = internalMutation({
         .order("asc")
         .first();
 
-      if (nextLot && nextLot.lotDuration) {
+      if (nextLot?.lotDuration) {
         const endsAt = now + nextLot.lotDuration;
         await ctx.db.patch(nextLot._id, {
           status: "active",
