@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Mail,
   LogOut,
+  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,11 @@ const adminNavItems = [
     label: "Vehicles",
     href: "/admin/vehicles",
     icon: Car,
+  },
+  {
+    label: "Approvals",
+    href: "/admin/vehicles/approvals",
+    icon: CheckCircle,
   },
   {
     label: "Auctions",

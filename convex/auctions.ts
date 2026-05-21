@@ -373,7 +373,7 @@ export const addLotToAuction = mutation({
 
     // Update vehicle status
     await ctx.db.patch(args.vehicleId, {
-      status: "scheduled",
+      status: "ready_for_auction",
     });
 
     return { success: true, lotId };

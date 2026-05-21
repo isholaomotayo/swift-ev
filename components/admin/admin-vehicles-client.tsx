@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { VehicleActionsModal } from "@/components/admin/vehicles/vehicle-actions-modal";
+import { VehicleApprovalModal } from "@/components/admin/vehicles/vehicle-approval-modal";
+import type { Doc } from "@/convex/_generated/dataModel";
 import {
   Table,
   TableBody,
@@ -24,22 +26,32 @@ import {
 } from "@/components/ui/select";
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
 
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+type AdminVehicle = Doc<"vehicles"> & {
+  auctionLot?: {
+    currentBid?: number;
+  } | null;
+};
+
 interface AdminVehiclesClientProps {
-  initialVehicles: any[];
+  initialVehicles: AdminVehicle[];
   totalCount: number;
 }
 
 export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehiclesClientProps) {
+  const [vehicles, setVehicles] = useState(initialVehicles);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Modal State
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<AdminVehicle | null>(null);
+  const [vehicleToApprove, setVehicleToApprove] = useState<AdminVehicle | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"view" | "edit">("view");
 
   const filteredVehicles = useMemo(() => {
-    let filtered = initialVehicles;
+    let filtered = vehicles;
 
     // Apply status filter
     if (statusFilter !== "all") {
@@ -53,16 +65,18 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
         (v) =>
           v.make.toLowerCase().includes(search) ||
           v.model.toLowerCase().includes(search) ||
-          v.vin.toLowerCase().includes(search) ||
-          v.lotNumber.toLowerCase().includes(search)
+          (v.vin?.toLowerCase() ?? "").includes(search) ||
+          (v.lotNumber?.toLowerCase() ?? "").includes(search)
       );
     }
 
     return filtered;
-  }, [initialVehicles, statusFilter, searchTerm]);
+  }, [vehicles, statusFilter, searchTerm]);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
+    const variants: Record<string, { variant: BadgeVariant; label: string }> = {
+      pending_approval: { variant: "secondary", label: "Pending Approval" },
+      approved: { variant: "default", label: "Approved" },
       pending_inspection: { variant: "secondary", label: "Pending Inspection" },
       ready_for_auction: { variant: "default", label: "Ready for Auction" },
       in_auction: { variant: "default", label: "In Auction" },
@@ -76,9 +90,17 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
     const config = variants[status] || { variant: "secondary", label: status };
 
     return (
-      <Badge variant={config.variant as any} className="capitalize">
+      <Badge variant={config.variant} className="capitalize">
         {config.label}
       </Badge>
+    );
+  };
+
+  const handleApproved = (vehicleId: string) => {
+    setVehicles((currentVehicles) =>
+      currentVehicles.map((vehicle) =>
+        vehicle._id === vehicleId ? { ...vehicle, status: "approved" } : vehicle
+      )
     );
   };
 
@@ -92,12 +114,19 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
             Manage all vehicles in the platform
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/vehicles/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Vehicle
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/admin/vehicles/approvals">
+              Approvals Queue
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/vehicles/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Vehicle
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -120,6 +149,8 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
               <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
               <SelectItem value="in_auction">In Auction</SelectItem>
@@ -171,11 +202,11 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {vehicle.vin.slice(0, 8)}...
+                    {vehicle.vin ? `${vehicle.vin.slice(0, 8)}...` : "N/A"}
                   </TableCell>
                   <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                   <TableCell className="font-mono">
-                    {vehicle.auctionLot
+                    {vehicle.auctionLot?.currentBid
                       ? formatCurrency(vehicle.auctionLot.currentBid)
                       : vehicle.startingBid
                         ? formatCurrency(vehicle.startingBid)
@@ -211,6 +242,17 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
                       >
                         Edit
                       </Button>
+                      {vehicle.status === "pending_approval" && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setVehicleToApprove(vehicle);
+                            setIsApprovalModalOpen(true);
+                          }}
+                        >
+                          Approve
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -225,6 +267,12 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
         mode={modalMode}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+      <VehicleApprovalModal
+        vehicle={vehicleToApprove}
+        isOpen={isApprovalModalOpen}
+        onClose={() => setIsApprovalModalOpen(false)}
+        onApproved={handleApproved}
       />
     </div>
   );

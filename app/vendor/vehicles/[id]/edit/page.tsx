@@ -8,6 +8,8 @@ import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleForm, VehicleFormData } from "@/components/vendor/vehicle-form";
 import { Id } from "@/convex/_generated/dataModel";
+import { getMutationErrorMessage, isValidVehicleCondition } from "@/lib/auth-errors";
+import { isPersistableImageRef } from "@/lib/vehicle-image-refs";
 
 interface EditVehiclePageProps {
   params: Promise<{ id: string }>;
@@ -23,7 +25,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   const { id } = use(params);
   const vehicleId = id as Id<"vehicles">;
   
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +84,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   };
 
   const handleSubmit = async (formData: VehicleFormData, newFiles: File[], deletedImageIds: string[]) => {
-    if (!user) {
+    if (!user || !token) {
       toast({
         title: "Error",
         description: "You must be logged in to edit vehicles",
@@ -94,25 +96,19 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("autoexports_token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
 
-      // Construct updates object
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         make: formData.make,
         model: formData.model,
         year: formData.year,
-        vin: formData.vin,
+        vin: formData.vin?.trim() || undefined,
         fuelType: formData.fuelType,
         batteryCapacity: formData.batteryCapacity,
         batteryHealthPercent: formData.batteryHealthPercent,
-        estimatedRange: formData.range, // Frontend 'range' -> Backend 'estimatedRange'
+        estimatedRange: formData.range,
         batteryType: formData.batteryType,
         chargingType: formData.chargingTypes,
         motorPower: formData.motorPower,
-        condition: formData.condition as any,
         odometer: formData.odometer,
         exteriorColor: formData.exteriorColor,
         interiorColor: formData.interiorColor,
@@ -128,15 +124,22 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         },
       };
 
+      if (isValidVehicleCondition(formData.condition)) {
+        updates.condition = formData.condition;
+      }
+
       const taggedNewFiles = newFiles as TaggedUploadFile[];
       const newImageFiles = taggedNewFiles.filter(
         (file) => file.__mediaRole === "required_image" || file.__mediaRole === "optional_image"
       );
 
       const existingImageUrls = (vehicle?.images || [])
-        .filter((img: any) => !deletedImageIds.includes(String(img._id)))
-        .map((img: any) => img.url)
-        .filter(Boolean);
+        .filter((img: { _id: string; storageRef?: string; url?: string }) =>
+          !deletedImageIds.includes(String(img._id))
+        )
+        .map((img: { storageRef?: string; url?: string }) => img.storageRef ?? img.url)
+        .filter((ref): ref is string => typeof ref === "string" && isPersistableImageRef(ref))
+        .map((ref) => ref.trim());
 
       if (newImageFiles.length > 0 || deletedImageIds.length > 0) {
         const uploadedImageIds = await Promise.all(
@@ -148,7 +151,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
       await updateVehicle({
         token,
         vehicleId,
-        updates,
+        updates: updates as Parameters<typeof updateVehicle>[0]["updates"],
       });
 
       toast({
@@ -157,11 +160,15 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
       });
 
       router.push("/vendor/vehicles");
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = getMutationErrorMessage(
+        error,
+        "Failed to update vehicle. Please try again."
+      );
       console.error("Error updating vehicle:", error);
       toast({
         title: "Error",
-        description: "Failed to update vehicle. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {

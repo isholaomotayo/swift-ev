@@ -40,7 +40,7 @@ import {
   cn,
 } from "@/lib/utils";
 import Link from "next/link";
-import Image from "next/image";
+import { RemoteImage } from "@/components/ui/remote-image";
 import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
 
 interface Bid {
@@ -157,7 +157,7 @@ export function VehicleDetailClient({
       <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden bg-muted">
         {heroImageUrl ? (
           <>
-            <Image
+            <RemoteImage
               src={heroImageUrl}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               fill

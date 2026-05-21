@@ -15,7 +15,7 @@ type TaggedUploadFile = File & {
 };
 
 export default function VehicleUploadPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +40,7 @@ export default function VehicleUploadPage() {
   };
 
   const handleSubmit = async (formData: any, files: File[], _deletedImageIds: string[]) => {
-    if (!user) {
+    if (!user || !token) {
       toast({
         title: "Error",
         description: "You must be logged in to upload vehicles",
@@ -52,10 +52,6 @@ export default function VehicleUploadPage() {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("autoexports_token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
 
       const taggedFiles = files as TaggedUploadFile[];
       const imageFiles = taggedFiles.filter(
@@ -65,10 +61,6 @@ export default function VehicleUploadPage() {
         taggedFiles.find((file) => file.__mediaRole === "inspection_report") || null;
       const videoWalkthroughFile =
         taggedFiles.find((file) => file.__mediaRole === "video_walkthrough") || null;
-
-      if (!videoWalkthroughFile) {
-        throw new Error("A walkthrough video is required before submission.");
-      }
 
       const mediaUploads = await Promise.all(
         imageFiles.map(async (file) => ({
@@ -81,7 +73,9 @@ export default function VehicleUploadPage() {
       const inspectionReportStorageId = inspectionReportFile
         ? await uploadFileToStorage(token, inspectionReportFile)
         : undefined;
-      const videoWalkthroughStorageId = await uploadFileToStorage(token, videoWalkthroughFile);
+      const videoWalkthroughStorageId = videoWalkthroughFile
+        ? await uploadFileToStorage(token, videoWalkthroughFile)
+        : undefined;
 
       await createVehicle({
         token,
@@ -89,7 +83,7 @@ export default function VehicleUploadPage() {
           ...formData,
           mediaUploads,
           inspectionReportStorageId,
-          videoWalkthroughStorageId,
+          ...(videoWalkthroughStorageId ? { videoWalkthroughStorageId } : {}),
         },
       });
 

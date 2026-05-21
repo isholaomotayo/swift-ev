@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { RemoteImage } from "@/components/ui/remote-image";
 import Link from "next/link";
 import { Heart, Zap, Battery, Timer } from "lucide-react";
 import {
@@ -75,7 +75,7 @@ export function VehicleCard({
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {heroImage ? (
-          <Image
+          <RemoteImage
             src={heroImage}
             alt={`${year} ${make} ${model}`}
             fill

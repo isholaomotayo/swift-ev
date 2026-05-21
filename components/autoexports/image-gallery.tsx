@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { RemoteImage } from "@/components/ui/remote-image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -61,7 +61,7 @@ export function ImageGallery({
       <div className={cn("space-y-4", className)} onKeyDown={handleKeyDown} tabIndex={0}>
         {/* Main Image Display */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted group">
-          <Image
+          <RemoteImage
             src={currentImage.url}
             alt={currentImage.alt}
             fill
@@ -125,7 +125,7 @@ export function ImageGallery({
                 )}
                 aria-label={`View image ${index + 1}`}
               >
-                <Image
+                <RemoteImage
                   src={image.url}
                   alt={image.alt}
                   fill
@@ -152,7 +152,7 @@ export function ImageGallery({
       <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-carbon-black/95 border-none">
           <div className="relative w-full h-[95vh]">
-            <Image
+            <RemoteImage
               src={currentImage.url}
               alt={currentImage.alt}
               fill

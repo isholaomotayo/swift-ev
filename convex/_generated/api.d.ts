@@ -26,6 +26,7 @@ import type * as http from "../http.js";
 import type * as kyc from "../kyc.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_flutterwave from "../lib/flutterwave.js";
+import type * as lib_orders from "../lib/orders.js";
 import type * as logistics from "../logistics.js";
 import type * as mailRouting from "../mailRouting.js";
 import type * as orders from "../orders.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   kyc: typeof kyc;
   "lib/auth": typeof lib_auth;
   "lib/flutterwave": typeof lib_flutterwave;
+  "lib/orders": typeof lib_orders;
   logistics: typeof logistics;
   mailRouting: typeof mailRouting;
   orders: typeof orders;

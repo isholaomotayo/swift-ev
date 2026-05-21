@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
+import { revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
@@ -141,6 +142,8 @@ export function VehicleForm({
 
   // Categorized image uploads
   const [categoryImages, setCategoryImages] = useState<Record<string, File | null>>({});
+  const [categoryPreviewUrls, setCategoryPreviewUrls] = useState<Record<string, string>>({});
+  const categoryPreviewUrlsRef = useRef<Record<string, string>>({});
   const [inspectionReport, setInspectionReport] = useState<File | null>(null);
   const [videoWalkthrough, setVideoWalkthrough] = useState<File | null>(null);
   const isEditMode = initialImages.length > 0;
@@ -157,6 +160,17 @@ export function VehicleForm({
   };
 
   const handleCategoryUpload = (category: string, file: File | null) => {
+    setCategoryPreviewUrls((prev) => {
+      revokeBlobPreviewUrl(prev[category]);
+      const next = { ...prev };
+      if (file) {
+        next[category] = URL.createObjectURL(file);
+      } else {
+        delete next[category];
+      }
+      categoryPreviewUrlsRef.current = next;
+      return next;
+    });
     setCategoryImages((prev) => ({ ...prev, [category]: file }));
     const role: UploadRole = REQUIRED_IMAGE_CATEGORIES.includes(category as (typeof REQUIRED_IMAGE_CATEGORIES)[number])
       ? "required_image"
@@ -165,6 +179,22 @@ export function VehicleForm({
       (img) => img.__category === category,
       file ? tagFile(file, role, category) : null
     );
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(categoryPreviewUrlsRef.current).forEach((url) => {
+        revokeBlobPreviewUrl(url);
+      });
+    };
+  }, []);
+
+  const handleCategoryInputChange = (
+    category: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    handleCategoryUpload(category, event.target.files?.[0] || null);
+    event.currentTarget.value = "";
   };
 
   const handleInspectionUpload = (file: File | null) => {
@@ -185,15 +215,13 @@ export function VehicleForm({
 
   const requiredPhotosUploaded = REQUIRED_IMAGE_CATEGORIES.every((cat) => !!categoryImages[cat]);
   const hasExistingRequiredPhotoCoverage = existingImages.length >= REQUIRED_IMAGE_CATEGORIES.length;
-  const requiresWalkthroughVideo = !isEditMode;
-  const hasRequiredWalkthroughVideo = !requiresWalkthroughVideo || !!videoWalkthrough;
 
   // In edit mode, if they have any existing image OR any new image uploaded, it's valid enough.
   // We relax the strict validation for updates as long as there is at least one image overall.
   const hasAnyImage = existingImages.length > 0 || Object.values(categoryImages).some((img) => !!img);
   const allRequiredUploaded = isEditMode
     ? hasAnyImage
-    : ((requiredPhotosUploaded || hasExistingRequiredPhotoCoverage) && hasRequiredWalkthroughVideo);
+    : requiredPhotosUploaded || hasExistingRequiredPhotoCoverage;
 
   const steps: UploadStep[] = ["basic", "specs", "condition", "pricing", "images"];
   const stepTitles: Record<UploadStep, string> = {
@@ -727,7 +755,7 @@ export function VehicleForm({
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl font-semibold mb-4">Vehicle Media</h2>
             <p className="text-sm text-muted-foreground">
-              Upload photos for each required angle{requiresWalkthroughVideo ? " and one walkthrough video" : ""}. All <span className="text-error-red font-semibold">Required</span> items must be filled before submitting.
+              Upload photos for each required angle. A walkthrough video is optional. All <span className="text-error-red font-semibold">Required</span> photo categories must be filled before submitting.
             </p>
 
             {/* Existing Images (edit mode) */}
@@ -764,9 +792,13 @@ export function VehicleForm({
                         <Label className="text-sm font-medium">{category}</Label>
                         <span className="text-xs text-error-red font-bold">Required</span>
                       </div>
-                      {file ? (
+                      {file && categoryPreviewUrls[category] ? (
                         <div className="relative group">
-                          <img src={URL.createObjectURL(file)} alt={category} className="w-full h-28 object-cover rounded-lg" />
+                          <img
+                            src={categoryPreviewUrls[category]}
+                            alt={category}
+                            className="w-full h-28 object-cover rounded-lg"
+                          />
                           <button
                             type="button"
                             onClick={() => handleCategoryUpload(category, null)}
@@ -779,7 +811,7 @@ export function VehicleForm({
                         <label htmlFor={inputId} className="flex flex-col items-center justify-center h-28 border border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
                           <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Click to upload</span>
-                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryUpload(category, e.target.files?.[0] || null)} />
+                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryInputChange(category, e)} />
                         </label>
                       )}
                     </div>
@@ -801,9 +833,13 @@ export function VehicleForm({
                         <Label className="text-sm font-medium">{category}</Label>
                         <span className="text-xs text-muted-foreground">Optional</span>
                       </div>
-                      {file ? (
+                      {file && categoryPreviewUrls[category] ? (
                         <div className="relative group">
-                          <img src={URL.createObjectURL(file)} alt={category} className="w-full h-28 object-cover rounded-lg" />
+                          <img
+                            src={categoryPreviewUrls[category]}
+                            alt={category}
+                            className="w-full h-28 object-cover rounded-lg"
+                          />
                           <button type="button" onClick={() => handleCategoryUpload(category, null)} className="absolute top-1 right-1 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                             <X className="w-3 h-3" />
                           </button>
@@ -812,7 +848,7 @@ export function VehicleForm({
                         <label htmlFor={inputId} className="flex flex-col items-center justify-center h-28 border border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
                           <Upload className="w-6 h-6 text-muted-foreground mb-1" />
                           <span className="text-xs text-muted-foreground">Click to upload</span>
-                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryUpload(category, e.target.files?.[0] || null)} />
+                          <input id={inputId} type="file" className="hidden" accept="image/*" onChange={(e) => handleCategoryInputChange(category, e)} />
                         </label>
                       )}
                     </div>
@@ -825,11 +861,9 @@ export function VehicleForm({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Video Walkthrough</Label>
-                <span className={`text-xs font-bold ${requiresWalkthroughVideo ? "text-error-red" : "text-muted-foreground"}`}>
-                  {requiresWalkthroughVideo ? "Required" : "Optional"}
-                </span>
+                <span className="text-xs text-muted-foreground">Optional</span>
               </div>
-              <div className={`border-2 rounded-xl p-3 transition-colors ${videoWalkthrough ? "border-volt-green/60 bg-volt-green/5" : requiresWalkthroughVideo ? "border-dashed border-error-red/40 bg-error-red/5" : "border-dashed border-border"}`}>
+              <div className={`border-2 rounded-xl p-3 transition-colors ${videoWalkthrough ? "border-volt-green/60 bg-volt-green/5" : "border-dashed border-border"}`}>
                 {videoWalkthrough ? (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground truncate">{videoWalkthrough.name}</span>
@@ -873,7 +907,7 @@ export function VehicleForm({
 
             {!allRequiredUploaded && (
               <p className="text-sm text-error-red font-medium">
-                Please upload all required photos{requiresWalkthroughVideo ? " and the walkthrough video" : ""} before submitting.
+                Please upload all required photos before submitting.
               </p>
             )}
           </div>

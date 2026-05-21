@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { RemoteImage } from "@/components/ui/remote-image";
 import { ChevronLeft, ChevronRight, Car, Armchair, Settings, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ export function ImageCarousel({ images, vehicleName }: ImageCarouselProps) {
             {/* Main Image */}
             <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl border border-border/50 group">
                 {currentImage ? (
-                    <Image
+                    <RemoteImage
                         src={currentImage.url}
                         alt={`${vehicleName} - ${activeCategory}`}
                         fill
@@ -157,7 +157,7 @@ export function ImageCarousel({ images, vehicleName }: ImageCarouselProps) {
                                     : "border-transparent opacity-70 hover:opacity-100"
                             )}
                         >
-                            <Image
+                            <RemoteImage
                                 src={img.url}
                                 alt={`Thumbnail ${index + 1}`}
                                 fill

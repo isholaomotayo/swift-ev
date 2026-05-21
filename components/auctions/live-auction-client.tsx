@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatLotNumber, formatVIN, cn } from "@/lib/utils";
 import Link from "next/link";
-import Image from "next/image";
+import { RemoteImage } from "@/components/ui/remote-image";
 import { ImageCarousel } from "@/components/ui/image-carousel";
 
 interface LiveAuctionClientProps {
@@ -379,7 +379,9 @@ export function LiveAuctionClient({
                       <Link key={lot._id} href={`/vehicles/${vehicle._id}`} className="min-w-[280px] group">
                         <Card className="p-3 bg-card/40 border-border/50 hover:bg-card hover:border-electric-blue/30 transition-all flex items-center gap-3">
                           <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
-                            {vehicle.images?.[0] && <Image src={vehicle.images[0]} alt="Thumbnail" fill className="object-cover" />}
+                            {vehicle.images?.[0] && (
+                              <RemoteImage src={vehicle.images[0]} alt="Thumbnail" fill className="object-cover" />
+                            )}
                             <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded backdrop-blur-sm">Lot {lot.lotOrder}</div>
                           </div>
                           <div className="min-w-0">

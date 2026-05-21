@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useAuth } from "@/components/providers/auth-provider";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
+import { isPersistableImageRef, revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
+import { RemoteImage } from "@/components/ui/remote-image";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -34,6 +38,11 @@ import { formatCurrency, formatLotNumber } from "@/lib/utils";
 import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS, VEHICLE_MAKES } from "@/lib/constants";
 import { ImageGallery } from "@/components/autoexports/image-gallery";
 
+interface VehicleImageRef {
+    displayUrl: string;
+    storageRef: string;
+}
+
 interface VehicleActionsModalProps {
     vehicle: any;
     mode: "view" | "edit";
@@ -48,122 +57,159 @@ export function VehicleActionsModal({
     onClose,
 }: VehicleActionsModalProps) {
     const { toast } = useToast();
+    const { token } = useAuth();
+    const convex = useConvex();
     const updateVehicle = useMutation(api.vehicles.updateVehicle);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
 
+    const vehicleDetail = useQuery(
+        api.vehicles.getVehicleById,
+        mode === "edit" && isOpen && vehicle?._id
+            ? { vehicleId: vehicle._id as Id<"vehicles"> }
+            : "skip"
+    );
+
     // Form State
     const [formData, setFormData] = useState<any>({});
 
-    // Image State for Edit Mode
-    const [imageUrls, setImageUrls] = useState<string[]>([]);
+    // Image state: display URL for preview, storageRef for persistence
+    const [imageRefs, setImageRefs] = useState<VehicleImageRef[]>([]);
+    const [imagesDirty, setImagesDirty] = useState(false);
     const [newImageInput, setNewImageInput] = useState("");
+
+    const sourceVehicle = vehicleDetail ?? vehicle;
 
     // Initialize form data when vehicle changes
     useEffect(() => {
-        if (vehicle) {
-            setFormData({
-                make: vehicle.make,
-                model: vehicle.model,
-                year: vehicle.year,
-                vin: vehicle.vin,
-                lotNumber: vehicle.lotNumber,
-                odometer: vehicle.odometer,
-                exteriorColor: vehicle.exteriorColor,
-                interiorColor: vehicle.interiorColor,
-                batteryCapacity: vehicle.batteryCapacity,
-                batteryHealthPercent: vehicle.batteryHealthPercent,
-                estimatedRange: vehicle.estimatedRange,
-                batteryType: vehicle.batteryType,
-                chargingType: vehicle.chargingType || [],
-                motorPower: vehicle.motorPower,
-                condition: vehicle.condition,
-                damageDescription: vehicle.damageDescription,
-                startingBid: vehicle.startingBid,
-                reservePrice: vehicle.reservePrice,
-                buyItNowPrice: vehicle.buyItNowPrice,
-                locationCity: vehicle.currentLocation?.city,
-                locationState: vehicle.currentLocation?.state, // Assuming state might be added or just placeholder
-                locationCountry: vehicle.currentLocation?.country,
-                status: vehicle.status,
-            });
-            // Extract existing image URLs
-            if (vehicle.images) {
-                setImageUrls(vehicle.images.map((img: any) => img.url));
-            } else {
-                setImageUrls([]);
-            }
+        if (!sourceVehicle) return;
+
+        setFormData({
+            make: sourceVehicle.make,
+            model: sourceVehicle.model,
+            year: sourceVehicle.year,
+            vin: sourceVehicle.vin,
+            lotNumber: sourceVehicle.lotNumber,
+            odometer: sourceVehicle.odometer,
+            exteriorColor: sourceVehicle.exteriorColor,
+            interiorColor: sourceVehicle.interiorColor,
+            batteryCapacity: sourceVehicle.batteryCapacity,
+            batteryHealthPercent: sourceVehicle.batteryHealthPercent,
+            estimatedRange: sourceVehicle.estimatedRange,
+            batteryType: sourceVehicle.batteryType,
+            chargingType: sourceVehicle.chargingType || [],
+            motorPower: sourceVehicle.motorPower,
+            condition: sourceVehicle.condition,
+            damageDescription: sourceVehicle.damageDescription,
+            startingBid: sourceVehicle.startingBid,
+            reservePrice: sourceVehicle.reservePrice,
+            buyItNowPrice: sourceVehicle.buyItNowPrice,
+            locationCity: sourceVehicle.currentLocation?.city,
+            locationCountry: sourceVehicle.currentLocation?.country,
+            status: sourceVehicle.status,
+        });
+
+        if (sourceVehicle.images?.length) {
+            setImageRefs(
+                sourceVehicle.images
+                    .map((img: { url: string; storageRef?: string }) => {
+                        const storageRef = img.storageRef ?? img.url;
+                        if (!isPersistableImageRef(storageRef)) return null;
+                        return {
+                            displayUrl: img.url,
+                            storageRef,
+                        };
+                    })
+                    .filter((ref: VehicleImageRef | null): ref is VehicleImageRef => ref !== null)
+            );
+        } else {
+            setImageRefs([]);
         }
-    }, [vehicle]);
+        setImagesDirty(false);
+    }, [sourceVehicle]);
 
     const handleInputChange = (field: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
     };
 
     const handleAddImage = () => {
-        if (newImageInput) {
-            setImageUrls(prev => [...prev, newImageInput]);
-            setNewImageInput("");
-        }
-    }
+        if (!newImageInput.trim()) return;
+        const url = newImageInput.trim();
+        setImageRefs((prev) => [...prev, { displayUrl: url, storageRef: url }]);
+        setImagesDirty(true);
+        setNewImageInput("");
+    };
 
     const handleRemoveImage = (index: number) => {
-        setImageUrls(prev => prev.filter((_, i) => i !== index));
-    }
+        setImageRefs((prev) => {
+            revokeBlobPreviewUrl(prev[index]?.displayUrl);
+            return prev.filter((_, i) => i !== index);
+        });
+        setImagesDirty(true);
+    };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const token = localStorage.getItem("autoexports_token");
-            if (!token) {
-                toast({
-                    title: "Error",
-                    description: "You must be logged in to upload images",
-                    variant: "destructive",
+        if (!e.target.files?.length) return;
+
+        if (!token) {
+            toast({
+                title: "Error",
+                description: "You must be logged in to upload images",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const files = Array.from(e.target.files);
+        setIsUploading(true);
+        try {
+            const uploaded: VehicleImageRef[] = [];
+            for (const file of files) {
+                const uploadUrl = await generateUploadUrl({ token });
+                const result = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": file.type || "application/octet-stream" },
+                    body: file,
                 });
-                return;
-            }
 
-            setIsUploading(true);
-            try {
-                const urls: string[] = [];
-                for (const file of files) {
-                    const uploadUrl = await generateUploadUrl({ token });
-                    const result = await fetch(uploadUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": file.type || "application/octet-stream" },
-                        body: file,
-                    });
-
-                    if (!result.ok) {
-                        throw new Error(`Upload failed for ${file.name}`);
-                    }
-
-                    const { storageId } = await result.json();
-                    urls.push(String(storageId));
+                if (!result.ok) {
+                    throw new Error(`Upload failed for ${file.name}`);
                 }
-                setImageUrls((prev) => [...prev, ...urls]);
-                toast({
-                    title: "Images Uploaded",
-                    description: "Successfully uploaded new images.",
+
+                const { storageId } = await result.json();
+                const storageRef = String(storageId);
+                const displayUrl =
+                    (await convex.query(api.files.getFileUrl, {
+                        storageId: storageRef as Id<"_storage">,
+                    })) ?? "";
+
+                uploaded.push({
+                    displayUrl,
+                    storageRef,
                 });
-            } catch (err: any) {
-                console.error("Failed to upload images:", err);
-                toast({
-                    title: "Upload Failed",
-                    description: err.message || "There was an error uploading the images.",
-                    variant: "destructive",
-                });
-            } finally {
-                setIsUploading(false);
             }
+            setImageRefs((prev) => [...prev, ...uploaded]);
+            setImagesDirty(true);
+            toast({
+                title: "Images Uploaded",
+                description: "Successfully uploaded new images.",
+            });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "There was an error uploading the images.";
+            console.error("Failed to upload images:", err);
+            toast({
+                title: "Upload Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setIsUploading(false);
         }
     };
 
     const handleSave = async () => {
-        const token = localStorage.getItem("autoexports_token");
         if (!token) {
             toast({
                 title: "Error",
@@ -175,29 +221,58 @@ export function VehicleActionsModal({
 
         try {
             setIsLoading(true);
-            const { lotNumber: _omit, ...formDataWithoutLot } = formData;
+
+            const toNumber = (value: unknown): number | undefined => {
+                if (value === "" || value === null || value === undefined) return undefined;
+                const parsed = Number(value);
+                return Number.isNaN(parsed) ? undefined : parsed;
+            };
+
+            const updates: Record<string, unknown> = {
+                make: formData.make,
+                model: formData.model,
+                year: toNumber(formData.year),
+                vin: formData.vin?.trim() || undefined,
+                odometer: toNumber(formData.odometer),
+                exteriorColor: formData.exteriorColor,
+                interiorColor: formData.interiorColor,
+                batteryCapacity: toNumber(formData.batteryCapacity),
+                batteryHealthPercent: toNumber(formData.batteryHealthPercent),
+                estimatedRange: toNumber(formData.estimatedRange),
+                batteryType: formData.batteryType,
+                chargingType: formData.chargingType,
+                motorPower: toNumber(formData.motorPower),
+                condition: formData.condition,
+                damageDescription: formData.damageDescription,
+                startingBid: toNumber(formData.startingBid),
+                reservePrice: toNumber(formData.reservePrice),
+                buyItNowPrice: toNumber(formData.buyItNowPrice),
+                status: formData.status,
+                currentLocation: {
+                    facility: sourceVehicle.currentLocation?.facility || "Default Facility",
+                    city: formData.locationCity,
+                    country: formData.locationCountry,
+                },
+            };
+
+            if (imagesDirty) {
+                const persistableRefs = imageRefs
+                    .map((ref) => ref.storageRef.trim())
+                    .filter(isPersistableImageRef);
+
+                if (persistableRefs.length !== imageRefs.length) {
+                    throw new Error(
+                        "Some images were not uploaded to storage. Remove them and upload again."
+                    );
+                }
+
+                updates.imageUrls = persistableRefs;
+            }
+
             await updateVehicle({
                 token,
                 vehicleId: vehicle._id as Id<"vehicles">,
-                updates: {
-                    ...formDataWithoutLot,
-                    currentLocation: {
-                        facility: vehicle.currentLocation?.facility || "Default Facility",
-                        city: formData.locationCity,
-                        country: formData.locationCountry,
-                    },
-                    // Ensure numeric fields are numbers
-                    year: Number(formData.year),
-                    odometer: Number(formData.odometer),
-                    batteryCapacity: Number(formData.batteryCapacity),
-                    batteryHealthPercent: Number(formData.batteryHealthPercent),
-                    estimatedRange: Number(formData.estimatedRange),
-                    motorPower: Number(formData.motorPower),
-                    startingBid: Number(formData.startingBid),
-                    reservePrice: Number(formData.reservePrice),
-                    buyItNowPrice: formData.buyItNowPrice ? Number(formData.buyItNowPrice) : undefined,
-                    imageUrls: imageUrls,
-                },
+                updates: updates as Parameters<typeof updateVehicle>[0]["updates"],
             });
 
             toast({
@@ -205,11 +280,15 @@ export function VehicleActionsModal({
                 description: "The vehicle details have been successfully updated.",
             });
             onClose();
-        } catch (error) {
+        } catch (error: unknown) {
+            const message = getMutationErrorMessage(
+                error,
+                "There was an error updating the vehicle. Please try again."
+            );
             console.error("Failed to update vehicle:", error);
             toast({
                 title: "Update Failed",
-                description: "There was an error updating the vehicle. Please try again.",
+                description: message,
                 variant: "destructive",
             });
         } finally {
@@ -306,7 +385,7 @@ export function VehicleActionsModal({
                                 formData={formData}
                                 handleInputChange={handleInputChange}
                                 activeTab={activeTab}
-                                imageUrls={imageUrls}
+                                imageRefs={imageRefs}
                                 handleRemoveImage={handleRemoveImage}
                                 handleAddImage={handleAddImage}
                                 newImageInput={newImageInput}
@@ -408,7 +487,7 @@ function EditModeContent({
     formData,
     handleInputChange,
     activeTab,
-    imageUrls,
+    imageRefs,
     handleRemoveImage,
     handleAddImage,
     newImageInput,
@@ -419,7 +498,7 @@ function EditModeContent({
     formData: any;
     handleInputChange: any;
     activeTab: string;
-    imageUrls: string[];
+    imageRefs: VehicleImageRef[];
     handleRemoveImage: (index: number) => void;
     handleAddImage: () => void;
     newImageInput: string;
@@ -466,6 +545,8 @@ function EditModeContent({
                     <Select value={formData.status} onValueChange={(v) => handleInputChange("status", v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
                             <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
                             <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
                             <SelectItem value="in_auction">In Auction</SelectItem>
@@ -544,12 +625,24 @@ function EditModeContent({
             <div className="space-y-6">
                 <div>
                     <Label>Current Images</Label>
-                    <p className="text-sm text-muted-foreground mb-4">Manage the vehicle images. Add by URL or upload (simulated).</p>
+                    <p className="text-sm text-muted-foreground mb-4">Manage the vehicle images. Add by URL or upload files.</p>
 
                     <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-                        {imageUrls.map((url, index) => (
+                        {imageRefs.map((ref, index) => (
                             <div key={index} className="relative group aspect-[4/3] rounded-lg overflow-hidden border bg-muted">
-                                <img src={url} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
+                                {ref.displayUrl ? (
+                                    <RemoteImage
+                                        src={ref.displayUrl}
+                                        alt={`Vehicle ${index + 1}`}
+                                        fill
+                                        className="object-cover"
+                                        sizes="200px"
+                                    />
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                        Preview unavailable
+                                    </div>
+                                )}
                                 <button
                                     onClick={() => handleRemoveImage(index)}
                                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"

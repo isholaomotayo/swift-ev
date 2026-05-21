@@ -207,6 +207,11 @@ describe("Auctions", () => {
         expect(result.success).toBe(true);
         expect(result).toHaveProperty("lotId");
         testLotId = result.lotId;
+
+        const vehicle = await client.query(api.vehicles.getVehicleById, {
+          vehicleId,
+        });
+        expect(vehicle?.status).toBe("ready_for_auction");
       }
     });
 

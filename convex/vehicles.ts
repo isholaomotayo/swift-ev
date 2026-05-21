@@ -113,6 +113,8 @@ export const listVehicles = query({
         v.literal("draft"),
         v.literal("pending_approval"),
         v.literal("approved"),
+        v.literal("pending_inspection"),
+        v.literal("ready_for_auction"),
         v.literal("scheduled"),
         v.literal("in_auction"),
         v.literal("sold"),
@@ -395,13 +397,16 @@ export const getVehicleById = query({
 
     const imagesWithUrls = await Promise.all(
       images.map(async (img) => {
-        let url = img.imageUrl;
+        const storageRef =
+          typeof img.imageUrl === "string" ? img.imageUrl : String(img.imageUrl);
+        let url = storageRef;
         if (!url.startsWith("http") && !url.startsWith("/")) {
-          url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+          url = (await ctx.storage.getUrl(img.imageUrl as Id<"_storage">)) || "";
         }
         return {
           _id: img._id,
           url,
+          storageRef,
           alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
           type: img.imageType,
           displayOrder: img.order,
@@ -499,6 +504,17 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
   return lotNumber;
 }
 
+/** Persist storage IDs or legacy static URLs — never ephemeral blob: previews. */
+function normalizeImageRefForStorage(ref: string): string {
+  const trimmed = ref.trim();
+  if (trimmed.startsWith("blob:")) {
+    throw new Error(
+      "An image was not uploaded to storage. Remove it and upload again before saving."
+    );
+  }
+  return trimmed;
+}
+
 async function checkDuplicateVin(ctx: MutationCtx, vin?: string, excludeVehicleId?: Id<"vehicles">) {
   if (!vin) return;
   const existingVIN = await ctx.db
@@ -572,7 +588,7 @@ export const createVehicle = mutation({
         })
       ),
       inspectionReportStorageId: v.optional(v.string()),
-      videoWalkthroughStorageId: v.string(),
+      videoWalkthroughStorageId: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
@@ -734,13 +750,14 @@ export const createVehicle = mutation({
       });
     }
 
-    // Required walkthrough video is stored as a vehicle document.
-    await ctx.db.insert("vehicleDocuments", {
-      vehicleId,
-      documentType: "bill_of_sale",
-      documentUrl: vehicleData.videoWalkthroughStorageId,
-      uploadedAt: now,
-    });
+    if (vehicleData.videoWalkthroughStorageId) {
+      await ctx.db.insert("vehicleDocuments", {
+        vehicleId,
+        documentType: "bill_of_sale",
+        documentUrl: vehicleData.videoWalkthroughStorageId,
+        uploadedAt: now,
+      });
+    }
 
     return { vehicleId };
   },
@@ -851,25 +868,51 @@ export const updateVehicle = mutation({
     }
 
     // Check for duplicate VIN if it's being updated
-    if (updates.vin !== undefined) {
-      await checkDuplicateVin(ctx, updates.vin, vehicleId);
+    const normalizedVin = updates.vin?.trim();
+    if (normalizedVin) {
+      await checkDuplicateVin(ctx, normalizedVin, vehicleId);
     }
 
     // 1. Update vehicle fields
     // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
-    const { imageUrls, ...vehicleUpdates } = updates;
+    const { imageUrls, ...rawVehicleUpdates } = updates;
 
-    const make = vehicleUpdates.make ?? vehicle.make;
-    const model = vehicleUpdates.model ?? vehicle.model;
-    const vin = vehicleUpdates.vin !== undefined ? vehicleUpdates.vin : (vehicle.vin || "");
+    const validConditions = new Set([
+      "new",
+      "like_new",
+      "excellent",
+      "good",
+      "fair",
+      "salvage",
+    ]);
+
+    const vehicleUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rawVehicleUpdates)) {
+      if (value === undefined) continue;
+      if (key === "condition" && typeof value === "string" && !validConditions.has(value)) {
+        continue;
+      }
+      if (typeof value === "number" && Number.isNaN(value)) continue;
+      if (key === "vin") {
+        vehicleUpdates[key] = normalizedVin || undefined;
+        continue;
+      }
+      vehicleUpdates[key] = value;
+    }
+
+    const make = (vehicleUpdates.make as string | undefined) ?? vehicle.make;
+    const model = (vehicleUpdates.model as string | undefined) ?? vehicle.model;
+    const vin =
+      vehicleUpdates.vin !== undefined ? String(vehicleUpdates.vin) : (vehicle.vin || "");
     const lotNumber = vehicle.lotNumber;
-    const year = vehicleUpdates.year ?? vehicle.year;
-    
+    const year = (vehicleUpdates.year as number | undefined) ?? vehicle.year;
+
     const searchableText = [make, model, vin, lotNumber, year.toString()].join(" ").toLowerCase();
 
     await ctx.db.patch(vehicleId, {
-      ...vehicleUpdates,
+      ...(vehicleUpdates as typeof rawVehicleUpdates),
       searchableText,
+      updatedAt: Date.now(),
     });
 
     // 2. Update images if provided
@@ -886,10 +929,11 @@ export const updateVehicle = mutation({
       const now = Date.now();
       await Promise.all(
         imageUrls.map(async (url, index) => {
+          const imageRef = normalizeImageRefForStorage(url);
           await ctx.db.insert("vehicleImages", {
             vehicleId,
-            imageUrl: url,
-            thumbnailUrl: url,
+            imageUrl: imageRef,
+            thumbnailUrl: imageRef,
             imageType: index === 0 ? "hero" : "exterior", // Simple logic for type
             order: index,
             uploadedAt: now,
@@ -897,6 +941,40 @@ export const updateVehicle = mutation({
         })
       );
     }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Admin: Approve a vendor-submitted vehicle.
+ */
+export const approveVehicle = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    const isAdmin = user.role === "admin" || user.role === "superadmin";
+
+    if (!isAdmin) {
+      throw new Error("Only admins can approve vehicles");
+    }
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    if (vehicle.status !== "pending_approval") {
+      throw new Error("Only pending approval vehicles can be approved");
+    }
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "approved",
+      updatedAt: Date.now(),
+    });
 
     return { success: true };
   },

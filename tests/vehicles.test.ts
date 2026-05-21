@@ -369,6 +369,125 @@ describe("Vehicles", () => {
     });
   });
 
+  describe("approveVehicle", () => {
+    const buildPendingVehicleData = (suffix: string) => ({
+      make: "Tesla",
+      model: "Model 3",
+      year: 2023,
+      vin: `APPROVE${suffix}`.slice(0, 17),
+      lotNumber: `APPROVE-${suffix}`,
+      odometer: 15000,
+      exteriorColor: "Red",
+      interiorColor: "Black",
+      batteryCapacity: 75,
+      batteryHealthPercent: 95,
+      range: 400,
+      batteryType: "Lithium-ion",
+      chargingTypes: ["AC", "DC"],
+      motorPower: 283,
+      condition: "excellent",
+      damageDescription: "No damage",
+      locationCity: "Lagos",
+      locationState: "Lagos",
+      locationCountry: "Nigeria",
+      startingBid: 5000000,
+      reservePrice: 6000000,
+      mediaUploads: [
+        { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
+        { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
+        { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
+        { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+      ],
+      videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
+    });
+
+    test("admin can approve a pending vehicle", async () => {
+      const suffix = `${Date.now()}-A`;
+      const created = await client.mutation(api.vehicles.createVehicle, {
+        token: vendorToken,
+        vehicleData: buildPendingVehicleData(suffix),
+      });
+
+      const result = await client.mutation(api.vehicles.approveVehicle, {
+        token: adminToken,
+        vehicleId: created.vehicleId,
+      });
+
+      expect(result).toEqual({ success: true });
+
+      const vehicle = await client.query(api.vehicles.getVehicleById, {
+        vehicleId: created.vehicleId,
+      });
+      expect(vehicle?.status).toBe("approved");
+    });
+
+    test("vendor cannot approve a vehicle", async () => {
+      const suffix = `${Date.now()}-V`;
+      const created = await client.mutation(api.vehicles.createVehicle, {
+        token: vendorToken,
+        vehicleData: buildPendingVehicleData(suffix),
+      });
+
+      await expect(
+        client.mutation(api.vehicles.approveVehicle, {
+          token: vendorToken,
+          vehicleId: created.vehicleId,
+        })
+      ).rejects.toThrow("Only admins can approve vehicles");
+    });
+
+    test("admin cannot approve a vehicle that is not pending approval", async () => {
+      const suffix = `${Date.now()}-D`;
+      const created = await client.mutation(api.vehicles.createVehicle, {
+        token: vendorToken,
+        vehicleData: buildPendingVehicleData(suffix),
+      });
+
+      await client.mutation(api.vehicles.approveVehicle, {
+        token: adminToken,
+        vehicleId: created.vehicleId,
+      });
+
+      await expect(
+        client.mutation(api.vehicles.approveVehicle, {
+          token: adminToken,
+          vehicleId: created.vehicleId,
+        })
+      ).rejects.toThrow("Only pending approval vehicles can be approved");
+    });
+  });
+
+  describe("updateVehicle", () => {
+    test("vendor can update vehicle with legacy image URLs", async () => {
+      if (!testVehicleId) {
+        const listResult = await client.query(api.vehicles.listVehicles, {
+          page: 0,
+          limit: 1,
+        });
+        if (listResult.vehicles.length === 0) return;
+        testVehicleId = listResult.vehicles[0]._id;
+      }
+
+      const result = await client.mutation(api.vehicles.updateVehicle, {
+        token: vendorToken,
+        vehicleId: testVehicleId as any,
+        updates: {
+          exteriorColor: "Blue",
+          imageUrls: ["https://example.com/updated-hero.jpg"],
+        },
+      });
+
+      expect(result).toEqual({ success: true });
+
+      const vehicle = await client.query(api.vehicles.getVehicleById, {
+        vehicleId: testVehicleId as any,
+      });
+      expect(vehicle?.exteriorColor).toBe("Blue");
+      expect(vehicle?.images?.[0]?.storageRef).toBe("https://example.com/updated-hero.jpg");
+    });
+
+  });
+
   describe("getVendorStats", () => {
     test("vendor can get their statistics", async () => {
       const stats = await client.query(api.vehicles.getVendorStats, {

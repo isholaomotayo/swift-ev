@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Generate an upload URL for client-side file upload
@@ -40,12 +41,14 @@ export const getFileUrl = query({
     storageId: v.union(v.string(), v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    // Handle legacy string URLs
     if (typeof args.storageId === "string") {
-      return args.storageId;
+      const ref = args.storageId;
+      if (ref.startsWith("http") || ref.startsWith("/")) {
+        return ref;
+      }
+      return (await ctx.storage.getUrl(ref as Id<"_storage">)) ?? null;
     }
 
-    // Get Convex storage URL
     return await ctx.storage.getUrl(args.storageId);
   },
 });
@@ -62,7 +65,10 @@ export const getFileUrls = query({
     const urls = await Promise.all(
       args.storageIds.map(async (storageId) => {
         if (typeof storageId === "string") {
-          return storageId;
+          if (storageId.startsWith("http") || storageId.startsWith("/")) {
+            return storageId;
+          }
+          return (await ctx.storage.getUrl(storageId as Id<"_storage">)) ?? null;
         }
         return await ctx.storage.getUrl(storageId);
       })
