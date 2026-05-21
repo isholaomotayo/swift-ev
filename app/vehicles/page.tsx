@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -63,10 +64,23 @@ export default async function VehiclesPage() {
             </p>
           </div>
 
-          <VehiclesListClient
-            initialFilterOptions={initialFilterOptions}
-            initialVehicleData={initialVehicleData}
-          />
+          <Suspense
+            fallback={
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-96 bg-background rounded-lg animate-pulse"
+                  />
+                ))}
+              </div>
+            }
+          >
+            <VehiclesListClient
+              initialFilterOptions={initialFilterOptions}
+              initialVehicleData={initialVehicleData}
+            />
+          </Suspense>
         </div>
       </main>
       <Footer />

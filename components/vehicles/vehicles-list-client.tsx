@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import { VehicleCard } from "@/components/autoexports/vehicle-card";
@@ -45,6 +45,7 @@ export function VehiclesListClient({
   initialVehicleData,
 }: VehiclesListClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -55,6 +56,10 @@ export function VehiclesListClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [currentPage, setCurrentPage] = useState(0);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("search") ?? "");
+  }, [searchParams]);
 
   const queryParams = useMemo(
     () => ({

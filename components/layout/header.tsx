@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search, Globe, Zap } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,20 @@ import * as m from "@/src/paraglide/messages.js";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, isAuthenticated, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   const isNavLinkActive = (href: string) => pathname === href;
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    router.push(`/vehicles?search=${encodeURIComponent(trimmed)}`);
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md dark:bg-brand-primary/95 dark:border-white/10">
@@ -68,14 +78,19 @@ export function Header() {
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center group/search relative">
-            <Search className="absolute left-3 h-4 w-4 text-slate-400 dark:text-slate-500 group-focus-within/search:text-brand-primary dark:group-focus-within/search:text-brand-gold" />
+          <form
+            onSubmit={handleSearchSubmit}
+            className="hidden md:flex items-center group/search relative"
+          >
+            <Search className="absolute left-3 h-4 w-4 text-slate-400 dark:text-slate-500 group-focus-within/search:text-brand-primary dark:group-focus-within/search:text-brand-gold pointer-events-none" />
             <Input
               type="search"
               placeholder={m.nav_search_vin_or_model()}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               className="w-48 focus:w-72 pl-10 pr-4 h-11 text-sm bg-slate-100 text-slate-700 placeholder:text-slate-500 border-transparent focus:bg-white focus:text-brand-primary focus:border-slate-300 transition-all duration-300 rounded-lg dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:bg-white/10 dark:focus:text-white dark:focus:border-white/20"
             />
-          </div>
+          </form>
 
           <LanguageSwitcher />
           <ThemeToggle />
@@ -200,6 +215,16 @@ export function Header() {
         <div className="fixed inset-0 top-20 z-50 bg-white dark:bg-brand-primary animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="container mx-auto px-6 py-12 flex flex-col h-full">
             <div className="space-y-12">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Input
+                  type="search"
+                  placeholder={m.nav_search_vin_or_model()}
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="h-14 pl-12 text-lg rounded-xl border-2 border-slate-200 dark:border-white/10"
+                />
+              </form>
               <div className="flex flex-col gap-6">
                 {[
                   { href: "/vehicles", label: m.nav_inventory() },
