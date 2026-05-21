@@ -35,16 +35,9 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Inventory view: exclude vehicles that are actively in auction or already sold
-  const inventoryVehicles = useMemo(() => {
-    return initialVehicles.filter(
-      (v) => v.status !== "in_auction" && v.status !== "sold"
-    );
-  }, [initialVehicles]);
-
   // Apply filters
   const filteredVehicles = useMemo(() => {
-    return inventoryVehicles.filter((vehicle) => {
+    return initialVehicles.filter((vehicle) => {
       const matchesSearch = searchQuery
         ? `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.lotNumber}`
             .toLowerCase()
@@ -56,7 +49,7 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
 
       return matchesSearch && matchesStatus;
     });
-  }, [inventoryVehicles, searchQuery, statusFilter]);
+  }, [initialVehicles, searchQuery, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
@@ -65,10 +58,16 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
         label: "Pending Approval",
       },
       approved: { variant: "default", label: "Approved" },
+      scheduled: { variant: "default", label: "Scheduled" },
       in_auction: { variant: "default", label: "In Auction" },
+      payment_pending: { variant: "secondary", label: "Payment Pending" },
       sold: { variant: "default", label: "Sold" },
+      in_transit: { variant: "default", label: "In Transit" },
+      delivered: { variant: "default", label: "Delivered" },
       unsold: { variant: "outline", label: "Unsold" },
+      rejected: { variant: "destructive", label: "Rejected" },
       withdrawn: { variant: "destructive", label: "Withdrawn" },
+      cancelled: { variant: "destructive", label: "Cancelled" },
     };
 
     const config =
@@ -121,9 +120,16 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending_approval">Pending Approval</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="in_auction">In Auction</SelectItem>
+              <SelectItem value="payment_pending">Payment Pending</SelectItem>
               <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="in_transit">In Transit</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="unsold">Unsold</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="withdrawn">Withdrawn</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -198,4 +204,3 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
     </div>
   );
 }
-

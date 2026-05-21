@@ -1,6 +1,18 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth } from "./lib/auth";
+import {
+    assertVehicleStatusTransition,
+    isVehicleStatus,
+    type VehicleStatus,
+} from "./lib/vehicleLifecycle";
+
+function vehicleStatusOf(status: string): VehicleStatus {
+    if (!isVehicleStatus(status)) {
+        throw new Error(`Unknown vehicle status: ${status}`);
+    }
+    return status;
+}
 
 /**
  * Generate a Gate Pass for a fully paid and cleared order.
@@ -100,20 +112,31 @@ export const scanGatePass = mutation({
             throw new Error("Gate Pass has expired");
         }
 
+        const vehicle = await ctx.db.get(pass.vehicleId);
+        if (!vehicle) {
+            throw new Error("Vehicle not found");
+        }
+
+        assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "delivered");
+
+        const now = Date.now();
+
         // Mark as used
         await ctx.db.patch(pass._id, {
             status: "used",
             gateKeeperId: user._id,
-            usedAt: Date.now()
+            usedAt: now
         });
 
-        // Update vehicle/order status?
+        // Update vehicle/order status.
         await ctx.db.patch(pass.orderId, {
             status: "delivered", // Or 'out_for_delivery' if shipping?
-            deliveredAt: Date.now()
+            deliveredAt: now,
+            updatedAt: now
         });
         await ctx.db.patch(pass.vehicleId, {
-            status: "delivered"
+            status: "delivered",
+            updatedAt: now
         });
 
         return { success: true, message: "Gate Pass Validated. Vehicle Released." };

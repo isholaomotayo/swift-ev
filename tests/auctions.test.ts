@@ -207,7 +207,7 @@ describe("Auctions", () => {
         const vehicle = await client.query(api.vehicles.getVehicleById, {
           vehicleId,
         });
-        expect(vehicle?.status).toBe("ready_for_auction");
+        expect(vehicle?.status).toBe("scheduled");
       }
     });
 

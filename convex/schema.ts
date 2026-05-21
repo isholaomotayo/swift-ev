@@ -234,6 +234,7 @@ export default defineSchema({
       v.literal("sold"),
       v.literal("unsold"),
       v.literal("withdrawn"),
+      v.literal("rejected"),
       v.literal("payment_pending"),
       v.literal("in_transit"),
       v.literal("delivered"),

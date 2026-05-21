@@ -397,7 +397,7 @@ export function BidButton({
               </div>
 
               {/* Buy Now Option */}
-              {buyNowEnabled && buyNowPrice && (!status || status === "pending" || status === "approved" || status === "ready_for_auction") && (
+              {buyNowEnabled && buyNowPrice && (!status || status === "pending" || status === "approved") && (
                 <div className="pt-2 border-t mt-2">
                   <Button
                     variant="outline"
@@ -447,7 +447,7 @@ export function BidButton({
                 type="number"
                 placeholder={`Min: ${formatCurrency(quickBidAmount)}`}
                 value={maxBid}
-                onChange={(e) => setCustomBid(e.target.value)}
+                onChange={(e) => setMaxBid(e.target.value)}
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">

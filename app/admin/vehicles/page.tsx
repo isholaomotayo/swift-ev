@@ -26,7 +26,8 @@ export default async function AdminVehiclesPage() {
   let vehiclesData: any = null;
 
   try {
-    vehiclesData = await convex.query(api.vehicles.listVehicles, {
+    vehiclesData = await convex.query(api.vehicles.listVehiclesForAdmin, {
+      token,
       page: 0,
       limit: 50,
     });

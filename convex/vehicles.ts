@@ -2,8 +2,101 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { requireAuth, requireSeller } from "./lib/auth";
+import {
+  createAuditLog,
+  isAdmin as authIsAdmin,
+  requireAdmin,
+  requireAuth,
+  requireSeller,
+} from "./lib/auth";
 import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
+import {
+  assertVehicleStatusTransition,
+  isBuyerVisibleVehicleStatus,
+  isVehicleStatus,
+  type VehicleStatus,
+} from "./lib/vehicleLifecycle";
+import { isAuctionLotHoldingVehicleForPurchase } from "./lib/purchaseFlow";
+
+const vehicleStatusValidator = v.union(
+  v.literal("draft"),
+  v.literal("pending_inspection"),
+  v.literal("pending_approval"),
+  v.literal("approved"),
+  v.literal("ready_for_auction"),
+  v.literal("scheduled"),
+  v.literal("in_auction"),
+  v.literal("payment_pending"),
+  v.literal("sold"),
+  v.literal("unsold"),
+  v.literal("withdrawn"),
+  v.literal("rejected"),
+  v.literal("in_transit"),
+  v.literal("delivered"),
+  v.literal("cancelled")
+);
+
+function vehicleStatusOf(status: string): VehicleStatus {
+  if (!isVehicleStatus(status)) {
+    throw new Error(`Unknown vehicle status: ${status}`);
+  }
+  return status;
+}
+
+function canViewPrivateVehicle(user: Awaited<ReturnType<typeof requireAuth>> | null, vehicle: Doc<"vehicles">) {
+  if (!user) return false;
+  return authIsAdmin(user) || (vehicle.sellerId !== undefined && vehicle.sellerId === user._id);
+}
+
+async function getHoldingAuctionLot(ctx: any, vehicleId: Id<"vehicles">) {
+  return ctx.db
+    .query("auctionLots")
+    .withIndex("by_vehicle", (q: any) => q.eq("vehicleId", vehicleId))
+    .filter((q: any) =>
+      q.or(
+        q.eq(q.field("status"), "pending"),
+        q.eq(q.field("status"), "active")
+      )
+    )
+    .first();
+}
+
+async function getActiveAuctionLot(ctx: any, vehicleId: Id<"vehicles">) {
+  return ctx.db
+    .query("auctionLots")
+    .withIndex("by_vehicle", (q: any) => q.eq("vehicleId", vehicleId))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .first();
+}
+
+async function hydrateVehicleForList(ctx: any, vehicle: Doc<"vehicles">, auctionLot?: Doc<"auctionLots"> | null) {
+  const images = await ctx.db
+    .query("vehicleImages")
+    .withIndex("by_vehicle", (q: any) => q.eq("vehicleId", vehicle._id))
+    .order("asc")
+    .collect();
+
+  const imagesWithUrls = await Promise.all(
+    images.map(async (img: Doc<"vehicleImages">) => {
+      let url = img.imageUrl;
+      if (!url.startsWith("http") && !url.startsWith("/")) {
+        url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+      }
+      return {
+        url,
+        alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        type: img.imageType,
+      };
+    })
+  );
+
+  return {
+    ...vehicle,
+    images: imagesWithUrls,
+    heroImage: imagesWithUrls[0]?.url,
+    auctionLot: auctionLot ?? await getHoldingAuctionLot(ctx, vehicle._id),
+  };
+}
 
 /**
  * Get featured vehicles for homepage
@@ -12,47 +105,17 @@ import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 export const getFeaturedVehicles = query({
   args: {},
   handler: async (ctx) => {
-    const vehicles = await ctx.db
+    const vehicles = (await ctx.db
       .query("vehicles")
       .order("desc")
-      .take(3);
+      .collect())
+      .filter((vehicle) => vehicleStatusOf(vehicle.status) === "in_auction")
+      .slice(0, 3);
 
     // Get images for each vehicle
     const vehiclesWithImages = await Promise.all(
       vehicles.map(async (vehicle) => {
-        const images = await ctx.db
-          .query("vehicleImages")
-          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-          .order("asc")
-          .collect();
-
-        // Get active auction lot if exists
-        const auctionLot = await ctx.db
-          .query("auctionLots")
-          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-          .filter((q) => q.eq(q.field("status"), "active"))
-          .first();
-
-        const imagesWithUrls = await Promise.all(
-          images.map(async (img) => {
-            let url = img.imageUrl;
-            if (!url.startsWith("http") && !url.startsWith("/")) {
-              url = (await ctx.storage.getUrl(url)) || "";
-            }
-            return {
-              url,
-              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-              type: img.imageType,
-            };
-          })
-        );
-
-        return {
-          ...vehicle,
-          images: imagesWithUrls,
-          heroImage: imagesWithUrls[0]?.url,
-          auctionLot,
-        };
+        return hydrateVehicleForList(ctx, vehicle);
       })
     );
 
@@ -108,20 +171,7 @@ export const listVehicles = query({
         v.literal("salvage")
       )
     ),
-    status: v.optional(
-      v.union(
-        v.literal("draft"),
-        v.literal("pending_approval"),
-        v.literal("approved"),
-        v.literal("pending_inspection"),
-        v.literal("ready_for_auction"),
-        v.literal("scheduled"),
-        v.literal("in_auction"),
-        v.literal("sold"),
-        v.literal("unsold"),
-        v.literal("withdrawn")
-      )
-    ),
+    status: v.optional(vehicleStatusValidator),
     page: v.optional(v.number()),
     limit: v.optional(v.number()),
     sortBy: v.optional(
@@ -155,7 +205,7 @@ export const listVehicles = query({
       : ctx.db.query("vehicles");
 
     // Apply filters at the database level
-    const vehicles = await vehiclesQuery.filter((q) => {
+    const vehicles = (await vehiclesQuery.filter((q) => {
       const conditions = [];
       if (make) conditions.push(q.eq(q.field("make"), make));
       if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
@@ -170,7 +220,9 @@ export const listVehicles = query({
         expr = q.and(expr, conditions[i]);
       }
       return expr;
-    }).collect();
+    }).collect()).filter((vehicle) =>
+      isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
+    );
 
     // Get auction lots for price filtering and sorting
     const vehiclesWithLots = await Promise.all(
@@ -227,32 +279,7 @@ export const listVehicles = query({
     // Get images for paginated results
     const vehiclesWithImages = await Promise.all(
       paginatedResults.map(async ({ vehicle, auctionLot }) => {
-        const images = await ctx.db
-          .query("vehicleImages")
-          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-          .order("asc")
-          .collect();
-
-        const imagesWithUrls = await Promise.all(
-          images.map(async (img) => {
-            let url = img.imageUrl;
-            if (!url.startsWith("http") && !url.startsWith("/")) {
-              url = (await ctx.storage.getUrl(url)) || "";
-            }
-            return {
-              url,
-              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-              type: img.imageType,
-            };
-          })
-        );
-
-        return {
-          ...vehicle,
-          images: imagesWithUrls,
-          heroImage: imagesWithUrls[0]?.url,
-          auctionLot,
-        };
+        return hydrateVehicleForList(ctx, vehicle, auctionLot);
       })
     );
 
@@ -266,6 +293,80 @@ export const listVehicles = query({
         hasMore: endIndex < total,
       },
     };
+  },
+});
+
+/**
+ * Admin-only vehicle inventory query. Returns every lifecycle status.
+ */
+export const listVehiclesForAdmin = query({
+  args: {
+    token: v.string(),
+    status: v.optional(vehicleStatusValidator),
+    page: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const page = args.page ?? 0;
+    const limit = args.limit ?? 50;
+    const status = args.status;
+    const vehicles = status
+      ? await ctx.db
+        .query("vehicles")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect()
+      : await ctx.db.query("vehicles").collect();
+
+    vehicles.sort((a, b) => b._creationTime - a._creationTime);
+
+    const startIndex = page * limit;
+    const paginatedVehicles = vehicles.slice(startIndex, startIndex + limit);
+    const vehiclesWithImages = await Promise.all(
+      paginatedVehicles.map((vehicle) => hydrateVehicleForList(ctx, vehicle))
+    );
+
+    return {
+      vehicles: vehiclesWithImages,
+      pagination: {
+        page,
+        limit,
+        total: vehicles.length,
+        totalPages: Math.ceil(vehicles.length / limit),
+        hasMore: startIndex + limit < vehicles.length,
+      },
+    };
+  },
+});
+
+/**
+ * Vendor-only inventory query. Returns the vendor's full lifecycle history.
+ */
+export const getVendorVehicles = query({
+  args: {
+    token: v.string(),
+    status: v.optional(vehicleStatusValidator),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireSeller(user);
+
+    let vehicles = await ctx.db
+      .query("vehicles")
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+      .collect();
+
+    if (args.status) {
+      vehicles = vehicles.filter((vehicle) => vehicle.status === args.status);
+    }
+
+    vehicles.sort((a, b) => b._creationTime - a._creationTime);
+
+    return Promise.all(
+      vehicles.map((vehicle) => hydrateVehicleForList(ctx, vehicle))
+    );
   },
 });
 
@@ -286,13 +387,14 @@ export const searchVehicles = query({
       matchedVehicles = await ctx.db
         .query("vehicles")
         .withSearchIndex("search_text", (q) => q.search("searchableText", term))
-        .take(limit);
+        .take(limit * 5);
 
       // Fallback for existing records that haven't been migrated
       if (matchedVehicles.length === 0) {
         const allVehicles = await ctx.db.query("vehicles").collect();
         matchedVehicles = allVehicles
           .filter((vehicle) => {
+            if (!isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))) return false;
             if (vehicle.searchableText) return false;
             const text = [
               vehicle.make,
@@ -306,44 +408,17 @@ export const searchVehicles = query({
           .slice(0, limit);
       }
     } else {
-      matchedVehicles = await ctx.db.query("vehicles").take(limit);
+      matchedVehicles = await ctx.db.query("vehicles").take(limit * 5);
     }
+
+    matchedVehicles = matchedVehicles
+      .filter((vehicle) => isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status)))
+      .slice(0, limit);
 
     // Get images for matched vehicles
     const vehiclesWithImages = await Promise.all(
       matchedVehicles.map(async (vehicle) => {
-        const images = await ctx.db
-          .query("vehicleImages")
-          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-          .order("asc")
-          .take(1);
-
-        const auctionLot = await ctx.db
-          .query("auctionLots")
-          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-          .filter((q) => q.eq(q.field("status"), "active"))
-          .first();
-
-        const imagesWithUrls = await Promise.all(
-          images.map(async (img) => {
-            let url = img.imageUrl;
-            if (!url.startsWith("http") && !url.startsWith("/")) {
-              url = (await ctx.storage.getUrl(url)) || "";
-            }
-            return {
-              url,
-              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-              type: img.imageType,
-            };
-          })
-        );
-
-        return {
-          ...vehicle,
-          images: imagesWithUrls,
-          heroImage: imagesWithUrls[0]?.url,
-          auctionLot,
-        };
+        return hydrateVehicleForList(ctx, vehicle);
       })
     );
 
@@ -357,11 +432,18 @@ export const searchVehicles = query({
 export const getVehicleById = query({
   args: {
     vehicleId: v.id("vehicles"),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const vehicle = await ctx.db.get(args.vehicleId);
 
     if (!vehicle) {
+      return null;
+    }
+
+    const user = args.token ? await requireAuth(ctx, args.token) : null;
+    const isPubliclyVisible = isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status));
+    if (!isPubliclyVisible && !canViewPrivateVehicle(user, vehicle)) {
       return null;
     }
 
@@ -372,16 +454,21 @@ export const getVehicleById = query({
       .order("asc")
       .collect();
 
-    // Get active auction lot
+    // Get pending or active auction lot. Pending lots allow pre-auction Buy Now.
     const auctionLot = await ctx.db
       .query("auctionLots")
       .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "active")
+        )
+      )
       .first();
 
     // Get bid history if there's an active lot
     let bids: Doc<"bids">[] = [];
-    if (auctionLot) {
+    if (auctionLot && auctionLot.status === "active") {
       bids = await ctx.db
         .query("bids")
         .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", auctionLot._id))
@@ -451,7 +538,9 @@ export const getVehicleById = query({
 export const getFilterOptions = query({
   args: {},
   handler: async (ctx) => {
-    const vehicles = await ctx.db.query("vehicles").collect();
+    const vehicles = (await ctx.db.query("vehicles").collect()).filter((vehicle) =>
+      isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
+    );
 
     // Get unique makes
     const makes = [...new Set(vehicles.map((v) => v.make))].sort();
@@ -459,12 +548,15 @@ export const getFilterOptions = query({
     // Get year range
     const years = vehicles.map((v) => v.year);
     const yearRange = {
-      min: Math.min(...years),
-      max: Math.max(...years),
+      min: years.length > 0 ? Math.min(...years) : 0,
+      max: years.length > 0 ? Math.max(...years) : 0,
     };
 
     // Get price range from auction lots
-    const auctionLots = await ctx.db.query("auctionLots").collect();
+    const visibleVehicleIds = new Set(vehicles.map((vehicle) => vehicle._id));
+    const auctionLots = (await ctx.db.query("auctionLots").collect()).filter((lot) =>
+      visibleVehicleIds.has(lot.vehicleId)
+    );
     const prices = auctionLots.map((lot) => lot.currentBid);
     const priceRange = {
       min: Math.min(...prices, 0),
@@ -578,6 +670,9 @@ export const createVehicle = mutation({
       reservePrice: v.number(),
       buyItNowPrice: v.optional(v.number()),
       buyItNowEnabled: v.optional(v.boolean()),
+      initialStatus: v.optional(
+        v.union(v.literal("pending_approval"), v.literal("approved"))
+      ),
 
       // Structured media uploads
       mediaUploads: v.array(
@@ -617,6 +712,10 @@ export const createVehicle = mutation({
     }
 
     const { vehicleData } = args;
+    const initialStatus = vehicleData.initialStatus ?? "pending_approval";
+    if (initialStatus === "approved" && user.role !== "admin" && user.role !== "superadmin") {
+      throw new Error("Only admins can create pre-approved vehicles");
+    }
 
     // Hard validation to prevent client-side bypass
     const nextYear = new Date().getFullYear() + 1;
@@ -720,9 +819,11 @@ export const createVehicle = mutation({
       reservePrice: vehicleData.reservePrice,
       buyItNowPrice: vehicleData.buyItNowPrice,
       buyItNowEnabled: vehicleData.buyItNowEnabled ?? !!vehicleData.buyItNowPrice,
-      status: "pending_approval",
+      status: initialStatus,
       createdAt: now,
       updatedAt: now,
+      approvedAt: initialStatus === "approved" ? now : undefined,
+      approvedBy: initialStatus === "approved" ? user._id : undefined,
       searchableText,
     });
 
@@ -817,24 +918,7 @@ export const updateVehicle = mutation({
         })
       ),
 
-      status: v.optional(
-        v.union(
-          v.literal("draft"),
-          v.literal("pending_inspection"), // Added missing status
-          v.literal("pending_approval"),
-          v.literal("approved"),
-          v.literal("ready_for_auction"), // Added missing status
-          v.literal("scheduled"),
-          v.literal("in_auction"),
-          v.literal("sold"),
-          v.literal("unsold"),
-          v.literal("withdrawn"),
-          v.literal("payment_pending"), // Added missing status
-          v.literal("in_transit"), // Added missing status
-          v.literal("delivered"), // Added missing status
-          v.literal("cancelled") // Added missing status
-        )
-      ),
+      status: v.optional(vehicleStatusValidator),
       // Images - Optional array of strings (URLs or Storage IDs)
       imageUrls: v.optional(v.array(v.string())),
     }),
@@ -875,7 +959,13 @@ export const updateVehicle = mutation({
 
     // 1. Update vehicle fields
     // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
-    const { imageUrls, ...rawVehicleUpdates } = updates;
+    const { imageUrls, status: requestedStatus, ...rawVehicleUpdates } = updates;
+
+    if (requestedStatus !== undefined && requestedStatus !== vehicle.status) {
+      throw new Error(
+        "Vehicle status changes must use lifecycle mutations or admin override with a reason."
+      );
+    }
 
     const validConditions = new Set([
       "new",
@@ -956,10 +1046,199 @@ export const approveVehicle = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
-    const isAdmin = user.role === "admin" || user.role === "superadmin";
+    requireAdmin(user);
 
-    if (!isAdmin) {
-      throw new Error("Only admins can approve vehicles");
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "approved",
+      approvedAt: Date.now(),
+      approvedBy: user._id,
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "approve_vehicle",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "approved" },
+    });
+
+    return { success: true };
+  },
+});
+
+export const rejectVehicle = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "rejected");
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "rejected",
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "reject_vehicle",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "rejected", reason: args.reason },
+    });
+
+    return { success: true };
+  },
+});
+
+export const withdrawVehicle = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    if (!authIsAdmin(user) && (!vehicle.sellerId || vehicle.sellerId !== user._id)) {
+      throw new Error("You do not have permission to withdraw this vehicle");
+    }
+
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "withdrawn");
+
+    const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
+    if (activeLot) {
+      throw new Error("Cannot withdraw a vehicle while its auction lot is active");
+    }
+
+    const pendingLots = await ctx.db
+      .query("auctionLots")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .collect();
+
+    await Promise.all(pendingLots.map((lot) => ctx.db.patch(lot._id, { status: "passed" })));
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "withdrawn",
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "withdraw_vehicle",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "withdrawn", reason: args.reason },
+    });
+
+    return { success: true };
+  },
+});
+
+export const relistVehicle = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "approved",
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "relist_vehicle",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "approved" },
+    });
+
+    return { success: true };
+  },
+});
+
+export const markVehicleUnsold = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "unsold",
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "mark_vehicle_unsold",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "unsold", reason: args.reason },
+    });
+
+    return { success: true };
+  },
+});
+
+export const overrideVehicleStatus = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+    status: vehicleStatusValidator,
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const reason = args.reason.trim();
+    if (reason.length < 5) {
+      throw new Error("A clear override reason is required");
     }
 
     const vehicle = await ctx.db.get(args.vehicleId);
@@ -967,13 +1246,17 @@ export const approveVehicle = mutation({
       throw new Error("Vehicle not found");
     }
 
-    if (vehicle.status !== "pending_approval") {
-      throw new Error("Only pending approval vehicles can be approved");
-    }
-
     await ctx.db.patch(args.vehicleId, {
-      status: "approved",
+      status: args.status,
       updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "override_vehicle_status",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: args.status, reason },
     });
 
     return { success: true };
@@ -1002,26 +1285,43 @@ export const purchaseVehicleDirectly = mutation({
       throw new Error("Direct purchase is not available for this vehicle");
     }
 
-    if (vehicle.status !== "approved" && vehicle.status !== "ready_for_auction") {
+    if (vehicle.status !== "approved") {
       throw new Error(`Vehicle cannot be purchased directly because it is in status: ${vehicle.status}`);
     }
 
-    // 3. Ensure no active auction lot exists
-    const activeLot = await ctx.db
+    // 3. Ensure no auction lot is currently holding the vehicle
+    const activeOrPendingLot = await ctx.db
       .query("auctionLots")
       .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .filter((q) => q.or(
+        q.eq(q.field("status"), "active"),
+        q.eq(q.field("status"), "pending")
+      ))
       .first();
 
-    if (activeLot) {
-      throw new Error("Vehicle is currently in an active auction. Please purchase through the auction lot.");
+    if (activeOrPendingLot && isAuctionLotHoldingVehicleForPurchase(activeOrPendingLot.status)) {
+      throw new Error("Vehicle is assigned to an auction lot. Please purchase through the auction lot.");
     }
 
-    // 4. Mark vehicle as sold
+    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "payment_pending");
+
+    const existingOrder = (await ctx.db
+      .query("orders")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+      .collect()).find((order) => order.status !== "cancelled" && order.status !== "refunded");
+
+    if (existingOrder) {
+      throw new Error("Vehicle already has an active purchase order");
+    }
+
+    const now = Date.now();
+
+    // 4. Hold vehicle while payment is pending
     await ctx.db.patch(vehicle._id, {
-      status: "sold",
-      buyItNowPurchasedAt: Date.now(),
+      status: "payment_pending",
+      buyItNowPurchasedAt: now,
       buyItNowPurchasedBy: user._id,
+      updatedAt: now,
     });
 
     // 5. Create Order
@@ -1043,9 +1343,9 @@ export const purchaseVehicleDirectly = mutation({
       paidAmount: 0,
       balanceDue: totalAmount,
       status: "pending_payment",
-      paymentDeadline: Date.now() + 7 * 24 * 60 * 60 * 1000,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      paymentDeadline: now + 7 * 24 * 60 * 60 * 1000,
+      createdAt: now,
+      updatedAt: now,
     });
 
     return { success: true, orderId, orderNumber };
@@ -1074,11 +1374,15 @@ export const getVendorStats = query({
     // Calculate stats
     const total = vehicles.length;
     const inAuction = vehicles.filter((v) => v.status === "in_auction").length;
-    const sold = vehicles.filter((v) => v.status === "sold").length;
+    const sold = vehicles.filter((v) =>
+      ["sold", "in_transit", "delivered"].includes(v.status)
+    ).length;
     const pending = vehicles.filter((v) => v.status === "pending_approval").length;
 
     // Calculate revenue from sold vehicles
-    const soldVehicles = vehicles.filter((v) => v.status === "sold");
+    const soldVehicles = vehicles.filter((v) =>
+      ["sold", "in_transit", "delivered"].includes(v.status)
+    );
     let totalRevenue = 0;
 
     // Get auction lots for sold vehicles to find winning bids

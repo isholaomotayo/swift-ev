@@ -2,6 +2,58 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth, requireAdmin, hasOwnershipOrAdmin, createAuditLog } from "./lib/auth";
+import {
+  assertVehicleStatusTransition,
+  getVehicleStatusForOrderStatus,
+  isVehicleStatus,
+  type OrderStatus,
+  type VehicleStatus,
+} from "./lib/vehicleLifecycle";
+
+const orderStatusValidator = v.union(
+  v.literal("pending_payment"),
+  v.literal("payment_partial"),
+  v.literal("payment_complete"),
+  v.literal("processing"),
+  v.literal("shipped"),
+  v.literal("in_transit"),
+  v.literal("customs_clearance"),
+  v.literal("cleared"),
+  v.literal("out_for_delivery"),
+  v.literal("delivered"),
+  v.literal("cancelled"),
+  v.literal("refunded")
+);
+
+function vehicleStatusOf(status: string): VehicleStatus {
+  if (!isVehicleStatus(status)) {
+    throw new Error(`Unknown vehicle status: ${status}`);
+  }
+  return status;
+}
+
+async function syncVehicleStatusFromOrder(
+  ctx: any,
+  order: Doc<"orders">,
+  nextOrderStatus: OrderStatus
+) {
+  const vehicle = await ctx.db.get(order.vehicleId);
+  if (!vehicle) {
+    throw new Error(`Vehicle ${order.vehicleId} not found for order ${order._id}`);
+  }
+
+  const nextVehicleStatus = getVehicleStatusForOrderStatus(nextOrderStatus);
+  if (vehicle.status === nextVehicleStatus) return nextVehicleStatus;
+
+  assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), nextVehicleStatus);
+
+  await ctx.db.patch(order.vehicleId, {
+    status: nextVehicleStatus,
+    updatedAt: Date.now(),
+  });
+
+  return nextVehicleStatus;
+}
 
 /**
  * List all orders with filtering
@@ -10,17 +62,7 @@ import { requireAuth, requireAdmin, hasOwnershipOrAdmin, createAuditLog } from "
 export const listOrders = query({
   args: {
     token: v.string(),
-    status: v.optional(
-      v.union(
-        v.literal("pending_payment"),
-        v.literal("payment_complete"),
-        v.literal("shipped"),
-        v.literal("in_transit"),
-        v.literal("customs_clearance"),
-        v.literal("delivered"),
-        v.literal("cancelled")
-      )
-    ),
+    status: v.optional(orderStatusValidator),
     orderType: v.optional(v.union(v.literal("auction_win"), v.literal("buy_it_now"), v.literal("make_offer"))),
     userId: v.optional(v.id("users")),
     limit: v.optional(v.number()),
@@ -237,15 +279,7 @@ export const updateOrderStatus = mutation({
   args: {
     token: v.string(),
     orderId: v.id("orders"),
-    status: v.union(
-      v.literal("pending_payment"),
-      v.literal("payment_complete"),
-      v.literal("shipped"),
-      v.literal("in_transit"),
-      v.literal("customs_clearance"),
-      v.literal("delivered"),
-      v.literal("cancelled")
-    ),
+    status: orderStatusValidator,
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -261,9 +295,14 @@ export const updateOrderStatus = mutation({
 
     const oldStatus = order.status;
 
+    const nextVehicleStatus = await syncVehicleStatusFromOrder(ctx, order, args.status);
+
     // Update order
     await ctx.db.patch(args.orderId, {
       status: args.status,
+      updatedAt: Date.now(),
+      paidAt: args.status === "payment_complete" ? Date.now() : order.paidAt,
+      deliveredAt: args.status === "delivered" ? Date.now() : order.deliveredAt,
     });
 
     // Create audit log
@@ -272,7 +311,12 @@ export const updateOrderStatus = mutation({
       action: "update_order_status",
       entityType: "order",
       entityId: args.orderId,
-      changes: { oldStatus, newStatus: args.status, notes: args.notes },
+      changes: {
+        oldStatus,
+        newStatus: args.status,
+        vehicleStatus: nextVehicleStatus,
+        notes: args.notes,
+      },
     });
 
     // TODO: Create notification for buyer
@@ -337,12 +381,17 @@ export const addShippingTracking = mutation({
       updatedAt: Date.now(),
     });
 
-    // Update order status if not already shipped
-    if (order.status === "payment_complete" || order.status === "pending_payment") {
-      await ctx.db.patch(args.orderId, {
-        status: "shipped",
-      });
+    if (order.status === "cancelled" || order.status === "refunded" || order.status === "delivered") {
+      throw new Error(`Cannot add shipping tracking to an order in status: ${order.status}`);
     }
+
+    await syncVehicleStatusFromOrder(ctx, order, "shipped");
+
+    // Update order status once tracking is assigned.
+    await ctx.db.patch(args.orderId, {
+      status: "shipped",
+      updatedAt: Date.now(),
+    });
 
     // Create audit log
     await createAuditLog(ctx, {

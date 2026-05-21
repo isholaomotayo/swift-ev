@@ -56,6 +56,12 @@ export function VehicleApprovalsClient({
     );
   };
 
+  const handleRejected = (vehicleId: string) => {
+    setVehicles((currentVehicles) =>
+      currentVehicles.filter((vehicle) => vehicle._id !== vehicleId)
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -139,7 +145,7 @@ export function VehicleApprovalsClient({
                         setIsApprovalModalOpen(true);
                       }}
                     >
-                      Approve
+                      Review
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -154,6 +160,7 @@ export function VehicleApprovalsClient({
         isOpen={isApprovalModalOpen}
         onClose={() => setIsApprovalModalOpen(false)}
         onApproved={handleApproved}
+        onRejected={handleRejected}
       />
     </div>
   );

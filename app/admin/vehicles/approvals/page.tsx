@@ -31,7 +31,8 @@ export default async function AdminVehicleApprovalsPage() {
   } | null = null;
 
   try {
-    vehiclesData = await convex.query(api.vehicles.listVehicles, {
+    vehiclesData = await convex.query(api.vehicles.listVehiclesForAdmin, {
+      token,
       status: "pending_approval",
       page: 0,
       limit: 50,

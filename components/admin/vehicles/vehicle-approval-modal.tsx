@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getMutationErrorMessage } from "@/lib/auth-errors";
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
@@ -27,6 +28,7 @@ interface VehicleApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApproved: (vehicleId: string) => void;
+  onRejected?: (vehicleId: string) => void;
 }
 
 export function VehicleApprovalModal({
@@ -34,11 +36,15 @@ export function VehicleApprovalModal({
   isOpen,
   onClose,
   onApproved,
+  onRejected,
 }: VehicleApprovalModalProps) {
   const { token } = useAuth();
   const { toast } = useToast();
   const approveVehicle = useMutation(api.vehicles.approveVehicle);
+  const rejectVehicle = useMutation(api.vehicles.rejectVehicle);
   const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const handleApprove = async () => {
     if (!token || !vehicle?._id) {
@@ -75,6 +81,45 @@ export function VehicleApprovalModal({
       });
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!token || !vehicle?._id) {
+      toast({
+        title: "Rejection Failed",
+        description: "You must be logged in as an admin to reject vehicles.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+      await rejectVehicle({
+        token,
+        vehicleId: vehicle._id as Id<"vehicles">,
+        reason: rejectionReason || undefined,
+      });
+
+      toast({
+        title: "Vehicle Rejected",
+        description: `${vehicle.year} ${vehicle.make} ${vehicle.model} was moved to rejected.`,
+      });
+      onRejected?.(vehicle._id);
+      onClose();
+    } catch (error) {
+      const message = getMutationErrorMessage(
+        error,
+        "There was an error rejecting this vehicle. Please try again."
+      );
+      toast({
+        title: "Rejection Failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -130,13 +175,28 @@ export function VehicleApprovalModal({
             Approving this vehicle changes its status from Pending Approval to Approved. It will
             become Ready for Auction only after it is added to an auction.
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rejectionReason">Rejection Reason</Label>
+            <Textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(event) => setRejectionReason(event.target.value)}
+              rows={3}
+              placeholder="Optional internal reason for rejection"
+            />
+          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isApproving}>
+          <Button variant="outline" onClick={onClose} disabled={isApproving || isRejecting}>
             Cancel
           </Button>
-          <Button onClick={handleApprove} disabled={isApproving}>
+          <Button variant="destructive" onClick={handleReject} disabled={isApproving || isRejecting}>
+            {isRejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Reject
+          </Button>
+          <Button onClick={handleApprove} disabled={isApproving || isRejecting}>
             {isApproving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Approve Vehicle
           </Button>

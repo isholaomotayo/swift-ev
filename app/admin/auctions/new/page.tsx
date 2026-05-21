@@ -44,7 +44,7 @@ export default function CreateAuctionPage() {
   const [description, setDescription] = useState("");
   const [auctionType, setAuctionType] = useState<"live" | "timed">("live");
   const [scheduledStart, setScheduledStart] = useState("");
-  const [defaultLotDuration, setDefaultLotDuration] = useState("300000"); // 5 min
+  const [defaultLotDuration, setDefaultLotDuration] = useState("5");
 
   // Step 2: Vehicle Selection
   const [selectedVehicles, setSelectedVehicles] = useState<Set<Id<"vehicles">>>(new Set());
@@ -54,11 +54,12 @@ export default function CreateAuctionPage() {
 
   // Fetch available vehicles
   const vehicles = useQuery(
-    api.vehicles.listVehicles,
-    {
+    api.vehicles.listVehiclesForAdmin,
+    token ? {
+      token,
       status: "approved",
       limit: 100,
-    }
+    } : "skip"
   );
 
   // Mutations
@@ -132,8 +133,39 @@ export default function CreateAuctionPage() {
       return;
     }
 
+    const lotDurationMinutes = Number(defaultLotDuration);
+    if (!Number.isFinite(lotDurationMinutes) || lotDurationMinutes <= 0) {
+      toast({
+        title: "Error",
+        description: "Lot duration must be a positive number of minutes",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const configuredLots = Array.from(selectedVehicles)
+      .map((vehicleId) => lotConfigs.get(vehicleId))
+      .filter((config): config is LotConfig => config !== undefined);
+
+    const invalidConfig = configuredLots.find((config) =>
+      config.startingBid < 0 ||
+      config.reservePrice < config.startingBid ||
+      config.bidIncrement <= 0 ||
+      (config.buyItNowPrice !== undefined && config.buyItNowPrice < config.reservePrice)
+    );
+
+    if (invalidConfig) {
+      toast({
+        title: "Error",
+        description: "Review lot pricing: reserve must cover starting bid, buy-now must cover reserve, and increments must be positive.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      const defaultBidIncrement = configuredLots[0]?.bidIncrement ?? 1000;
       // Create auction
       const auction = await createAuction({
         token,
@@ -141,7 +173,7 @@ export default function CreateAuctionPage() {
         description: description || undefined,
         auctionType,
         scheduledStart: new Date(scheduledStart).getTime(),
-        bidIncrement: 100, // Default bid increment
+        bidIncrement: defaultBidIncrement,
       });
 
       // Add lots
@@ -154,7 +186,12 @@ export default function CreateAuctionPage() {
             auctionId: auction.auctionId,
             vehicleId,
             lotOrder: lotOrder++,
-            lotDuration: parseInt(defaultLotDuration) * 60 * 1000, // Convert minutes to milliseconds
+            lotDuration: lotDurationMinutes * 60 * 1000,
+            startingBid: config.startingBid,
+            reservePrice: config.reservePrice,
+            buyItNowPrice: config.buyItNowPrice,
+            bidIncrement: config.bidIncrement,
+            buyItNowEnabled: config.buyItNowPrice !== undefined,
             estimatedStartTime: undefined,
           });
         }
@@ -280,15 +317,16 @@ export default function CreateAuctionPage() {
             </div>
 
             <div>
-              <Label htmlFor="defaultLotDuration">Default Lot Duration (ms)</Label>
+              <Label htmlFor="defaultLotDuration">Default Lot Duration (minutes)</Label>
               <Input
                 id="defaultLotDuration"
                 type="number"
                 value={defaultLotDuration}
                 onChange={(e) => setDefaultLotDuration(e.target.value)}
-                placeholder="300000"
+                placeholder="5"
+                min="1"
               />
-              <p className="text-xs text-gray-500 mt-1">300000 = 5 minutes</p>
+              <p className="text-xs text-gray-500 mt-1">Each lot uses this duration unless changed later.</p>
             </div>
           </div>
         )}

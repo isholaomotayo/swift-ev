@@ -79,9 +79,13 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
       approved: { variant: "default", label: "Approved" },
       pending_inspection: { variant: "secondary", label: "Pending Inspection" },
       ready_for_auction: { variant: "default", label: "Ready for Auction" },
+      scheduled: { variant: "default", label: "Scheduled" },
       in_auction: { variant: "default", label: "In Auction" },
-      sold: { variant: "default", label: "Sold" },
       payment_pending: { variant: "secondary", label: "Payment Pending" },
+      sold: { variant: "default", label: "Sold" },
+      unsold: { variant: "outline", label: "Unsold" },
+      withdrawn: { variant: "destructive", label: "Withdrawn" },
+      rejected: { variant: "destructive", label: "Rejected" },
       in_transit: { variant: "default", label: "In Transit" },
       delivered: { variant: "default", label: "Delivered" },
       cancelled: { variant: "destructive", label: "Cancelled" },
@@ -100,6 +104,14 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
     setVehicles((currentVehicles) =>
       currentVehicles.map((vehicle) =>
         vehicle._id === vehicleId ? { ...vehicle, status: "approved" } : vehicle
+      )
+    );
+  };
+
+  const handleRejected = (vehicleId: string) => {
+    setVehicles((currentVehicles) =>
+      currentVehicles.map((vehicle) =>
+        vehicle._id === vehicleId ? { ...vehicle, status: "rejected" } : vehicle
       )
     );
   };
@@ -149,13 +161,20 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="pending_approval">Pending Approval</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
               <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="in_auction">In Auction</SelectItem>
+              <SelectItem value="payment_pending">Payment Pending</SelectItem>
               <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="unsold">Unsold</SelectItem>
+              <SelectItem value="withdrawn">Withdrawn</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="in_transit">In Transit</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -273,8 +292,8 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
         isOpen={isApprovalModalOpen}
         onClose={() => setIsApprovalModalOpen(false)}
         onApproved={handleApproved}
+        onRejected={handleRejected}
       />
     </div>
   );
 }
-

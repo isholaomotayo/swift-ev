@@ -60,15 +60,18 @@ export function VehicleActionsModal({
     const { token } = useAuth();
     const convex = useConvex();
     const updateVehicle = useMutation(api.vehicles.updateVehicle);
+    const overrideVehicleStatus = useMutation(api.vehicles.overrideVehicleStatus);
     const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
+    const [overrideStatus, setOverrideStatus] = useState("");
+    const [overrideReason, setOverrideReason] = useState("");
 
     const vehicleDetail = useQuery(
         api.vehicles.getVehicleById,
-        mode === "edit" && isOpen && vehicle?._id
-            ? { vehicleId: vehicle._id as Id<"vehicles"> }
+        mode === "edit" && isOpen && vehicle?._id && token
+            ? { vehicleId: vehicle._id as Id<"vehicles">, token }
             : "skip"
     );
 
@@ -110,6 +113,8 @@ export function VehicleActionsModal({
             locationCountry: sourceVehicle.currentLocation?.country,
             status: sourceVehicle.status,
         });
+        setOverrideStatus(sourceVehicle.status || "");
+        setOverrideReason("");
 
         if (sourceVehicle.images?.length) {
             setImageRefs(
@@ -247,7 +252,6 @@ export function VehicleActionsModal({
                 startingBid: toNumber(formData.startingBid),
                 reservePrice: toNumber(formData.reservePrice),
                 buyItNowPrice: toNumber(formData.buyItNowPrice),
-                status: formData.status,
                 currentLocation: {
                     facility: sourceVehicle.currentLocation?.facility || "Default Facility",
                     city: formData.locationCity,
@@ -296,6 +300,53 @@ export function VehicleActionsModal({
         }
     };
 
+    const handleOverrideStatus = async () => {
+        if (!token || !vehicle?._id) {
+            toast({
+                title: "Error",
+                description: "You must be logged in to override vehicle status",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (!overrideStatus || overrideReason.trim().length < 5) {
+            toast({
+                title: "Override reason required",
+                description: "Enter a clear reason before overriding vehicle status.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            await overrideVehicleStatus({
+                token,
+                vehicleId: vehicle._id as Id<"vehicles">,
+                status: overrideStatus as Parameters<typeof overrideVehicleStatus>[0]["status"],
+                reason: overrideReason.trim(),
+            });
+            toast({
+                title: "Status Overridden",
+                description: "Vehicle status was updated and audit logged.",
+            });
+            onClose();
+        } catch (error: unknown) {
+            const message = getMutationErrorMessage(
+                error,
+                "There was an error overriding the vehicle status."
+            );
+            toast({
+                title: "Override Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const getStatusBadgeColor = (status: string) => {
         switch (status) {
             case "approved":
@@ -310,9 +361,11 @@ export function VehicleActionsModal({
             case "scheduled":
                 return "bg-electric-blue text-white border-electric-blue";
             case "sold":
+            case "delivered":
                 return "bg-green-600 text-white border-green-600";
             case "cancelled":
             case "withdrawn":
+            case "rejected":
                 return "bg-red-500 text-white border-red-500";
             case "payment_pending":
             case "in_transit":
@@ -372,6 +425,11 @@ export function VehicleActionsModal({
                                         <ImageIcon className="w-4 h-4 mr-2" /> Images
                                     </TabsTrigger>
                                 )}
+                                {mode === "edit" && (
+                                    <TabsTrigger value="lifecycle" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
+                                        <Gavel className="w-4 h-4 mr-2" /> Lifecycle
+                                    </TabsTrigger>
+                                )}
                             </TabsList>
                         </Tabs>
                     </div>
@@ -392,6 +450,13 @@ export function VehicleActionsModal({
                                 setNewImageInput={setNewImageInput}
                                 handleImageUpload={handleImageUpload}
                                 isUploading={isUploading}
+                                overrideStatus={overrideStatus}
+                                setOverrideStatus={setOverrideStatus}
+                                overrideReason={overrideReason}
+                                setOverrideReason={setOverrideReason}
+                                handleOverrideStatus={handleOverrideStatus}
+                                isLoading={isLoading}
+                                getStatusBadgeColor={getStatusBadgeColor}
                             />
                         )}
                     </ScrollArea>
@@ -493,7 +558,14 @@ function EditModeContent({
     newImageInput,
     setNewImageInput,
     handleImageUpload,
-    isUploading
+    isUploading,
+    overrideStatus,
+    setOverrideStatus,
+    overrideReason,
+    setOverrideReason,
+    handleOverrideStatus,
+    isLoading,
+    getStatusBadgeColor,
 }: {
     formData: any;
     handleInputChange: any;
@@ -505,6 +577,13 @@ function EditModeContent({
     setNewImageInput: (val: string) => void;
     handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     isUploading?: boolean;
+    overrideStatus: string;
+    setOverrideStatus: (val: string) => void;
+    overrideReason: string;
+    setOverrideReason: (val: string) => void;
+    handleOverrideStatus: () => void;
+    isLoading?: boolean;
+    getStatusBadgeColor: (status: string) => string;
 }) {
     if (activeTab === "details") {
         return (
@@ -542,18 +621,12 @@ function EditModeContent({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select value={formData.status} onValueChange={(v) => handleInputChange("status", v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
-                            <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
-                            <SelectItem value="in_auction">In Auction</SelectItem>
-                            <SelectItem value="sold">Sold</SelectItem>
-                            <SelectItem value="withdrawn">Withdrawn</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Badge className={cn("w-fit px-3 py-1 uppercase", getStatusBadgeColor(formData.status || ""))}>
+                        {(formData.status || "unknown").replace(/_/g, " ")}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                        Status changes use lifecycle actions or the controlled override on the Lifecycle tab.
+                    </p>
                 </div>
             </div>
         )
@@ -690,6 +763,69 @@ function EditModeContent({
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        )
+    }
+    if (activeTab === "lifecycle") {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <Label>Current Status</Label>
+                    <div className="mt-2">
+                        <Badge className={cn("px-3 py-1 uppercase", getStatusBadgeColor(formData.status || ""))}>
+                            {(formData.status || "unknown").replace(/_/g, " ")}
+                        </Badge>
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="overrideStatus">Override Status</Label>
+                        <Select value={overrideStatus} onValueChange={setOverrideStatus}>
+                            <SelectTrigger id="overrideStatus">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="draft">Draft</SelectItem>
+                                <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
+                                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                                <SelectItem value="approved">Approved</SelectItem>
+                                <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
+                                <SelectItem value="scheduled">Scheduled</SelectItem>
+                                <SelectItem value="in_auction">In Auction</SelectItem>
+                                <SelectItem value="payment_pending">Payment Pending</SelectItem>
+                                <SelectItem value="sold">Sold</SelectItem>
+                                <SelectItem value="unsold">Unsold</SelectItem>
+                                <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                                <SelectItem value="in_transit">In Transit</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="overrideReason">Override Reason</Label>
+                        <Textarea
+                            id="overrideReason"
+                            value={overrideReason}
+                            onChange={(event) => setOverrideReason(event.target.value)}
+                            rows={4}
+                            placeholder="Required for audit log"
+                        />
+                    </div>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={handleOverrideStatus}
+                        disabled={isLoading || !overrideStatus || overrideReason.trim().length < 5}
+                    >
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Override Status
+                    </Button>
                 </div>
             </div>
         )

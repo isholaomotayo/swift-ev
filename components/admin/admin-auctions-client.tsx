@@ -43,6 +43,7 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
       scheduled: { className: "bg-warning-amber/20 text-warning-amber border-warning-amber/30", label: "Scheduled" },
       live: { className: "bg-volt-green/20 text-volt-green border-volt-green/30", label: "Live" },
       paused: { className: "bg-warning-amber/20 text-warning-amber border-warning-amber/30", label: "Paused" },
+      ended: { className: "bg-muted text-muted-foreground", label: "Ended" },
       completed: { className: "bg-muted text-muted-foreground", label: "Completed" },
       cancelled: { className: "bg-error-red/20 text-error-red border-error-red/30", label: "Cancelled" },
     };
@@ -94,9 +95,9 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
               <TableCell>{getStatusBadge(auction.status)}</TableCell>
               <TableCell>
                 <div className="text-sm">
-                  <p className="font-medium">{auction.lotCount} total</p>
+                  <p className="font-medium">{auction.lotCount ?? auction.totalLots ?? 0} total</p>
                   <p className="text-muted-foreground">
-                    {auction.activeLotCount} active
+                    {auction.activeLotCount ?? 0} active
                   </p>
                 </div>
               </TableCell>
@@ -216,4 +217,3 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
     </div>
   );
 }
-

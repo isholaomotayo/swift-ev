@@ -145,7 +145,7 @@ export function VehicleDetailClient({
   const canBid = isLive || isPreBid;
 
   const isDirectPurchaseAvailable = !auctionLot && vehicle.buyItNowEnabled && vehicle.buyItNowPrice &&
-    (vehicle.status === "approved" || vehicle.status === "ready_for_auction");
+    vehicle.status === "approved";
 
   // Hero Image Handling
   const heroImageUrl =

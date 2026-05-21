@@ -31,7 +31,10 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch vehicle data
-  const vehicle = useQuery(api.vehicles.getVehicleById, { vehicleId });
+  const vehicle = useQuery(
+    api.vehicles.getVehicleById,
+    token ? { vehicleId, token } : "skip"
+  );
   const updateVehicle = useMutation(api.vehicles.updateVehicle);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
