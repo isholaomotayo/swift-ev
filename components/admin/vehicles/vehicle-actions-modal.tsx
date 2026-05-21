@@ -49,7 +49,9 @@ export function VehicleActionsModal({
 }: VehicleActionsModalProps) {
     const { toast } = useToast();
     const updateVehicle = useMutation(api.vehicles.updateVehicle);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
 
     // Form State
@@ -111,12 +113,52 @@ export function VehicleActionsModal({
         setImageUrls(prev => prev.filter((_, i) => i !== index));
     }
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
-            // In a real app we'd upload to storage. For now we use the placeholder logic.
-            const urls = files.map(() => `https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop`);
-            setImageUrls(prev => [...prev, ...urls]);
+            const token = localStorage.getItem("autoexports_token");
+            if (!token) {
+                toast({
+                    title: "Error",
+                    description: "You must be logged in to upload images",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            setIsUploading(true);
+            try {
+                const urls: string[] = [];
+                for (const file of files) {
+                    const uploadUrl = await generateUploadUrl({ token });
+                    const result = await fetch(uploadUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": file.type || "application/octet-stream" },
+                        body: file,
+                    });
+
+                    if (!result.ok) {
+                        throw new Error(`Upload failed for ${file.name}`);
+                    }
+
+                    const { storageId } = await result.json();
+                    urls.push(String(storageId));
+                }
+                setImageUrls((prev) => [...prev, ...urls]);
+                toast({
+                    title: "Images Uploaded",
+                    description: "Successfully uploaded new images.",
+                });
+            } catch (err: any) {
+                console.error("Failed to upload images:", err);
+                toast({
+                    title: "Upload Failed",
+                    description: err.message || "There was an error uploading the images.",
+                    variant: "destructive",
+                });
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -270,18 +312,19 @@ export function VehicleActionsModal({
                                 newImageInput={newImageInput}
                                 setNewImageInput={setNewImageInput}
                                 handleImageUpload={handleImageUpload}
+                                isUploading={isUploading}
                             />
                         )}
                     </ScrollArea>
                 </div>
 
                 <DialogFooter className="p-4 border-t bg-muted/10">
-                    <Button variant="outline" onClick={onClose} disabled={isLoading}>
+                    <Button variant="outline" onClick={onClose} disabled={isLoading || isUploading}>
                         Cancel
                     </Button>
                     {mode === "edit" && (
-                        <Button onClick={handleSave} disabled={isLoading} className="bg-volt-green hover:bg-volt-green/90 text-slate-950">
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button onClick={handleSave} disabled={isLoading || isUploading} className="bg-volt-green hover:bg-volt-green/90 text-slate-950">
+                            {(isLoading || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Save Changes
                         </Button>
                     )}
@@ -370,7 +413,8 @@ function EditModeContent({
     handleAddImage,
     newImageInput,
     setNewImageInput,
-    handleImageUpload
+    handleImageUpload,
+    isUploading
 }: {
     formData: any;
     handleInputChange: any;
@@ -381,6 +425,7 @@ function EditModeContent({
     newImageInput: string;
     setNewImageInput: (val: string) => void;
     handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isUploading?: boolean;
 }) {
     if (activeTab === "details") {
         return (
@@ -541,11 +586,12 @@ function EditModeContent({
                                     className="hidden"
                                     id="image-upload"
                                     onChange={handleImageUpload}
+                                    disabled={isUploading}
                                 />
-                                <Label htmlFor="image-upload" className="cursor-pointer">
+                                <Label htmlFor="image-upload" className={cn("cursor-pointer", isUploading && "opacity-50 pointer-events-none")}>
                                     <div className="flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-md transition-colors text-sm font-medium">
-                                        <Upload className="w-4 h-4" />
-                                        Upload Files
+                                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        {isUploading ? "Uploading..." : "Upload Files"}
                                     </div>
                                 </Label>
                             </div>
