@@ -25,16 +25,12 @@ const footerLinks = {
     { label: m.nav_contact_us(), href: "/contact" },
     { label: m.common_shipping_info(), href: "/shipping" },
     { label: m.common_faq_expert_support().replace(" — Expert Support", ""), href: "/faq" },
+    { label: m.faq_audience_sellers(), href: "/faq/sellers" },
   ],
-  company: [
-    { label: m.nav_about_autoexports(), href: "/about" },
-    { label: m.nav_partner_program(), href: "/partners" },
-    { label: m.nav_market_insights(), href: "/blog" },
-  ],
+  company: [{ label: m.nav_about_autoexports(), href: "/about" }],
   legal: [
     { label: m.nav_terms_of_service(), href: "/terms" },
     { label: m.nav_privacy_policy(), href: "/privacy" },
-    { label: m.nav_export_license(), href: "/license" },
   ],
 };
 

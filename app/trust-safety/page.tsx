@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { SITE_NAME } from "@/lib/constants";
+import { SAFETY_EMAIL, SITE_NAME } from "@/lib/constants";
 import * as m from "@/src/paraglide/messages.js";
 
 export default function TrustSafetyPage() {
@@ -145,16 +145,8 @@ export default function TrustSafetyPage() {
                       {m.trust_safety_live_protection()}
                     </span>
                   </div>
-                  <div className="space-y-4">
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full w-[98%] bg-brand-gold" />
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      {m.trust_safety_system_integrity()}
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium italic">
-                    &quot;{m.trust_safety_quote()}&quot;
+                  <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                    {m.trust_safety_quote()}
                   </p>
                 </div>
               </div>
@@ -171,7 +163,7 @@ export default function TrustSafetyPage() {
                 {m.trust_safety_arbitration_title()}
               </h2>
             </div>
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               {[
                 {
                   label: m.trust_safety_stat_response_label(),
@@ -179,19 +171,9 @@ export default function TrustSafetyPage() {
                   desc: m.trust_safety_stat_response_desc(),
                 },
                 {
-                  label: m.trust_safety_stat_resolution_label(),
-                  val: m.trust_safety_stat_resolution_val(),
-                  desc: m.trust_safety_stat_resolution_desc(),
-                },
-                {
-                  label: m.trust_safety_stat_amicable_label(),
-                  val: m.trust_safety_stat_amicable_val(),
-                  desc: m.trust_safety_stat_amicable_desc(),
-                },
-                { 
-                  label: m.trust_safety_stat_reviewed_label(), 
-                  val: m.trust_safety_stat_reviewed_val(), 
-                  desc: m.trust_safety_stat_reviewed_desc() 
+                  label: m.trust_safety_stat_reviewed_label(),
+                  val: m.trust_safety_stat_reviewed_val(),
+                  desc: m.trust_safety_stat_reviewed_desc(),
                 },
               ].map((stat, i) => (
                 <div
@@ -230,7 +212,7 @@ export default function TrustSafetyPage() {
                   className="h-16 px-10 bg-brand-primary text-white font-black uppercase tracking-widest rounded-none shadow-2xl"
                   asChild
                 >
-                  <Link href={`mailto:safety@${SITE_NAME.toLowerCase().replace(/\s+/g, '')}.live`}>
+                  <Link href={`mailto:${SAFETY_EMAIL}`}>
                     {m.trust_safety_email_direct()}
                   </Link>
                 </Button>
@@ -240,7 +222,7 @@ export default function TrustSafetyPage() {
                   className="h-16 px-10 border-2 border-brand-primary text-brand-primary font-black uppercase tracking-widest rounded-none hover:bg-brand-primary hover:text-white transition-all"
                   asChild
                 >
-                  <Link href="/faq">{m.trust_safety_review_database()}</Link>
+                  <Link href="/faq">{m.trust_safety_read_faq()}</Link>
                 </Button>
               </div>
             </div>

@@ -4,7 +4,8 @@
 
 export const SITE_NAME = "autoexports.live";
 export const BRAND_TAGLINE = "Bid. Win. Export.";
-export const SUPPORT_EMAIL = "buy@autoexport.live";
+export const SUPPORT_EMAIL = "hello@autoexports.live";
+export const SAFETY_EMAIL = "safety@autoexports.live";
 
 // UI Constants
 export const UPCOMING_LOTS_DISPLAY_COUNT = 10; // Number of upcoming lots to show in auction room
@@ -80,24 +81,8 @@ export const MEMBERSHIP_TIERS = {
   },
 } as const;
 
-// Vehicle Makes (Chinese EV Manufacturers)
-export const VEHICLE_MAKES = [
-  "BYD",
-  "NIO",
-  "XPeng",
-  "Geely",
-  "Li Auto",
-  "Changan",
-  "GAC Aion",
-  "Hongqi",
-  "Zeekr",
-  "Avatr",
-  "Voyah",
-  "Hozon (Neta)",
-  "Leapmotor",
-  "Weltmeister",
-  "Aiways",
-] as const;
+// Vehicle makes from catalog (store/car-make.json)
+export { CAR_MAKES as VEHICLE_MAKES } from "@/lib/vehicle-catalog";
 
 // Battery Health Thresholds (State of Health %)
 export const BATTERY_HEALTH_THRESHOLDS = {
@@ -385,7 +370,7 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "im
 
 // Contact Information
 export const CONTACT_INFO = {
-  EMAIL: "buy@autoexport.live",
+  EMAIL: "hello@autoexports.live",
   PHONE: "+2349167706772 / +8615914293428",
   ADDRESS: "Plot 777, Wole Olanipekun Street, Central Business District, Abuja",
   SUPPORT_HOURS: "Monday - Friday, 9AM - 6PM WAT",

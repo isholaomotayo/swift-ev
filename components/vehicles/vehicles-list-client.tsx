@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
@@ -19,7 +19,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
-import { VEHICLE_MAKES } from "@/lib/constants";
+import { MakeModelSelect } from "@/components/vehicles/make-model-select";
 
 const CONDITIONS = [
   { value: "excellent", label: "Excellent" },
@@ -42,13 +42,12 @@ interface VehiclesListClientProps {
 }
 
 export function VehiclesListClient({
-  initialFilterOptions,
   initialVehicleData,
 }: VehiclesListClientProps) {
   const router = useRouter();
 
-  // Filter state
-  const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
+  const [selectedMake, setSelectedMake] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [yearRange, setYearRange] = useState<[number, number]>([2018, 2025]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50_000_000]);
   const [batteryHealthMin, setBatteryHealthMin] = useState<number>(70);
@@ -57,10 +56,10 @@ export function VehiclesListClient({
   const [sortBy, setSortBy] = useState<string>("newest");
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Use useQuery for real-time updates when filters change
   const queryParams = useMemo(
     () => ({
-      make: selectedMakes.length === 1 ? selectedMakes[0] : undefined,
+      make: selectedMake || undefined,
+      model: selectedModel || undefined,
       yearMin: yearRange[0],
       yearMax: yearRange[1],
       priceMin: priceRange[0],
@@ -71,16 +70,29 @@ export function VehiclesListClient({
       limit: 20,
       sortBy: sortBy as any,
     }),
-    [selectedMakes, yearRange, priceRange, batteryHealthMin, selectedConditions, currentPage, sortBy]
+    [
+      selectedMake,
+      selectedModel,
+      yearRange,
+      priceRange,
+      batteryHealthMin,
+      selectedConditions,
+      currentPage,
+      sortBy,
+    ]
   );
 
   const vehicleData = useQuery(api.vehicles.listVehicles, queryParams) ?? initialVehicleData;
-  const filterOptions = useQuery(api.vehicles.getFilterOptions, {}) ?? initialFilterOptions;
+  useQuery(api.vehicles.getFilterOptions, {});
 
-  const handleMakeToggle = (make: string) => {
-    setSelectedMakes((prev) =>
-      prev.includes(make) ? prev.filter((m) => m !== make) : [...prev, make]
-    );
+  const handleMakeChange = (make: string) => {
+    setSelectedMake(make);
+    setSelectedModel("");
+    setCurrentPage(0);
+  };
+
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
     setCurrentPage(0);
   };
 
@@ -94,7 +106,8 @@ export function VehiclesListClient({
   };
 
   const resetFilters = () => {
-    setSelectedMakes([]);
+    setSelectedMake("");
+    setSelectedModel("");
     setYearRange([2018, 2025]);
     setPriceRange([0, 50_000_000]);
     setBatteryHealthMin(70);
@@ -105,13 +118,13 @@ export function VehiclesListClient({
   };
 
   const activeFilterCount =
-    selectedMakes.length +
+    (selectedMake ? 1 : 0) +
+    (selectedModel ? 1 : 0) +
     selectedConditions.length +
     (yearRange[0] !== 2018 || yearRange[1] !== 2025 ? 1 : 0) +
     (priceRange[0] !== 0 || priceRange[1] !== 50_000_000 ? 1 : 0) +
     (batteryHealthMin !== 70 ? 1 : 0);
 
-  // Filter vehicles by search term client-side
   const filteredVehicles = useMemo(() => {
     if (!vehicleData?.vehicles) return [];
     if (!searchTerm.trim()) return vehicleData.vehicles;
@@ -135,7 +148,6 @@ export function VehiclesListClient({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      {/* Filters Sidebar */}
       <aside className="lg:col-span-1 space-y-6">
         <div className="bg-background rounded-lg border p-6 space-y-6 sticky top-24">
           <div className="flex items-center justify-between">
@@ -154,31 +166,16 @@ export function VehiclesListClient({
 
           <Separator />
 
-          {/* Make Filter */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Make</Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {VEHICLE_MAKES.map((make) => (
-                <div key={make} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`make-${make}`}
-                    checked={selectedMakes.includes(make)}
-                    onCheckedChange={() => handleMakeToggle(make)}
-                  />
-                  <label
-                    htmlFor={`make-${make}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {make}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MakeModelSelect
+            className="grid-cols-1 sm:grid-cols-1"
+            make={selectedMake}
+            model={selectedModel}
+            onMakeChange={handleMakeChange}
+            onModelChange={handleModelChange}
+          />
 
           <Separator />
 
-          {/* Year Range */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Year</Label>
@@ -200,7 +197,6 @@ export function VehiclesListClient({
 
           <Separator />
 
-          {/* Price Range */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Price (NGN)</Label>
@@ -222,7 +218,6 @@ export function VehiclesListClient({
 
           <Separator />
 
-          {/* Battery Health */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Min Battery Health</Label>
@@ -244,7 +239,6 @@ export function VehiclesListClient({
 
           <Separator />
 
-          {/* Condition Filter */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Condition</Label>
             <div className="space-y-2">
@@ -268,9 +262,7 @@ export function VehiclesListClient({
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="lg:col-span-3 space-y-6">
-        {/* Search and Sort */}
         <div className="bg-background rounded-lg border p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
@@ -298,7 +290,6 @@ export function VehiclesListClient({
           </div>
         </div>
 
-        {/* Results Count */}
         {vehicleData && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
@@ -307,7 +298,6 @@ export function VehiclesListClient({
           </div>
         )}
 
-        {/* Vehicle Grid */}
         {loading || vehicleData === null ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {[...Array(9)].map((_, i) => (
@@ -338,7 +328,6 @@ export function VehiclesListClient({
                     router.push(`/vehicles/${vehicle._id}`);
                   }}
                   onWatchlistToggle={() => {
-                    // TODO: Implement watchlist
                     console.log("Toggle watchlist for", vehicle._id);
                   }}
                   isWatchlisted={false}
@@ -346,7 +335,6 @@ export function VehiclesListClient({
               ))}
             </div>
 
-            {/* Pagination */}
             {vehicleData.pagination.totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <Button
@@ -388,4 +376,3 @@ export function VehiclesListClient({
     </div>
   );
 }
-

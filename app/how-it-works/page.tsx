@@ -9,7 +9,6 @@ import {
   Gavel,
   Package,
   CheckCircle2,
-  ArrowRight,
   Shield,
   Globe,
   Plus,
@@ -87,11 +86,8 @@ export default function HowItWorksPage() {
               <Badge className="mb-8 px-5 py-2 rounded-md bg-brand-gold text-brand-primary border-none uppercase tracking-[0.3em] font-black text-[10px]">
                 {m.how_it_works_standard()}
               </Badge>
-              <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9] italic">
-                {m.how_it_works_pure()} <br />
-                <span className="text-brand-gold not-italic uppercase">
-                  {m.how_it_works_logistics()}
-                </span>
+              <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8 leading-[0.9]">
+                <span className="italic">{m.how_it_works_pure_logistics()}</span>
               </h1>
               <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
                 {m.how_it_works_eliminated_friction({ siteName: SITE_NAME })}
@@ -125,9 +121,6 @@ export default function HowItWorksPage() {
                     <p className="text-slate-500 text-sm leading-relaxed font-medium">
                       {step.description}
                     </p>
-                    <div className="mt-8 pt-8 border-t border-slate-200 flex items-center text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-accent transition-colors">
-                      {m.how_it_works_detailed_docs()} <ArrowRight className="ml-2 h-3 w-3" />
-                    </div>
                   </div>
                 );
               })}
@@ -212,7 +205,7 @@ export default function HowItWorksPage() {
         </section>
 
         {/* FAQ SECTION - BOLD & GROUNDED */}
-        <section className="py-32 bg-white border-t border-slate-200">
+        <section id="faq" className="py-32 bg-white border-t border-slate-200">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-20">

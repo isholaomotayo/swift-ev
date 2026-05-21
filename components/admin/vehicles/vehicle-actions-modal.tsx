@@ -35,7 +35,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Car, Battery, MapPin, Gavel, FileText, ImageIcon, X, Upload } from "lucide-react";
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
-import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS, VEHICLE_MAKES } from "@/lib/constants";
+import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS } from "@/lib/constants";
+import { MakeModelSelect } from "@/components/vehicles/make-model-select";
+import { isValidVehicleMakeModel, resolveMakeModelForForm } from "@/lib/vehicle-catalog";
 import { ImageGallery } from "@/components/autoexports/image-gallery";
 
 interface VehicleImageRef {
@@ -89,9 +91,15 @@ export function VehicleActionsModal({
     useEffect(() => {
         if (!sourceVehicle) return;
 
+        const { make, model, isOtherMake } = resolveMakeModelForForm(
+            sourceVehicle.make,
+            sourceVehicle.model
+        );
+
         setFormData({
-            make: sourceVehicle.make,
-            model: sourceVehicle.model,
+            make: isOtherMake ? "Other" : make,
+            makeCustom: isOtherMake ? sourceVehicle.make : "",
+            model,
             year: sourceVehicle.year,
             vin: sourceVehicle.vin,
             lotNumber: sourceVehicle.lotNumber,
@@ -233,9 +241,25 @@ export function VehicleActionsModal({
                 return Number.isNaN(parsed) ? undefined : parsed;
             };
 
+            const resolvedMake =
+                formData.make === "Other"
+                    ? String(formData.makeCustom || "").trim()
+                    : String(formData.make || "").trim();
+            const resolvedModel = String(formData.model || "").trim();
+
+            if (!isValidVehicleMakeModel(resolvedMake, resolvedModel, { allowOtherMake: true })) {
+                toast({
+                    title: "Invalid make or model",
+                    description:
+                        "Please select a make and model from the catalog, or enter a custom make and model.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
             const updates: Record<string, unknown> = {
-                make: formData.make,
-                model: formData.model,
+                make: resolvedMake,
+                model: resolvedModel,
                 year: toNumber(formData.year),
                 vin: formData.vin?.trim() || undefined,
                 odometer: toNumber(formData.odometer),
@@ -589,19 +613,16 @@ function EditModeContent({
         return (
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="make">Make</Label>
-                        <Select value={formData.make} onValueChange={(v) => handleInputChange("make", v)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                {VEHICLE_MAKES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="model">Model</Label>
-                        <Input id="model" value={formData.model} onChange={(e) => handleInputChange("model", e.target.value)} />
-                    </div>
+                    <MakeModelSelect
+                        className="col-span-2"
+                        make={formData.make || ""}
+                        model={formData.model || ""}
+                        makeCustom={formData.makeCustom || ""}
+                        allowOtherMake
+                        onMakeChange={(v) => handleInputChange("make", v)}
+                        onModelChange={(v) => handleInputChange("model", v)}
+                        onMakeCustomChange={(v) => handleInputChange("makeCustom", v)}
+                    />
                     <div className="space-y-2">
                         <Label htmlFor="year">Year</Label>
                         <Input id="year" type="number" value={formData.year} onChange={(e) => handleInputChange("year", e.target.value)} />

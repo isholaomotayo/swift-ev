@@ -4,12 +4,12 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { FaqPageContent } from "@/components/faq/faq-page-content";
 import {
-  getBuyerFaqCategories,
-  getBuyerFaqQuestionCount,
-} from "@/lib/content/buyer-faq";
+  getSellerFaqCategories,
+  getSellerFaqQuestionCount,
+} from "@/lib/content/seller-faq";
 import { getLocale } from "@/src/paraglide/runtime.js";
 
-export default function FAQPage() {
+export default function SellerFAQPage() {
   const locale = getLocale();
 
   return (
@@ -17,9 +17,9 @@ export default function FAQPage() {
       <Header />
       <main className="flex-1">
         <FaqPageContent
-          audience="buyers"
-          categories={getBuyerFaqCategories(locale)}
-          questionCount={getBuyerFaqQuestionCount(locale)}
+          audience="sellers"
+          categories={getSellerFaqCategories(locale)}
+          questionCount={getSellerFaqQuestionCount(locale)}
         />
       </main>
       <Footer />

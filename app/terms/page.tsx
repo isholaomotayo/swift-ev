@@ -3,11 +3,23 @@ import { FileCheck2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SITE_NAME, CONTACT_INFO } from "@/lib/constants";
+import * as m from "@/src/paraglide/messages.js";
 
 export const metadata = {
   title: `Terms of Service - ${SITE_NAME}`,
-  description: `Terms, seller commissions, and account obligations for ${SITE_NAME}.`,
+  description: `Terms, buyer protections, seller commissions, and account obligations for ${SITE_NAME}.`,
 };
+
+const buyerSections = [
+  { title: () => m.terms_buyer_obligations_title(), body: () => m.terms_buyer_obligations_body() },
+  { title: () => m.terms_escrow_title(), body: () => m.terms_escrow_body() },
+  { title: () => m.terms_condition_disputes_title(), body: () => m.terms_condition_disputes_body() },
+  { title: () => m.terms_shipping_title(), body: () => m.terms_shipping_body() },
+  { title: () => m.terms_refund_title(), body: () => m.terms_refund_body() },
+  { title: () => m.terms_non_delivery_title(), body: () => m.terms_non_delivery_body() },
+  { title: () => m.terms_governing_law_title(), body: () => m.terms_governing_law_body() },
+  { title: () => m.terms_liability_title(), body: () => m.terms_liability_body() },
+] as const;
 
 export default function TermsPage() {
   const lastUpdated = "February 2026";
@@ -35,7 +47,7 @@ export default function TermsPage() {
         <div className="container mx-auto px-4 py-16 max-w-4xl space-y-10">
           <section className="space-y-4 text-muted-foreground">
             <p>
-              These Terms govern your use of {SITE_NAME}. By creating an account or listing
+              These Terms govern your use of {SITE_NAME}. By creating an account, placing a bid, or listing
               a vehicle, you agree to these Terms and to our{" "}
               <Link href="/privacy" className="text-electric-blue hover:underline font-medium">
                 Privacy Policy
@@ -43,32 +55,41 @@ export default function TermsPage() {
             </p>
           </section>
 
+          <section className="space-y-6">
+            <h2 className="text-2xl font-black">{m.terms_buyer_terms_heading()}</h2>
+            <p className="text-muted-foreground">{m.terms_buyer_terms_intro()}</p>
+            {buyerSections.map((section) => (
+              <div key={section.title().toString()} className="space-y-3">
+                <h3 className="text-xl font-black">{section.title()}</h3>
+                <p className="text-muted-foreground leading-relaxed">{section.body()}</p>
+              </div>
+            ))}
+          </section>
+
           <section className="space-y-3">
-            <h2 className="text-2xl font-black">Seller Commissions</h2>
+            <h2 className="text-2xl font-black">{m.terms_seller_commissions_title()}</h2>
             <div className="p-6 rounded-2xl border border-border bg-card text-muted-foreground space-y-2">
-              <p>Commission is deducted from successful auction sales only.</p>
-              <p>7% for final bids up to N5,000,000.</p>
-              <p>6% for final bids above N5,000,000 and up to N15,000,000.</p>
-              <p>5% for final bids above N15,000,000.</p>
+              <p>{m.terms_seller_commissions_intro()}</p>
+              <p>{m.terms_seller_commission_tier_1()}</p>
+              <p>{m.terms_seller_commission_tier_2()}</p>
+              <p>{m.terms_seller_commission_tier_3()}</p>
+              <p className="pt-2 text-sm">{m.terms_fee_clarification()}</p>
             </div>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-black">Vendor Listing Requirements</h2>
+            <h2 className="text-2xl font-black">{m.terms_vendor_listing_title()}</h2>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
-              <li>Vehicle details must be accurate and truthful.</li>
-              <li>Required media categories must be uploaded before submission.</li>
-              <li>A walkthrough video is required for seller listings.</li>
-              <li>Inspection reports may be uploaded to support listing quality.</li>
+              <li>{m.terms_vendor_listing_1()}</li>
+              <li>{m.terms_vendor_listing_2()}</li>
+              <li>{m.terms_vendor_listing_3()}</li>
+              <li>{m.terms_vendor_listing_4()}</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-black">Payments, Fees, and Settings</h2>
-            <p className="text-muted-foreground">
-              Verification fees, where enabled, are configured by platform administrators and shown
-              during registration. Payout details provided by vendors are used for sale disbursement only.
-            </p>
+            <h2 className="text-2xl font-black">{m.terms_payments_title()}</h2>
+            <p className="text-muted-foreground">{m.terms_payments_body()}</p>
           </section>
 
           <section className="space-y-3">

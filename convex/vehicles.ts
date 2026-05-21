@@ -17,6 +17,7 @@ import {
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
 import { isAuctionLotHoldingVehicleForPurchase } from "./lib/purchaseFlow";
+import { assertValidVehicleMakeModel } from "./lib/vehicleCatalog";
 
 const vehicleStatusValidator = v.union(
   v.literal("draft"),
@@ -100,7 +101,7 @@ async function hydrateVehicleForList(ctx: any, vehicle: Doc<"vehicles">, auction
 
 /**
  * Get featured vehicles for homepage
- * Returns the 3 latest uploaded vehicles
+ * Returns the 3 latest buyer-visible vehicles (approved, scheduled, in_auction, sold)
  */
 export const getFeaturedVehicles = query({
   args: {},
@@ -109,7 +110,9 @@ export const getFeaturedVehicles = query({
       .query("vehicles")
       .order("desc")
       .collect())
-      .filter((vehicle) => vehicleStatusOf(vehicle.status) === "in_auction")
+      .filter((vehicle) =>
+        isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
+      )
       .slice(0, 3);
 
     // Get images for each vehicle
@@ -158,6 +161,7 @@ export const getVehicleStats = query({
 export const listVehicles = query({
   args: {
     make: v.optional(v.string()),
+    model: v.optional(v.string()),
     yearMin: v.optional(v.number()),
     yearMax: v.optional(v.number()),
     priceMin: v.optional(v.number()),
@@ -187,6 +191,7 @@ export const listVehicles = query({
   handler: async (ctx, args) => {
     const {
       make,
+      model,
       yearMin,
       yearMax,
       priceMin,
@@ -208,6 +213,7 @@ export const listVehicles = query({
     const vehicles = (await vehiclesQuery.filter((q) => {
       const conditions = [];
       if (make) conditions.push(q.eq(q.field("make"), make));
+      if (model) conditions.push(q.eq(q.field("model"), model));
       if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
       if (yearMax) conditions.push(q.lte(q.field("year"), yearMax));
       if (batteryHealthMin) conditions.push(q.gte(q.field("batteryHealthPercent"), batteryHealthMin));
@@ -772,6 +778,8 @@ export const createVehicle = mutation({
     // Check for duplicate VIN
     await checkDuplicateVin(ctx, vehicleData.vin);
 
+    assertValidVehicleMakeModel(vehicleData.make, vehicleData.model);
+
     // Auto-generate a unique lot number
     const lotNumber = await generateUniqueLotNumber(ctx);
 
@@ -996,6 +1004,10 @@ export const updateVehicle = mutation({
       vehicleUpdates.vin !== undefined ? String(vehicleUpdates.vin) : (vehicle.vin || "");
     const lotNumber = vehicle.lotNumber;
     const year = (vehicleUpdates.year as number | undefined) ?? vehicle.year;
+
+    if (vehicleUpdates.make !== undefined || vehicleUpdates.model !== undefined) {
+      assertValidVehicleMakeModel(make, model);
+    }
 
     const searchableText = [make, model, vin, lotNumber, year.toString()].join(" ").toLowerCase();
 

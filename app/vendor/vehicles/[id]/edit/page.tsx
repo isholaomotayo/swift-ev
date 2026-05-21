@@ -10,6 +10,7 @@ import { VehicleForm, VehicleFormData } from "@/components/vendor/vehicle-form";
 import { Id } from "@/convex/_generated/dataModel";
 import { getMutationErrorMessage, isValidVehicleCondition } from "@/lib/auth-errors";
 import { isPersistableImageRef } from "@/lib/vehicle-image-refs";
+import { resolveMakeModelForForm } from "@/lib/vehicle-catalog";
 
 interface EditVehiclePageProps {
   params: Promise<{ id: string }>;
@@ -42,10 +43,12 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
 
   useEffect(() => {
     if (vehicle) {
+      const { make, model, isOtherMake } = resolveMakeModelForForm(vehicle.make, vehicle.model);
       // Map vehicle data to form data
       setInitialData({
-        make: vehicle.make,
-        model: vehicle.model,
+        make: isOtherMake ? "Other" : make,
+        makeCustom: isOtherMake ? vehicle.make : "",
+        model,
         year: vehicle.year,
         vin: vehicle.vin,
         fuelType: (vehicle as { fuelType?: string }).fuelType ?? "EV (Electric)",

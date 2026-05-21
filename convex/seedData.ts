@@ -567,26 +567,48 @@ export const seedDatabase = mutation({
     // AUCTION
     // ============================================
 
-    // Create a live auction
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    // Upcoming scheduled auction (homepage promo)
+    const scheduledAuctionId = await ctx.db.insert("auctions", {
+      name: "AutoExports Premium EV Auction — Next Event",
+      description:
+        "Six verified Chinese EVs. Register now to bid on BYD, XPeng, and NIO inventory with full inspection reports and escrow protection.",
+      auctionType: "timed",
+      status: "scheduled",
+      scheduledStart: now + sevenDaysMs,
+      scheduledEnd: now + sevenDaysMs + 24 * 60 * 60 * 1000,
+      bidIncrement: 100_000,
+      extendOnBid: true,
+      extendMinutes: 5,
+      totalLots: 6,
+      soldLots: 0,
+      totalBids: 0,
+      createdAt: now,
+      createdBy: adminId,
+    });
+
+    // Live auction for immediate bidding
     const auctionId = await ctx.db.insert("auctions", {
-      name: "AutoExports Weekly EV Auction - January 2026",
-      description: "Premium electric vehicles from top Chinese manufacturers. All vehicles inspected and certified with battery health reports.",
+      name: "AutoExports Weekly EV Auction",
+      description:
+        "Premium electric vehicles from top Chinese manufacturers. All vehicles inspected and certified with battery health reports.",
       auctionType: "timed",
       status: "live",
-      scheduledStart: now - 2 * 60 * 60 * 1000, // Started 2 hours ago
-      scheduledEnd: now + 22 * 60 * 60 * 1000, // Ends in 22 hours
+      scheduledStart: now - 2 * 60 * 60 * 1000,
+      scheduledEnd: now + 22 * 60 * 60 * 1000,
       actualStart: now - 2 * 60 * 60 * 1000,
       bidIncrement: 100_000,
       extendOnBid: true,
       extendMinutes: 5,
-      totalLots: 4,
+      totalLots: 6,
       soldLots: 0,
       totalBids: 8,
       createdAt: now - 7 * 24 * 60 * 60 * 1000,
       createdBy: adminId,
     });
 
-    console.log("✓ Created live auction");
+    console.log("✓ Created scheduled and live auctions");
 
     // ============================================
     // AUCTION LOTS
@@ -714,7 +736,41 @@ export const seedDatabase = mutation({
       endsAt: now + 23.9 * 60 * 60 * 1000,
     });
 
-    console.log("✓ Created 4 auction lots (1 active, 3 pending)");
+    // Scheduled auction lots (pending — opens on event day)
+    const scheduledVehicleIds = [
+      vehicle1Id,
+      vehicle2Id,
+      vehicle3Id,
+      vehicle4Id,
+      vehicle5Id,
+      vehicle6Id,
+    ];
+    const scheduledStarts = [
+      8_500_000, 15_000_000, 12_500_000, 18_000_000, 21_500_000, 14_200_000,
+    ];
+
+    for (let i = 0; i < scheduledVehicleIds.length; i++) {
+      await ctx.db.insert("auctionLots", {
+        auctionId: scheduledAuctionId,
+        vehicleId: scheduledVehicleIds[i],
+        lotOrder: i + 1,
+        status: "pending",
+        currentBid: scheduledStarts[i],
+        bidCount: 0,
+        reserveMet: false,
+        startingBid: scheduledStarts[i],
+        reservePrice: Math.round(scheduledStarts[i] * 1.15),
+        buyItNowEnabled: i % 2 === 0,
+        buyItNowPrice: i % 2 === 0 ? Math.round(scheduledStarts[i] * 1.35) : undefined,
+        bidIncrement: 100_000,
+        lotDuration: 24 * 60 * 60 * 1000,
+        estimatedStartTime: now + sevenDaysMs + i * 15 * 60 * 1000,
+        startsAt: now + sevenDaysMs + i * 15 * 60 * 1000,
+        endsAt: now + sevenDaysMs + (i + 1) * 4 * 60 * 60 * 1000,
+      });
+    }
+
+    console.log("✓ Created 6 live lots and 6 scheduled lots");
 
     // ============================================
     // BIDS

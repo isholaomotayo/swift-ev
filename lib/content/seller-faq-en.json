@@ -1,0 +1,327 @@
+{
+  "categories": [
+    {
+      "id": "cat01",
+      "title": "Who Can Sell on autoexports.live",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q1",
+          "q": "Who is eligible to sell vehicles on autoexports.live?",
+          "a": "autoexports.live is open to the following seller types: • Licensed Chinese automobile dealers and exporters with verified business registration • Authorised sourcing partners in our established supply network (Guangzhou, Zhengzhou, Shanghai and other hubs) • Nigerian car dealers in China who source vehicles for resale and want access to our buyer network • Fleet operators and corporate entities liquidating vehicles from their fleet in China • Individual private sellers with roadworthy, export-eligible vehicles meeting our condition standards Sellers are subject to a vetting process before any listing goes live. Not every applicant will be approved — we protect buyer trust by maintaining strict quality standards for the seller base. ✓ Seller vetting protects buyers and maintains platform credibility"
+        },
+        {
+          "id": "q2",
+          "q": "Can I sell as an individual, or do I need to be a registered business?",
+          "a": "Both are welcome. However, the registration and verification requirements differ: Individual sellers: • Valid government-issued ID (NIN, passport, or driver's licence) • Proof of vehicle ownership (title document, purchase receipt, or original registration papers) • Bank account in your own name for payout Business / dealer sellers: • CAC registration certificate (Nigerian dealers) or equivalent business registration (Chinese suppliers) • Director's ID • Business bank account details for payment. • Dealer/ Export licence where applicable Business sellers typically go through an enhanced vetting process but gain access to higher listing limits and priority placement in auctions."
+        },
+        {
+          "id": "q3",
+          "q": "I am a Chinese automobile supplier. How do I become a verified partner?",
+          "a": "Our sourcing relationships are built through in-person evaluation. If you are a Chinese dealer or exporter interested in supplying inventory to autoexports.live: • Contact us at hello@autoexports.live with your company name, location, and the brands/models you specialise in • Our China operations team (+8615914293428) will conduct an initial assessment • Approved partners go through a formal due diligence process including premises visit, inventory inspection, and documentation review • Once approved, your inventory can be listed on the platform with our full logistics and escrow infrastructure supporting every transaction We currently have active sourcing partners in Guangzhou (Jiayi Autos), Zhengzhou (Hanhaiucar), and started talks with Autocango. We are actively expanding our verified partner network. ✓ In-person supplier evaluation before any listing goes live"
+        },
+        {
+          "id": "q4",
+          "q": "What is the seller verification process and how long does it take?",
+          "a": "Seller verification follows four steps: • Application — submit your details and documents via www.autoexports.live • Document review — our team verifies identity, business registration, and ownership documents (typically 2–3 business days) • Vehicle eligibility check — we confirm the specific vehicles you intend to list meet our condition standards • Account activation — your seller account is activated and you can begin listing Total time from application to first listing: approximately 5–10 business days for straightforward cases. More complex applications (large volumes, new supplier relationships) may take longer."
+        },
+        {
+          "id": "q5",
+          "q": "Is there a fee to register as a seller?",
+          "a": "There may be a one-time verification fee charged during seller registration to cover the cost of identity and document verification. The current fee amount is configured by platform administrators and will be displayed clearly to you during the registration process before you are asked to pay it. This fee is separate from the commission charged on successful sales. It is not refunded if your application is rejected, but in the event of rejection we will provide a clear reason and you are welcome to reapply after addressing the identified issue. _Important: Verification fees are non-refundable if an application is rejected after review._"
+        },
+        {
+          "id": "q6",
+          "q": "Can I sell vehicles from outside China — for example, from the UK or USA?",
+          "a": "Our platform is currently focused on Chinese-sourced vehicles due to China's strict functional export policy, which provides a baseline quality guarantee that underpins our buyer promise. Vehicles sourced from other regions do not carry the same structural guarantee and introduce complexity our platform is not currently configured to handle. If you have a compelling case for listing vehicles from another origin market, contact hello@autoexports.live to discuss. We are open to exploring this as the platform scales."
+        }
+      ]
+    },
+    {
+      "id": "cat02",
+      "title": "Listing a Vehicle — Requirements & Standards",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q7",
+          "q": "What information do I need to provide to list a vehicle?",
+          "a": "Every listing on autoexports.live must include the following information accurately and truthfully: Vehicle identity: • Make, model, year of manufacture, and variant/trim level • Full VIN (Vehicle Identification Number) • Body type, transmission type, drive type, and engine/motor specification Condition data: • Odometer reading — verified against ECU data, not just dashboard display • Overall condition grade (Excellent / Good / Fair) • Battery health percentage (EVs only — measured with diagnostic equipment) • Run and drive status, keys available, title status Location and logistics: • Current physical location of the vehicle • Export eligibility confirmation Pricing: • Starting bid price or direct purchase price • Reserve price (if applicable) Vehicle details must be accurate and truthful. Misrepresentation is grounds for immediate listing removal, account suspension, and potential escrow forfeiture. Commitment to the availability of listed cars for the duration they are up for bid on the platform ✓ All listing data is verified against inspection report before publishing _Important: Inaccurate listings are treated as a serious breach of platform terms._"
+        },
+        {
+          "id": "q8",
+          "q": "What media do I need to upload with my listing?",
+          "a": "Every listing must include: Photographs — minimum 15 images covering: • Front, rear, driver's side, passenger side (4 exterior angles minimum) • Front 3/4 and rear 3/4 diagonal angles • Interior — dashboard, driver's seat, rear seats, cargo area • Odometer display • Battery state of charge indicator (EVs) • VIN plate • Any cosmetic defects, dents, scratches — these must be photographed and disclosed Video — mandatory: • A full walkthrough video starting from the exterior walk-around, into the interior, engine/frunk/boot, and a start-up and idle clip to demonstrate the vehicle running • Video must be unedited and shot in natural daylight or good artificial light • Minimum resolution: 1080p Documentation: • Upload of inspection report (if independently inspected) • Vehicle title or export eligibility document Listings submitted without the required media will not be approved for publication. Our review team checks every media submission before a listing goes live. ✓ Every listing reviewed by our team before going live"
+        },
+        {
+          "id": "q9",
+          "q": "What are the vehicle condition standards for listing?",
+          "a": "autoexports.live accepts vehicles across three condition grades. The fourth category — Salvage — is not accepted on the platform under any circumstances: Excellent (95–100%): • Near-new. Minimal or no cosmetic wear. No mechanical faults. Typically around 10,000km. Good (85–94%): • Light use. Minor cosmetic marks acceptable. All mechanical and electrical systems fully functional. Fair (70–84%): • Moderate use. Cosmetic wear must be fully disclosed and photographed. All systems functional. Salvage — NOT ACCEPTED: • Vehicles with structural damage, airbag deployment history, flood damage, fire damage, or significant accident history are not eligible for listing. No exceptions.\u000b\u000b The condition grade you assign must be consistent with the inspection report findings. If there is a discrepancy, the inspection report takes precedence. _Important: Salvage-category vehicles are not accepted on autoexports.live under any circumstances._"
+        },
+        {
+          "id": "q10",
+          "q": "Can I list a vehicle that has minor cosmetic defects?",
+          "a": "Yes — as long as the defects are fully disclosed in the listing description and photographed clearly. Buyers on autoexports.live are sophisticated; a vehicle with minor cosmetic imperfections honestly presented will still attract strong bids, especially at the right price. What you must not do is photograph around defects, crop them out, or describe a vehicle as 'Excellent' when cosmetic wear puts it in the 'Good' category. Buyers inspect the vehicle against the listing upon delivery — any undisclosed issue is a dispute risk for you. ✓ Honest disclosure builds buyer confidence and protects sellers from disputes"
+        },
+        {
+          "id": "q11",
+          "q": "How long does it take for a listing to be approved and go live?",
+          "a": "Once you submit a complete listing with all required information, photos, and video: • Our team reviews the submission within 1–2 business days • If the inspection report is not yet available, this may extend review by 2–5 days • If there are issues with the submission (missing media, unclear photos, incomplete data), you will be notified with specific feedback within 24 hours so you can resubmit quickly • Approved listings go live on the platform immediately upon approval Listings submitted with complete and high-quality media are approved faster. Invest in good photography — it directly affects how many bids your listing attracts."
+        },
+        {
+          "id": "q12",
+          "q": "Can I edit or update a listing after it has gone live?",
+          "a": "Limited edits are permitted after a listing goes live. The following can be updated: • Starting bid price (only before the first bid is placed) • Additional photos (you can add more, but not remove disclosed defect photos) • Listing description — additions only, not removals of disclosed information The following cannot be changed once a listing is live: • VIN, odometer reading, condition grade, battery health percentage(if EV) • Any information that forms the basis of a buyer's bid decision If you need to correct a material factual error in a live listing, contact hello@autoexports.live immediately. Do not attempt to edit condition data unilaterally — this constitutes misrepresentation. _Important: Removing or altering disclosed defect information after a listing goes live is a serious breach._"
+        },
+        {
+          "id": "q13",
+          "q": "Can I list the same vehicle on other platforms simultaneously?",
+          "a": "You may list on other platforms while your vehicle is listed on autoexports.live, but you take on the risk of a double-sale conflict. If your vehicle sells elsewhere and you withdraw it from autoexports.live after bids have been placed, your security deposit may be forfeited and your account may be suspended. Best practice: if you sell a vehicle through another channel, notify us at hello@autoexports.live immediately so we can delist it before any bids are placed. _Important: Double-selling a vehicle after bids are placed will result in deposit forfeiture and possible account suspension._"
+        }
+      ]
+    },
+    {
+      "id": "cat03",
+      "title": "The Inspection Process",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q14",
+          "q": "Does autoexports.live conduct its own inspection, or do I arrange it?",
+          "a": "The inspection process has two components: Seller-arranged pre-listing inspection: • You are responsible for ensuring the vehicle has been inspected before submission. You may use an independent inspection service or provide your own detailed inspection report. The report must cover all 180 required inspection points. Platform verification inspection: • Before a vehicle is cleared for export after a successful sale, autoexports.live arranges an independent verification inspection through our in-country inspection partner. This confirms the vehicle matches the listing at point of export. If the verification inspection at point of export reveals discrepancies from the listing, the buyer is notified and the transaction may be paused, renegotiated, or cancelled — with implications for your commission and deposit. ✓ Two-stage inspection: pre-listing by seller, verification by platform before export"
+        },
+        {
+          "id": "q15",
+          "q": "What are the 180 inspection points? What does the inspection cover?",
+          "a": "The inspection covers every system and component of the vehicle. Key areas include: Mechanical: • Engine performance, oil and fluid condition, cooling system, exhaust • Transmission — all gear engagements, clutch (manual), paddle shifters (auto) • Braking system — pads, discs, ABS, handbrake • Steering — play, alignment, power assist • Suspension — all four corners, bushings, dampers Electrical: • Battery (EV) — health %, charge/discharge rate, cell balance • All dashboard warning lights — none should be illuminated • Lights, indicators, horn, wipers, mirrors • Infotainment, climate control, heated seats, all powered features Structural and cosmetic: • Full paint inspection — thickness measurement to detect repaints (indicator of past damage) • All body panels — gaps, alignment, dents, scratches • Glass — chips, cracks, seals • Interior — all upholstery, headliner, mats, trim Documentation check: • VIN verification against physical plate and ECU • Odometer — ECU verification to detect rollback • Export eligibility check The completed report is published on the listing and visible to all buyers."
+        },
+        {
+          "id": "q16",
+          "q": "What happens if my vehicle fails the verification inspection before export?",
+          "a": "If the independent verification inspection at point of export reveals that the vehicle does not match its listing description — for example, undisclosed damage, higher true odometer reading, or a fault that was not in the inspection report: • The buyer is immediately notified of the discrepancy • The transaction is paused • You will be given 48 hours to respond — either to agree to a price adjustment reflecting the discrepancy, arrange a repair, or agree to a cancellation • If the discrepancy is material and the buyer cancels, your seller deposit may be forfeited in full, and your commission on the sale will not be paid Deliberate misrepresentation in a listing leads to immediate account suspension. _Important: Undisclosed defects discovered at the export inspection are a serious seller liability._"
+        },
+        {
+          "id": "q17",
+          "q": "Can I use my own inspection report, or must I use autoexports.live's partner?",
+          "a": "You may submit an inspection report from a recognised independent inspection service. The report must: • Cover all 180 inspection points on our standard checklist • Be dated within 30 days of listing submission • Be issued on the inspection service's official letterhead with inspector name and credentials • Include photos of the inspection process and findings Reports from the vehicle owner or seller's own mechanics are not accepted — the report must come from an independent third party with no financial interest in the sale. If you do not have access to a suitable independent inspector, contact us at hello@autoexports.live and we can arrange one through our partner network — at your cost."
+        }
+      ]
+    },
+    {
+      "id": "cat04",
+      "title": "Pricing, Auctions & Reserve",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q18",
+          "q": "Should I list as an auction or a direct purchase?",
+          "a": "Both options are available and serve different seller goals: Live auction (recommended for most vehicles): • Creates competitive bidding that can drive the final price above your starting bid • Ideal when you want maximum price discovery — let the market set the value • Creates urgency and excitement that drives buyer engagement • Best practice: set a realistic starting bid and a private reserve Direct purchase (Buy Now): • You name your price and the first buyer to accept it owns the vehicle • Best for sellers who want speed and certainty over maximum price • Ideal for time-sensitive inventory or very competitively priced vehicles You can combine both: list an auction with a Buy Now price set above the auction starting bid — buyers can either wait for the auction or pay a premium to secure it immediately."
+        },
+        {
+          "id": "q19",
+          "q": "What is a reserve price and should I set one?",
+          "a": "A reserve price is the minimum amount you are willing to accept for a vehicle. It is private — buyers can see whether the reserve has been met ('Reserve Met ✓') but they cannot see the reserve amount itself. Setting a reserve protects you from being obligated to sell at an unexpectedly low price if an auction receives few bids. If the reserve is not met at auction close, the vehicle is unsold and you retain it. Recommendations: • Set the reserve at the absolute minimum you would accept — not your desired price • Set the starting bid below the reserve to attract early bidders and build momentum • For vehicles priced above ₦10M, we strongly recommend setting a reserve There is no fee for setting or not meeting a reserve. Unsold vehicles do not incur a commission charge. ✓ Reserve prices are private. Buyers cannot see your minimum."
+        },
+        {
+          "id": "q20",
+          "q": "How do I price my vehicle competitively?",
+          "a": "Use these reference points to set a competitive opening bid and reserve: • Review comparable vehicles currently listed or recently sold on autoexports.live • Use our landed cost calculator from the buyer's perspective — price should offer clear value against local Nigerian alternatives at a similar landed cost • For EVs: battery health is a major pricing factor. A 100% battery health vehicle can command a meaningful premium over a 90% equivalent • For higher mileage vehicles (20,000km+): price must reflect the discount buyers expect versus a near-new equivalent Contact your dedicated account manager (Premier and Business sellers) for a personalised pricing consultation before listing high-value inventory."
+        },
+        {
+          "id": "q21",
+          "q": "What happens if my vehicle does not sell at auction?",
+          "a": "If your auction closes without a winning bid above the reserve price: • No commission is charged — we only earn when you earn • You are notified immediately and given the option to relist • When relisting, you can adjust the starting bid, the reserve, or the listing content based on feedback from the auction activity (number of views, watchlist additions, bids placed) Our team can provide a brief post-auction analysis if your vehicle did not sell — helping you understand whether the issue was pricing, photography, timing, or listing quality. ✓ No commission on unsold vehicles. Relist at no extra charge."
+        },
+        {
+          "id": "q22",
+          "q": "Can I end an auction early if I receive an offer outside the platform?",
+          "a": "Once an auction is live and bids have been placed, you cannot end it early to sell outside the platform. Doing so would breach your agreement with the bidders who placed deposits and would constitute a serious violation of platform terms. If you receive an external offer before any bids are placed, contact us at hello@autoexports.live and we can discuss delisting. Once bids are in, the auction must run to completion. _Important: Ending a live auction after bids have been placed is a serious terms violation._"
+        }
+      ]
+    },
+    {
+      "id": "cat05",
+      "title": "Commissions, Fees & Payouts",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q23",
+          "q": "What commission does autoexports.live charge sellers?",
+          "a": "Commission is charged only on successful sales — if your vehicle does not sell, you pay nothing. Commission rates (tiered by final bid amount): • Final bid up to ₦5,000,000: 7% commission • Final bid above ₦5,000,000 and up to ₦15,000,000: 6% commission • Final bid above ₦15,000,000: 5% commission Commission is deducted automatically from the sale proceeds held in escrow before your payout is released. You receive the final bid amount minus commission. Example: A vehicle sells for ₦12,000,000. Commission = 6% = ₦720,000. Your payout = ₦11,280,000. ✓ Commission only on successful sales. No listing fees."
+        },
+        {
+          "id": "q24",
+          "q": "Are there any other fees besides commission?",
+          "a": "For verified platform sellers, presently, the only deduction from your sale proceeds is the commission percentage. There are no listing fees, no monthly platform fees, and no fees for unsuccessful auctions. The one-time seller verification fee (charged during registration) is separate and is not deducted from sale proceeds. Buyers pay their own buyer premium and service fees — these do not come from your payout. ✓ Commission only. No listing fees, no monthly fees, no unsold-auction fees."
+        },
+        {
+          "id": "q25",
+          "q": "When do I receive my payout after a vehicle sells?",
+          "a": "Your payout is released after these milestones are confirmed: • Milestone 1 — Buyer payment received and confirmed in escrow • Milestone 2 — Vehicle passes export verification inspection • Milestone 3 — Bill of Lading issued and vehicle in transit Once all milestones are complete, your payout (final bid minus commission) is released within 3–5 business days to the bank account registered on your seller profile. Typical total time from auction close to payout: 40–55 days (reflecting the shipping and delivery timeline). _Important: Payouts are not released until Shipment is done. This is escrow protecting the buyer — and the integrity of your reputation on the platform._"
+        },
+        {
+          "id": "q26",
+          "q": "Can I get paid faster — before the vehicle is delivered?",
+          "a": "Yes. The escrow structure requires delivery confirmation for shipment before seller payout. This is a non-negotiable platform guarantee to buyers — it is the primary reason buyers trust the platform enough to pay millions of naira without seeing a vehicle. As a seller, this structure also protects you: the platform guarantees payment once delivery for shipment is confirmed. You are not chasing the buyer for payment after handover. ✓ Escrow guarantees you will be paid once delivery is confirmed"
+        },
+        {
+          "id": "q27",
+          "q": "What if I have a currency other than Naira — can I be paid in USD or RMB?",
+          "a": "Payment is in RMB. For Chinese and international suppliers, payout currency options can be discussed during the onboarding process. Contact hello@autoexports.live or our China operations line at +8615914293428 to discuss the currency and payment method that works for your business. For Nigerian sellers, payouts are currently processed in Naira to a Nigerian bank account."
+        },
+        {
+          "id": "q28",
+          "q": "What happens to my payout if there is a buyer dispute?",
+          "a": "If a buyer raises a formal dispute after delivery, your payout may be held in escrow while the dispute is reviewed. The escrow hold does not mean the dispute will be decided against you — it simply ensures funds are available to honour any resolution. If the dispute is resolved in your favour (the vehicle was as described and delivery was as confirmed), your full payout is released within 3–5 business days of resolution. If the dispute reveals a listing misrepresentation or undisclosed fault, part or all of your payout may be used to fund the agreed remedy (repair cost, partial refund). ✓ Your payout is protected if the dispute is resolved in your favour"
+        }
+      ]
+    },
+    {
+      "id": "cat06",
+      "title": "The Live Tracking Dashboard",
+      "intro": "autoexports.live includes a live tracking dashboard accessible to both buyers and sellers. This section explains what the dashboard shows, what sellers are responsible for updating, and how the tracking system builds confidence throughout the transaction.",
+      "questions": [
+        {
+          "id": "q29",
+          "q": "What is the live tracking dashboard?",
+          "a": "The live tracking dashboard is a real-time transaction progress monitor built into every buyer and seller account on autoexports.live. It is activated the moment a vehicle sale is confirmed and remains active until the buyer signs the delivery receipt. Both the buyer and seller see the same milestones on the dashboard, with different information displayed at each stage depending on their role. The buyer sees the status of their vehicle's journey. The seller sees the status of their transaction and payout progression. The dashboard eliminates the anxiety of 'where is my car?' and 'has the buyer been notified?' — both parties have full visibility at all times. ✓ Live dashboard accessible to buyer and seller from sale confirmation to delivery"
+        },
+        {
+          "id": "q30",
+          "q": "What milestones are tracked on the dashboard?",
+          "a": "The dashboard tracks 8 confirmed milestones from sale to delivery: ✓ 8 milestones tracked in real time from sale to delivery"
+        },
+        {
+          "id": "q31",
+          "q": "What does the buyer see on their tracking dashboard?",
+          "a": "From the buyer's perspective, the dashboard shows: • A visual progress bar showing the 8 milestones with current status (Completed / Active / Upcoming) • A live map showing the vessel position during ocean transit (updated every 6 hours via carrier API) • The current milestone name and a plain-language description of what is happening • Estimated arrival date at Lagos port, updated dynamically as voyage data is received • Automated email alerts at every milestone transition • A document vault — where inspection reports, Bill of Lading, insurance certificate, and customs receipts are accessible as soon as they are uploaded The buyer cannot see your payout status or commission deductions — those are seller-only views."
+        },
+        {
+          "id": "q32",
+          "q": "What does the seller see on their tracking dashboard?",
+          "a": "From the seller's perspective, the dashboard shows: • All 8 milestones with status, plus a 'Seller action required' indicator on milestones that require you to upload documents or confirm a step • Escrow status — amount paid, amount to be released, commission deduction preview • Payout timeline — estimated release date based on current delivery tracking • Buyer communication thread — you can send and receive messages with the buyer directly through the dashboard (all messages are logged for dispute purposes) • Dispute status — if a dispute is raised, it appears here with case reference and status • Document management — upload and track all required documents for each milestone ✓ Full transaction transparency for sellers — payout timeline visible from day one"
+        },
+        {
+          "id": "q33",
+          "q": "What do I need to upload at each milestone?",
+          "a": "Here is a complete checklist of pictures/ documents sellers must upload: At M3 — Export inspection passed: • Final verification inspection report (if not already uploaded at listing) • Export certificate or clearance confirmation At M4 — Vehicle at port: • Inland transport tracking reference or waybill • Port entry confirmation At M5 — Vessel loaded: • Bill of Lading (copy) — the original remains with the shipping line • Commercial invoice for customs purposes At M7 — Arrived at Lagos port: • Any seller-side customs documentation requested by our clearing team (Clearing Team post picture) At M8 — Delivery: • Signed delivery receipt (copy) confirming buyer acceptance All documents are stored securely in your account and in the buyer's document vault. Missing documents at any milestone will pause that milestone's progression and delay things ✓ Document uploads trigger automatic milestone progression and buyer notifications"
+        },
+        {
+          "id": "q34",
+          "q": "What happens if a milestone is delayed? How do I update it?",
+          "a": "If a milestone is going to be delayed — for example, there is a port congestion issue or the vessel has been rerouted — you must update the dashboard as soon as you are aware: • Log into your seller account and navigate to the active transaction • Select the delayed milestone and click 'Report delay' • Enter the reason for the delay and the revised estimated completion date • The buyer is automatically notified of the delay and the revised timeline Do not wait for the buyer to contact you. Proactive communication at this stage prevents disputes and maintains trust. A buyer who knows about a delay and understands the reason will almost always accept it without issue. ✓ Proactive delay reporting is the most important thing you can do to protect the transaction"
+        },
+        {
+          "id": "q35",
+          "q": "Does the buyer have a live map view of the vessel?",
+          "a": "Yes. During ocean transit (Milestone 6), the buyer's dashboard includes a live map showing the vessel's current position, updated every 6 hours via our integration with the shipping carrier's tracking API (Maersk and MSC both provide public vessel tracking). The map shows: • Current vessel position (latitude/longitude rendered on map) • Port of origin and port of destination markers • Estimated time of arrival (ETA) at Lagos port • Voyage progress as a percentage of total route distance As a seller, you do not need to manage the map view — it is automatically populated from the Bill of Lading vessel details you upload at Milestone 5. ✓ Live satellite vessel tracking — automatically populated from your Bill of Lading upload"
+        },
+        {
+          "id": "q36",
+          "q": "What if the buyer says they cannot see progress on their dashboard?",
+          "a": "If a buyer contacts you or our team saying their dashboard is not updating, the most common causes are: • You have not uploaded a required document for the current milestone — check your seller dashboard for any 'Action required' alerts • A milestone has been marked as delayed and the system is awaiting your revised date • A technical issue — the buyer should contact hello@autoexports.live or try refreshing their browser/app Check your seller dashboard first before directing a buyer to our support team — the majority of tracking issues are resolved by completing a pending seller action."
+        }
+      ]
+    },
+    {
+      "id": "cat07",
+      "title": "Shipping, Handover & Export",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q37",
+          "q": "Who arranges the shipping — the seller or autoexports.live?",
+          "a": "autoexports.live manages all ocean freight arrangements from China to Nigeria. As a seller, your logistics responsibilities end at the port of export in China except otherwise pre-agreed: • You are responsible for delivering the vehicle to the designated port (we provide port details) • You are responsible for completing all Chinese export documentation (export certificate, commercial invoice, packing list) • We may take over from the port — booking ocean freight, arranging loading, issuing instructions to the shipping line, managing the Bill of Lading, and handling Nigerian customs clearance If you need assistance arranging inland transport from your location to the port in China, our China operations team (+8615914293428) can recommend local logistics partners."
+        },
+        {
+          "id": "q38",
+          "q": "What export documentation do I need to prepare?",
+          "a": "The key export documents you must prepare and provide: • Export certificate — issued by Chinese customs authority confirming the vehicle is cleared for export • Commercial invoice — showing vehicle details, VIN, sale value, and buyer/seller details • Packing list — vehicle specification, weight, dimensions • Original title document or certificate of ownership • Any mandatory Chinese export compliance certificates applicable to the vehicle type Our team will provide you with a document checklist specific to your vehicle and the applicable Chinese export regulations. Do not attempt to prepare export documents without reference to this checklist — incorrect documentation causes port delays that affect your delivery timeline and payout date. ✓ Document checklist provided per transaction by our China operations team"
+        },
+        {
+          "id": "q39",
+          "q": "What happens if there is a delay getting the vehicle to the port?",
+          "a": "Port delays directly extend the buyer's delivery timeline and your payout timeline. If you anticipate a delay in getting the vehicle to port: • Notify our team immediately at +8615914293428 (China line) or hello@autoexports.live • Update the tracking dashboard with a revised milestone date • If the delay exceeds 7 days from the expected port arrival date, the buyer has the right to raise a delayed delivery concern — which may trigger a discount request or, in extreme cases, a cancellation Delays that are outside your control (port strikes, extreme weather, carrier schedule changes) are treated differently from delays caused by seller unreadiness. Document the cause of any delay in the dashboard. _Important: Unexplained port delays beyond 7 days give buyers grounds to raise a formal concern._"
+        },
+        {
+          "id": "q40",
+          "q": "What if the vehicle is damaged between my premises and the port?",
+          "a": "Any damage that occurs during inland transport before loading is the seller's responsibility. The platform's marine insurance policy covers the vehicle from the point of loading onto the ocean freight vessel — not from your premises to the port. We strongly recommend sellers arrange inland transit insurance for the journey from your location to the port. This is standard practice and your local logistics provider can typically arrange this at minimal cost. If the vehicle arrives at port with new damage not present in the inspection report, you must disclose this to our team before loading. Loading a damaged vehicle without disclosure is a serious breach. _Important: Platform insurance begins at port loading. You are responsible for inland transit insurance._"
+        }
+      ]
+    },
+    {
+      "id": "cat08",
+      "title": "Disputes, Returns & Liability",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q41",
+          "q": "What kind of disputes can a buyer raise against me?",
+          "a": "Buyers may raise a dispute in the following circumstances: • Vehicle condition does not match the listing description or inspection report • Undisclosed damage or faults discovered at delivery • Odometer reading at delivery higher than listed • Vehicle is missing features or accessories listed • Significant shipping delay beyond the stated window with no communication • Vehicle fails to start or drive normally at delivery Buyers cannot raise disputes for: • Personal preference (they don't like the colour now that they see it in person) • Issues that were clearly disclosed in the listing and inspection report • Normal wear consistent with the condition grade purchased The platform arbitrates based on the listing, inspection report, and delivery evidence — not subjective buyer preference. ✓ Disputes are judged against the inspection report and listing — not subjective preference"
+        },
+        {
+          "id": "q42",
+          "q": "How are disputes resolved — am I treated fairly as a seller?",
+          "a": "Our dispute process is designed to be fair to both parties. Here is how it works: • Both the buyer and the seller are contacted and given the opportunity to provide evidence and their account of the situation • Our dispute team reviews: the original listing, the inspection report, pre-shipment photos, post-delivery photos (if provided), and all dashboard and communication logs • A written resolution decision is issued within 7 days As a seller, you are protected when: • The vehicle matches its listing — we will defend the listing accuracy • Disclosed issues are the subject of the dispute — disclosed = accepted at purchase • The buyer is raising a preference issue rather than a genuine discrepancy As a seller, you are liable when: • The vehicle does not match the listing in a material way • You failed to disclose a known fault • The inspection report was inaccurate or falsified ✓ Both parties given equal opportunity to present evidence before any decision"
+        },
+        {
+          "id": "q43",
+          "q": "Can a buyer return a vehicle?",
+          "a": "Physical vehicle returns are operationally complex for international shipments and are not a standard part of the platform's process. In the event of a serious discrepancy: • Partial refund (price adjustment) is the primary remedy for significant but not total misrepresentation • Full refund is the remedy for total misrepresentation — where the vehicle is fundamentally different from what was listed • In the event of a full refund, the vehicle remains with the buyer pending resolution of costs — the platform and seller are responsible for logistics costs in this scenario Vehicle returns from Nigeria to China are rare and complex. The platform's strong pre-listing review process is specifically designed to prevent disputes of this magnitude. _Important: Full refunds triggered by seller misrepresentation are at the seller's expense, including logistics costs._"
+        },
+        {
+          "id": "q44",
+          "q": "What if the buyer is the problem — they refuse to accept delivery without reason?",
+          "a": "Buyer-side bad faith is taken as seriously as seller-side misrepresentation. If a buyer refuses delivery without a valid reason: • The buyer's 10% security deposit is forfeited • You are notified and given the option to relist the vehicle • Storage fees during any delay caused by the buyer's refusal are the buyer's responsibility • Your payout on the relist is subject to the same commission structure as the original sale Document everything if a buyer raises concerns at delivery — request specific written objections and photograph the vehicle's condition at the point of refusal."
+        },
+        {
+          "id": "q45",
+          "q": "Am I liable if the buyer has a road accident in the vehicle after delivery?",
+          "a": "No. Once delivery is confirmed and the buyer has signed the delivery receipt, liability for the vehicle and its use transfers entirely to the buyer. The platform's insurance cover ends at delivery confirmation. As the seller, your responsibility is to accurately represent and deliver the vehicle in the condition stated. Post-delivery use is the buyer's responsibility under Nigerian road and insurance law."
+        }
+      ]
+    },
+    {
+      "id": "cat09",
+      "title": "Growing Your Business on the Platform",
+      "intro": "By clicking 'I Agree' or 'Create Account' on the registration page, you confirm that you have read, understood, and agree to be legally bound by these Terms of Use, the Privacy Policy, and any applicable Buyer or Seller Agreement. This constitutes a legally binding electronic signature under applicable Nigerian law.",
+      "questions": [
+        {
+          "id": "q46",
+          "q": "How do I attract more bids and get a better final price?",
+          "a": "The top factors that drive stronger auction results on autoexports.live: Photography quality: • High-resolution images (minimum 4K), shot in daylight with a clean background, sell faster and for more. Every extra ₦ in your final bid is often down to image quality. Walkthrough video: • A thorough, uncut walkthrough video showing a cold start, all four corners, and the interior builds confidence that no photo can match. Complete and honest condition disclosure: • Buyers bid more confidently on listings where the seller has clearly disclosed everything — even minor issues. Hiding something creates doubt; disclosing it removes it. Competitive starting bid: • Lower starting bids attract more early bidders, which creates competition, which drives up the final price. A ₦7M start often beats a ₦10M start in final outcome. Auction timing: • Auctions ending mid-week (Tuesday to Thursday) between 7pm–10pm WAT tend to attract the highest active bidder counts. Avoid Friday–Sunday endings. ✓ Sellers with complete media and honest disclosures consistently achieve higher final bids"
+        },
+        {
+          "id": "q47",
+          "q": "Can I get premium placement or featured listing status?",
+          "a": "Yes. Featured listings are available on a first-come, first-served basis and appear at the top of the inventory page and in the Featured Vehicles section on the homepage. Featured placement is available to Premier and Business tier sellers at a fixed placement fee. Contact hello@autoexports.live for current placement rates and availability. Featured status does not affect the commission structure — commission remains the same regardless of listing tier."
+        },
+        {
+          "id": "q48",
+          "q": "Can I list multiple vehicles simultaneously?",
+          "a": "Yes. The number of simultaneous active listings depends on your seller account tier: • Standard verified seller: up to 5 simultaneous listings • Business-tier seller / verified dealer: unlimited simultaneous listings If you are a dealer or fleet operator with large inventory volumes, contact us to discuss a bulk listing onboarding — we can help you upload multiple listings efficiently through our Business API."
+        },
+        {
+          "id": "q49",
+          "q": "Can I track my overall sales performance — total listings, bids, revenue?",
+          "a": "Yes. Your seller dashboard includes a performance overview showing: • Total listings (active, ended, sold, unsold) • Total revenue from completed sales • Average final bid vs starting bid ratio (showing how much competition your listings attract) • Watchlist count per listing (showing buyer interest before bidding opens) • Bid history on each listing • Payout history and status This data helps you make informed decisions about pricing, listing quality, and the types of vehicles that perform best with our buyer base. ✓ Full seller analytics dashboard — performance data on every listing"
+        },
+        {
+          "id": "q50",
+          "q": "Is there a partner programme for high-volume or consistent sellers?",
+          "a": "Yes. autoexports.live operates a Partner Programme for sellers who: • Complete 5 or more successful transactions on the platform • Maintain a dispute rate below 5% of their listings • Consistently provide complete, high-quality listing media Partner benefits include: • Reduced commission rate (negotiated individually) • Priority listing review (listings approved faster) • A 'Verified Partner' badge on your listings, which significantly increases buyer confidence • Access to our exclusive pre-launch inventory window — new buyers often purchase Partner seller listings before public auction even opens Contact hello@autoexports.live with 'Partner Programme' in the subject line to discuss eligibility. ✓ Verified Partner badge increases buyer trust and final bid amounts"
+        },
+        {
+          "id": "q51",
+          "q": "I am a Chinese supplier. Do I need to be in Nigeria to manage my listings?",
+          "a": "No. The entire process is managed remotely through your seller dashboard. As a Chinese supplier, you manage: • Listing creation and media upload — from your location in China • Document uploads at each milestone — through your dashboard • Communication with the platform team — via email and the in-platform message system Our China operations team (+8615914293428) is your primary point of contact and is available during Chinese business hours. For urgent matters, email hello@autoexports.live for 24-hour coverage. All payouts to Chinese suppliers are handled through our international settlement process — you do not need a Nigerian bank account. ✓ Chinese suppliers managed entirely remotely with China-side operations support"
+        },
+        {
+          "id": "q52",
+          "q": "What if I have a problem with my seller account or dashboard?",
+          "a": "Our seller support team handles all account and technical issues: • Email: hello@autoexports.live (response within 24 hours) • Nigeria line: +2349167706772 (Mon–Fri, 9am–6pm WAT) • China line: +8615914293428 (Mon–Fri, 9am–6pm CST) • For urgent transaction issues (active auction, delivery in progress): safety@autoexports.live (monitored around the clock) Please include your seller account ID and the relevant lot number in all communications to ensure your query is routed to the right team member immediately."
+        }
+      ]
+    }
+  ]
+}

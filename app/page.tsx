@@ -17,6 +17,7 @@ import {
 	FeaturedVehicles,
 	type Vehicle,
 } from "@/components/home/featured-vehicles";
+import { AuctionPromoBanner } from "@/components/home/auction-promo-banner";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +91,7 @@ const journeySteps = [
 		title: m.common_verified_bidding(),
 		desc: m.common_our_escrow_system_keeps_your_deposit_safe_until_th(),
 		accent: "border-brand-accent bg-brand-accent/5",
-		link: "/vehicles",
+		link: "/auctions",
 		cta: m.nav_live_bids(),
 	},
 	{
@@ -232,6 +233,8 @@ export default async function Home() {
 					</div>
 				</section>
 
+				<AuctionPromoBanner />
+
 				{/* Trust bar */}
 				<section className="relative z-20 -mt-6 md:-mt-10 mx-4 md:mx-auto md:max-w-[calc(100%-3rem)] lg:max-w-6xl">
 					<div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 shadow-xl shadow-slate-900/5 p-4 md:p-6">
@@ -350,7 +353,7 @@ export default async function Home() {
 									</span>
 								</h2>
 								<p className="text-slate-300 text-lg leading-relaxed mb-10 max-w-md">
-									{m.common_global_trade_invisible()}
+									{m.common_end_to_end_subheadline()}
 								</p>
 								<div className="flex gap-10">
 									<div>

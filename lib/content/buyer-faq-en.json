@@ -1,0 +1,434 @@
+{
+  "categories": [
+    {
+      "id": "cat01",
+      "title": "Getting Started & Registration",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q1",
+          "q": "What exactly is autoexports.live and what does it do?",
+          "a": "autoexports.live is an African originated online marketplace for buying vehicles sourced directly from China. We connect buyers — individuals, businesses, and car dealers — with verified Chinese automobile suppliers , through a powerful auction process and handle everything in between: vehicle inspection, international shipping, customs clearance, insurance, and delivery to your doorstep. Unlike a typical car dealership, you can browse inventory online, bid in live auctions, or purchase at a fixed price — with full transparency into costs, vehicle condition, and delivery timelines before you commit a single naira. We are a product of Zoeafountain Limited, a Nigerian company registered with the Corporate Affairs Commission since 2011."
+        },
+        {
+          "id": "q2",
+          "q": "Who is this platform for?",
+          "a": "autoexports.live is built for: • Individual buyers looking for a new or near-new vehicle at competitive prices • Business owners and executives who need reliable vehicles without repair surprises • Fleet managers sourcing multiple vehicles for corporate or logistics use • Car dealers looking to expand their inventory with quality sourced stock • Anyone who has been burned by the tokunbo market and wants a guaranteed-functional alternative You do not need any import experience. We handle all the technical and logistical complexity — you just need to be a registered user with a valid Nigerian bank account and you can track your purchase until delivery."
+        },
+        {
+          "id": "q3",
+          "q": "Is autoexports.live open to buyers outside Nigeria?",
+          "a": "Our platform and payment infrastructure are currently optimised for Nigerian buyers paying in Naira but also centered for people outside Nigeria to pay using international currencies. If you are based in another country and wish to make a purchase"
+        },
+        {
+          "id": "q4",
+          "q": "How do I create an account?",
+          "a": "Registration takes less than five minutes: • Go to autoexports.live/register • Enter your full name, email address, and phone number • Choose a password and select your account type (individual or business) • Verify your email address via the confirmation link we send • Complete identity verification (KYC) to unlock bidding and purchasing You can browse vehicles and view listings as a Guest without registering. However, to place a bid or make a purchase you must be a registered, KYC-verified member."
+        },
+        {
+          "id": "q5",
+          "q": "What is KYC and why do you need it?",
+          "a": "KYC stands for Know Your Customer — it is an identity verification process required by financial regulations and Anti-Money Laundering (AML) law. Because our platform handles large financial transactions (vehicle purchases worth millions), we are legally required to verify the identity of every buyer and seller. KYC protects you as much as it protects us. It ensures no one can impersonate you, bid on your behalf without consent, or fraudulently claim your vehicle. What you need to provide: • A valid government-issued ID (NIN, international passport, or driver's licence) • Proof of address (utility bill or bank statement, not older than 3 months) • For business accounts: CAC registration certificate and one director's ID Your documents are stored securely and are never shared with third parties except our licensed KYC verification partner and regulatory authorities where required by law. ✓ KYC compliance protects your identity and your funds"
+        },
+        {
+          "id": "q6",
+          "q": "Which membership plan should I choose?",
+          "a": "There are four tiers: Guest — Free • Browse and view all vehicle listings and condition reports. Cannot bid or purchase. Basic — ₦75,000/year • 3 bids per day, up to ₦5M buying power. Best for first-time buyers or occasional purchases. Premier — ₦150,000/year • 10 bids per day, up to ₦50M buying power, dedicated account manager, early access to new listings. Best for serious individual buyers and professionals. Business — ₦500,000/year • Unlimited bids and buying power, API access, bulk shipping discounts, custom payment terms. Built for dealers and fleet operators. If you are buying your first vehicle and are unsure, start with Basic. You can upgrade your membership at any time and your fee will be prorated. _Note: Your annual membership fee is separate from the vehicle purchase price and service fees._"
+        },
+        {
+          "id": "q7",
+          "q": "Can I use the platform without paying a membership fee?",
+          "a": "Yes. Guest access is completely free and allows you to browse all vehicle listings, view photos, read condition reports, and use the landed cost calculator. You only need a paid membership when you are ready to place a bid or make a direct purchase. Many buyers spend time on the platform as a Guest to research vehicles and understand costs before committing to a membership — which is exactly what we encourage. ✓ No payment required to browse and research"
+        },
+        {
+          "id": "q8",
+          "q": "Is my personal data safe on the platform?",
+          "a": "Yes. autoexports.live is operated in compliance with Nigeria's data protection framework. Your personal data is: • Encrypted in transit using 256-bit TLS (the same standard used by banks) • Stored on secure servers with restricted access • Never sold to third parties or advertisers • Only shared with our KYC partner, payment processor, and logistics providers — all under strict data agreements You have the right to request a copy of your data, request corrections, or request deletion of your account. Full details are in our Privacy Policy at autoexports.live/privacy. ✓ NDPR-compliant data handling. We do not sell your data."
+        }
+      ]
+    },
+    {
+      "id": "cat02",
+      "title": "Vehicle Quality & Inspection",
+      "intro": "This is the category most buyers care about most. The short answer: every vehicle on autoexports.live is guaranteed to be fully operational before it leaves China. Here is exactly how.",
+      "questions": [
+        {
+          "id": "q9",
+          "q": "How do I know the vehicle is actually in the condition described?",
+          "a": "Every vehicle listed on autoexports.live goes through a mandatory 180-point pre-shipment inspection conducted by independent inspectors at the source location in China. This inspection covers: • Engine performance and oil condition • Transmission and gear engagement at all speeds • Electrical systems, dashboard warnings, and sensors • Battery health (for EVs) — measured and certified as a percentage • Brake system, suspension, and tyres • Body condition — every panel, every weld, every gap • Interior condition — seats, trim, controls, climate system • Odometer reading — verified against ECU data, not just the dashboard display • VIN verification against Chinese and international databases The inspection report is uploaded to your vehicle listing and available to read before you bid or purchase. Nothing is hidden. If a fault is found, it is listed — or the vehicle does not go onto the platform. ✓ Full 180-point inspection report available for every listing"
+        },
+        {
+          "id": "q10",
+          "q": "China has a strict vehicle export policy — what does that actually mean for me?",
+          "a": "China enforces a national export standard that prohibits the export of defective, accident-damaged, or non-roadworthy vehicles to international buyers. This policy is backed by Chinese commercial law and enforced at the port of export. In practical terms, it means that a seller in China cannot legally ship you a car that does not work. Attempting to do so exposes the seller to significant legal and financial penalties. This structural protection — which does not exist in the tokunbo market — is a foundational reason why we source from China. Combined with our own 180-point inspection, you have two independent layers of protection before the vehicle even leaves the country. ✓ Protected by both Chinese export law and our independent inspection"
+        },
+        {
+          "id": "q11",
+          "q": "What is battery health and why does it matter for EVs?",
+          "a": "For electric vehicles, battery health is the equivalent of engine condition for a petrol car. It is expressed as a percentage — 100% means the battery performs exactly as the manufacturer intended at the time of manufacture. A battery at 90% health delivers approximately 90% of its original range. Every EV on autoexports.live has its battery health measured using diagnostic equipment and the result is displayed prominently on the listing. We do not list vehicles with battery health below 70%. For context, our current inventory includes vehicles ranging from 94% to 100% battery health — meaning the range you see listed is the range you will actually experience. ✓ Battery health certificate provided for every EV listing"
+        },
+        {
+          "id": "q12",
+          "q": "What does 'Excellent', 'Good', and 'Fair' condition mean?",
+          "a": "Excellent (95–100%) • Near-new condition. Minimal or no cosmetic wear. Mechanically perfect. Typically under 10,000km. Good (85–94%) • Light use. Minor cosmetic marks at most. Fully functional. Typically 10,000–40,000km. Fair (70–84%) • Moderate use. Some cosmetic wear noted in the inspection report. All mechanical systems functional. Reflects a price advantage. We do not list Salvage-category vehicles — those are vehicles with structural or accident damage. Every vehicle on autoexports.live, regardless of condition grade, is run-and-drive and export-eligible. ✓ No accident-damaged vehicles listed on the platform"
+        },
+        {
+          "id": "q13",
+          "q": "Can I see more than one photo of the vehicle?",
+          "a": "Each listing includes a gallery of photographs taken during the inspection process, covering all exterior angles, interior, dashboard, odometer, battery indicator (for EVs), VIN plate, and any areas of cosmetic wear. A walkthrough video is also required for all seller-listed vehicles. If you would like additional photos of a specific angle or component before bidding, contact our team at hello@autoexports.live with the lot number and your request. We will coordinate with our in-country partner to capture and share additional imagery within 48 hours. ✓ Photo gallery + inspection video on every listing"
+        },
+        {
+          "id": "q14",
+          "q": "Are the vehicles new or used?",
+          "a": "Our inventory includes both new and low-mileage used vehicles. All vehicles are clearly labelled with their year of manufacture, odometer reading (verified), and condition grade. The majority of our inventory is 2014–2025 model year with under 10,000km — effectively new vehicles at significantly lower prices than the equivalent new-car price in most places. Some listings are ex-display or ex-fleet vehicles with slightly higher mileage but exceptional value."
+        },
+        {
+          "id": "q15",
+          "q": "What brands and models are available?",
+          "a": "Our sourcing partnerships give us access to a wide range of brands across origins: Chinese brands: • BYD, NIO, XPeng, Li Auto, Zeekr, Avatr, Hongqi, GAC, Xiaomi, Li Aion, Geely, Changan, and many more globally respected cars Japanese brands (sourced via China): • Toyota, Honda, Nissan, Mazda, Mitsubishi German brands (sourced via China): • BMW, Mercedes-Benz, Audi, Volkswagen American brands (sourced via China): • Buick, Cadillac,Chrysler, Ford (Chinese-market variants) New brands and models are added regularly as our supplier network expands. If you are looking for a specific vehicle that is not currently in our inventory, contact us — we may be able to source it through our partner network. ✓ Direct sourcing partnerships with Jiayi Autos (Guangzhou), Hanhaiucar (Zhengzhou), and Autocango"
+        },
+        {
+          "id": "q16",
+          "q": "Can I request a specific vehicle that is not listed?",
+          "a": "Yes. Premier and Business members can submit a vehicle sourcing request. Share the make, model, year, colour preference, and budget and our China-based sourcing team will identify matching vehicles from our partner network and come back to you within 5 business days. Custom sourcing requests are not available on the Basic or Guest tiers."
+        }
+      ]
+    },
+    {
+      "id": "cat03",
+      "title": "Payments, Fees & Escrow",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q17",
+          "q": "How does payment work? Is it safe to send this much money online?",
+          "a": "All payments on autoexports.live are processed through a secure, encrypted payment gateway. We use industry-standard 256-bit TLS encryption — the same technology used by commercial banks. Your card or bank details are never stored on our servers. More importantly, your funds do not go directly to the seller. Every transaction on the platform is escrow-protected — meaning your money is held in a secure third-party custodial account and is only released to the seller after the vehicle has been inspected, cleared for export, and delivered to you. If anything goes wrong before delivery — if the vehicle fails a final inspection, if there is a shipping failure — your funds are protected and a refund process is initiated. ✓ Escrow-protected. Your money never touches the seller until delivery is confirmed."
+        },
+        {
+          "id": "q18",
+          "q": "Can I pay in Naira? Do I need to deal with foreign exchange?",
+          "a": "Yes — you pay entirely in Nigerian Naira, directly from your Nigerian bank account. You do not need to source foreign exchange, make a SWIFT transfer, or deal with any parallel-market exposure. autoexports.live handles all international currency settlement on our end. The price you see in Naira is the price you pay. Exchange rate risk on international transactions is absorbed by us, not passed to you. ✓ Pay in Naira. No forex headaches."
+        },
+        {
+          "id": "q19",
+          "q": "What is the escrow system and how does it protect me?",
+          "a": "Escrow is a financial arrangement where a neutral third party holds funds on behalf of both buyer and seller until agreed conditions are met. Here is how it works on autoexports.live: Step 1 — You pay • Your purchase payment (winning bid or direct purchase price) plus the buyer premium is transferred into a secure escrow account. The seller cannot access these funds. Step 2 — Vehicle is inspected • An independent inspection confirms the vehicle matches the listed condition. If it does not match, you are notified and can request a refund or renegotiate. Step 3 — Export transit • Bill of Lading is issued. A pa Title transfer is initiated. Your vehicle is shipped. Step 4 — Shipping confirmed • Upon confirmed Shipment Schedule funds are released to the seller."
+        },
+        {
+          "id": "q20",
+          "q": "What fees will I pay in total?",
+          "a": "We believe in full transparency. Here is every fee you will encounter: Membership fee (annual, paid once per year): • Basic: ₦75,000/year | Premier: ₦150,000/year | Business: ₦500,000/year Buyer premium (paid per vehicle purchase): • 5% of the winning bid amount — this is our service fee for managing the transaction Service fee (tiered by bid amount): • Up to and including ₦1,000,000: Fixed ₦75,000 • Above ₦1M to ₦5M: 7% of bid • Above ₦5M to ₦15M: 6% of bid • Above ₦15M: 5% of bid Documentation fee: • ₦50,000 + 2% — covers all import paperwork and official filings Shipping (estimated): • Varies by vehicle size and destination port. Displayed in the landed cost calculator on each listing.\u000b You can choose container shipping or Ro-Ro Customs and clearing: • Estimated ₦4,500,000 – 7,000,000 for a standard vehicle depending on year of make. Actual estimates are generated at the time payment — no surprise charges. Automobile Registration: • ₦150,000 — for buyers who want Nigerian registration handled by us Storage fee: • ₦10,000 per day — only applies after the free grace period if you delay pickup Use the landed cost calculator on each vehicle listing page to see your full all-in cost before you commit to the options after purchase"
+        },
+        {
+          "id": "q21",
+          "q": "What is the security deposit and do I get it back?",
+          "a": "To place a bid, you are required to deposit 10% of your intended maximum bid into escrow. This deposit demonstrates your seriousness as a buyer and protects sellers from non-paying winners. If you bid and do not win, your full deposit is available to be used for other bids or you can request for it to be returned to you within 3–5 business days. If you win and proceed with the purchase, the deposit is applied against your total payment — you do not pay it again. If you win a bid and then refuse to complete the purchase without a valid reason, the deposit may be forfeited. This policy protects all buyers from shill bidders who inflate prices with no intention of purchasing. ✓ Deposit is refundable if you do not win _Note: Deposits are not returned if you win a bid and refuse to complete._"
+        },
+        {
+          "id": "q22",
+          "q": "What payment methods do you accept?",
+          "a": "We accept: • Direct bank transfer (NEFT/NIP) from any Nigerian commercial bank • Online debit card payments via our secure payment gateway • Bank-to-bank transfers for Business tier members with custom payment terms We do not currently accept cryptocurrency, cash deposits, or mobile money. If you have a specific payment requirement, contact us before completing registration to discuss options."
+        },
+        {
+          "id": "q23",
+          "q": "What if the final cost is different from what the calculator showed?",
+          "a": "The landed cost calculator on each listing provides a detailed estimate including bid price, buyer premium, documentation, shipping, customs, and registration. The only components that can differ from the estimate are: • Shipping — if your delivery address is significantly further from a port city than standard, there may be an additional inland haulage charge. This is disclosed before finalising. • Customs — Nigeria Customs Service assesses duty based on current tariff rates at time of import. We provide a fixed-fee guarantee for standard customs clearance but cannot control any regulatory changes to duty rates. All other fees — buyer premium, documentation, service fee, registration — are fixed and will not change from what the calculator shows. ✓ Fixed-fee guarantee on service, documentation, and customs clearance"
+        }
+      ]
+    },
+    {
+      "id": "cat04",
+      "title": "Shipping, Delivery & Timeline",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q24",
+          "q": "How long does delivery take from purchase to my door?",
+          "a": "The typical timeline from winning an auction or completing a direct purchase to receiving your vehicle at your specified location is 35–50 days. Here is the breakdown: • Post-purchase inspection and export preparation: 3–7 days • Inland transport to Chinese port: 2–5 days • Port processing and loading: 3–7 days • Ocean freight — Shanghai/Guangzhou to Lagos: 18–25 days • Port of Lagos clearing and customs: 5–10 days • Inland delivery to your location: 1–3 days We will send you a detailed timeline with milestone dates at the point of purchase. Delays do occur occasionally — if your delivery is going to be outside the 50-day window, we notify you proactively, explain the cause and may provide you a temporary means of transportation till your automobile arrives (terms and conditions apply). ✓ 35–50 day delivery window. Proactive communication on any delays."
+        },
+        {
+          "id": "q25",
+          "q": "How do I track my vehicle during shipping?",
+          "a": "From the moment your vehicle is loaded onto the ocean freight vessel, you will have access to real-time tracking through your autoexports.live account dashboard. You can see: • Current port or vessel position • Estimated arrival date at Lagos port • Customs clearance status • Final delivery scheduling You will also receive automated email updates at each major milestone: vessel departure, arrival at Lagos port, customs clearance completion, and departure for your delivery address. ✓ Real-time tracking"
+        },
+        {
+          "id": "q26",
+          "q": "Which shipping lines do you use?",
+          "a": "We work primarily with Maersk Line and MSC (Mediterranean Shipping Company) — the two largest and most reliable ocean freight carriers in the world. Both operate regular services on the Asia-to-West-Africa route with established Lagos port relationships. For certain vehicle types or volumes, we may also use COSCO, Evergreen, or other Tier-1 carriers. You will be informed of the shipping line and vessel details at the point of dispatch. ✓ Maersk and MSC preferred carriers — top-tier global reliability"
+        },
+        {
+          "id": "q27",
+          "q": "Can I choose where my vehicle is delivered?",
+          "a": "Yes. At the point of purchase you specify your delivery address. We deliver to any location in Nigeria. Delivery to Abuja, Lagos, Port Harcourt, Kano, and other major cities is included in the standard shipping estimate. Delivery to more remote locations may incur a small additional inland haulage fee which will be disclosed before you confirm your purchase."
+        },
+        {
+          "id": "q28",
+          "q": "What happens if my vehicle is damaged during shipping?",
+          "a": "Every vehicle on autoexports.live is fully insured from the point of loading in China to the point of delivery at your specified address. Insurance is underwritten by Industrial and General Insurance Plc (IGI) and is verified on the Nigerian Insurance Database. If your vehicle arrives with shipping damage: • Our delivery team conducts a visual inspection at handover before you sign • Any damage not present in the pre-shipment inspection photos is logged immediately • An insurance claim is raised on your behalf — you do not manage this process • You are entitled to a resolution which can include repairs or refund, depending on the extent of damage In the unlikely event of total loss during transit, your full purchase amount is covered. ✓ Fully insured door-to-door by IGI Plc — verified on the Nigerian Insurance Database"
+        },
+        {
+          "id": "q29",
+          "q": "What is the courtesy vehicle option and how do I qualify?",
+          "a": "We understand that waiting 35–50 days for your vehicle to arrive is inconvenient — especially if your current vehicle is out of service. For qualifying purchases, autoexports.live provides access to a courtesy vehicle during your delivery wait period so your life does not stop. To qualify: • You must be a Premier or Business tier member • Your purchase must exceed a minimum vehicle value threshold (disclosed at checkout) • You must complete all KYC and payment steps before the courtesy vehicle is released Courtesy vehicles are subject to availability, usage terms, and a refundable deposit. Contact hello@autoexports.live for current availability in your city. _Note: Courtesy vehicle availability is subject to terms and conditions and may not be available in all locations._"
+        },
+        {
+          "id": "q30",
+          "q": "Can my vehicle registration be done before it arrives in Nigeria?",
+          "a": "Yes. For buyers who want a seamless handover experience, we offer an optional source-country registration service. This means your vehicle's documentation is prepared and partially processed before departure from China, reducing the time required for Nigerian registration upon arrival. Full Nigerian registration (number plates, FRSC records) is completed in Nigeria upon delivery. The source registration service ensures all export documentation is in perfect order so the Nigerian registration process is as fast and smooth as possible."
+        }
+      ]
+    },
+    {
+      "id": "cat05",
+      "title": "Customs, Duties & Documentation",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q31",
+          "q": "Do I need any import experience or knowledge to use autoexports.live?",
+          "a": "None whatsoever. We have built the platform specifically so that you do not need to understand the mechanics of international vehicle import. Our team handles: • All export documentation from China (Bill of Lading, export certificate, commercial invoice) • All Nigeria Customs Service import processing • Duty assessment and payment on your behalf • Vehicle Identification Number (VIN) registration • Pre-arrival documentation filing • Port clearing and loading onto the final delivery vehicle Your only responsibility is to provide your valid government ID and proof of address for the Nigerian registration process — and to be available to sign and receive your vehicle. ✓ Full end-to-end documentation management — you provide only your ID"
+        },
+        {
+          "id": "q32",
+          "q": "How much is import duty on a vehicle from China?",
+          "a": "Nigeria Customs Service assesses import duty on vehicles based on the customs value (CIF — Cost, Insurance, and Freight value) and the applicable tariff rate for that vehicle category. Current duty rates vary by vehicle type and engine size/type. As a general guide: • Standard passenger vehicles: 35% duty + 7.5% VAT on customs value • Electric vehicles (EVs): may attract concessionary rates under Nigeria's EV policy — we monitor and apply any available concessions to reduce your duty exposure Our landed cost calculator on each listing already includes a customs estimate. We provide a fixed-fee guarantee for standard customs clearance — meaning the figure quoted is the figure you pay, regardless of processing time. Note: If the Nigerian government changes duty rates between your purchase date and the vehicle's arrival, you will be informed of any impact before any additional payment may be required. ✓ Fixed-fee customs clearance guarantee — no surprise charges at the port"
+        },
+        {
+          "id": "q33",
+          "q": "What documents do I need to provide?",
+          "a": "The documents we require from you are minimal: • Valid government-issued ID (NIN slip, international passport, or driver's licence) • Proof of address (bank statement or utility bill, not older than 3 months) • BVN (for payment verification purposes) • For business accounts: CAC registration certificate and director's ID All other documentation — export certificates, Bill of Lading, customs declaration, insurance certificate, import duty receipts — is generated and managed by our team."
+        },
+        {
+          "id": "q34",
+          "q": "Will I receive all the original vehicle documents?",
+          "a": "Yes. At the point of delivery you will receive: • Original Chinese export certificate • Bill of Lading (or a copy — originals are held by the shipping line) • Import duty payment receipt from Nigeria Customs Service • Vehicle inspection report (the full 180-point document) • Insurance certificate (IGI Plc underwritten) • Dealer/supplier vehicle history document If you have opted for the Nigerian registration service, you will additionally receive the vehicle's Nigerian registration documents and number plates at or shortly after delivery. ✓ Full document pack handed over at delivery"
+        },
+        {
+          "id": "q35",
+          "q": "What is a Bill of Lading and why does it matter?",
+          "a": "A Bill of Lading (B/L) is the official shipping document issued by the ocean freight carrier that proves ownership of the goods in transit. It is the key document that grants the right to claim the vehicle at the destination port. We manage the Bill of Lading process completely — you do not need to handle it. It is one of the most critical documents in international trade and our team ensures it is correctly prepared and endorsed at every stage."
+        }
+      ]
+    },
+    {
+      "id": "cat06",
+      "title": "Insurance & Legal Protection",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q36",
+          "q": "Is my vehicle insured during shipping?",
+          "a": "Yes — comprehensively. Every vehicle purchased on autoexports.live is covered by a marine cargo insurance policy from the point of loading in China to the point of delivery at your address in Nigeria. This covers: • Total loss at sea • Physical damage during loading, transit, or unloading • Theft during transit • Port handling damage Insurance is underwritten by Industrial and General Insurance Plc (IGI) — one of Nigeria's licensed and regulated insurance companies — and every policy is verifiable on the Nigerian Insurance Database. ✓ Insured by IGI Plc. Verifiable on the Nigerian Insurance Database."
+        },
+        {
+          "id": "q37",
+          "q": "What happens if the vehicle arrives in worse condition than described?",
+          "a": "This is covered by a formal dispute process: • At handover, our delivery team conducts a physical inspection alongside you before you sign the delivery receipt • If the vehicle's condition does not match the inspection report or listing description, you do not sign — and you report the discrepancy to us immediately • We raise a formal case within 24 hours, reviewed by a human member of our disputes team • Resolution options include: repair at our cost, a partial refund to compensate for the discrepancy, or in serious cases, a full refund Your signature constitutes acceptance of delivery. ✓ Formal dispute process. Human review within 24 hours. _Note: Always inspect the vehicle thoroughly before signing the delivery receipt._"
+        },
+        {
+          "id": "q38",
+          "q": "What if the vehicle never arrives?",
+          "a": "In the event of non-delivery — due to shipping failure, port incident, or any other cause — your funds are fully protected by the escrow system. \u000b\u000b If the vehicle is lost in transit, the marine insurance policy covers replacement value. If the vehicle is delayed but not lost, we will manage the situation and keep you updated at every step. We have a legal obligation to either deliver your vehicle or return your money. ✓ Escrow means your money is returned if delivery fails"
+        },
+        {
+          "id": "q39",
+          "q": "What legal recourse do I have if I have a serious dispute with autoexports.live?",
+          "a": "autoexports.live is a product of Zoeafountain Limited — a Nigerian company subject to Nigerian commercial law. In the event of a serious unresolved dispute: • You may escalate through our formal arbitration process (see Category 08) • You may contact the Consumer Protection Council of Nigeria (FCCPC) • You may pursue claims through the Nigerian court system under Nigerian jurisdiction We are not an offshore or anonymous platform. We are a CAC-registered Nigerian company with a physical address at Plot 777, Wole Olanipekun Street, Central Business District, Abuja. We are accountable under Nigerian law. ✓ Nigerian-registered company. Accountable under Nigerian commercial law."
+        },
+        {
+          "id": "q40",
+          "q": "Does the vehicle come with any warranty?",
+          "a": "Vehicles sourced through autoexports.live are not sold with a manufacturer warranty valid in Nigeria (Chinese manufacturer warranties typically cover the Chinese domestic market only). However, the protection you receive from our platform is in many respects superior: • 180-point pre-shipment inspection — faults are identified before you pay • Condition guarantee — vehicle matches the listing or we initiate a refund/repair • Full insurance cover in transit • Dispute resolution process covering post-delivery discrepancies For buyers who want extended mechanical warranty coverage, we recommend exploring third-party vehicle warranty products available in after delivery. _Note: Manufacturer warranties are typically not transferable internationally. Check the listing details for any exceptions._"
+        }
+      ]
+    },
+    {
+      "id": "cat07",
+      "title": "Auctions, Bidding & Pricing",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q41",
+          "q": "What is the difference between a live auction and a direct purchase?",
+          "a": "Live auction (Bid to Win): • Vehicles are listed in a timed auction. You compete with other buyers. The highest bidder wins. This is where the best deals happen — you can acquire a vehicle for significantly below its market value if you bid strategically. Direct purchase (Buy Now): • Certain vehicles are listed at a fixed price. Pay the listed price and the vehicle is yours immediately, no bidding required. Useful when you want certainty and speed. Both routes go through the same process, the same inspection, and the same delivery pipeline. The only difference is how the price is determined."
+        },
+        {
+          "id": "q42",
+          "q": "How do I place a bid?",
+          "a": "To bid you must be a registered, KYC-verified member with an active paid membership: • Navigate to an active auction listing • Enter your bid amount (must be above the current highest bid and the minimum increment) • Ensure your 10% security deposit is in place (you will be prompted if it is not) • Confirm your bid — bids are binding once placed • You will be notified immediately through a dashboard, if you are outbid, giving you the option to raise your bid"
+        },
+        {
+          "id": "q43",
+          "q": "What is proxy bidding and how do I use it?",
+          "a": "Proxy bidding allows you to set a maximum bid without watching the auction in real time. The system automatically bids on your behalf up to your maximum, only increasing your bid when someone outbids you — and only by the minimum increment required to keep you in the lead. Example: You set a proxy bid of ₦12,000,000. The current bid is ₦9,000,000. The system places ₦9,100,000 on your behalf. If someone bids ₦10,000,000, the system automatically responds with ₦10,100,000 — until either you win or your maximum is exceeded. Proxy bidding means you get the best possible price without paying more than necessary. ✓ Proxy bidding — you never overpay unnecessarily"
+        },
+        {
+          "id": "q44",
+          "q": "Can I be outbid without knowing?",
+          "a": "No. Every time you are outbid, you receive an immediate notification by: • Email — to your registered address • In-platform notification — visible when you log in You always have the opportunity to place a higher bid before the auction closes, within the time remaining."
+        },
+        {
+          "id": "q45",
+          "q": "Is there a reserve price? What does 'Reserve Met' mean?",
+          "a": "Some vehicles are listed with a reserve price — a minimum amount the seller is willing to accept. If the highest bid at the close of the auction has not reached the reserve, the vehicle is not sold. 'Reserve Met ✓' means the current highest bid is at or above the reserve price — the seller is committed to selling at that price. This is displayed on every active listing so you know whether your bid will result in a purchase. If a reserve is not met, your security deposit is used for other bids or returned to you. ✓ Reserve status displayed clearly on every listing"
+        },
+        {
+          "id": "q46",
+          "q": "What happens if I win a bid?",
+          "a": "Congratulations — here is what happens next: • You receive an automated win notification within minutes of auction close • You have 48 hours to confirm your intent to purchase and initiate full payment • Your 10% security deposit is converted to part of your total payment • Remaining balance is transferred to escrow • Inspection, export preparation, and shipping are initiated • You receive a personalised delivery timeline and tracking access"
+        },
+        {
+          "id": "q47",
+          "q": "What if I change my mind after winning a bid?",
+          "a": "Bids are binding. If you win an auction and choose not to proceed, your 10% security deposit may be forfeited. If you wish to withdraw due to a legitimate concern about the vehicle — for example, you have reviewed the inspection report more carefully and found something concerning — contact our team before the Bid closes. We will review the situation and, where justified, allow a withdrawal without penalty. _Note: Bidding is a binding commitment. Only bid what you are prepared to pay._"
+        },
+        {
+          "id": "q48",
+          "q": "How do I know the bidding is fair and not manipulated?",
+          "a": "We take auction integrity seriously. Our anti-manipulation systems include: • Shill bid monitoring — behavioural analysis detects when bids appear to be placed to artificially inflate the price rather than win the vehicle • IP and device fingerprinting — multiple accounts from the same location are flagged • Mandatory KYC for all bidders — anonymous bidding is not permitted • VIN verification — vehicle identity is cross-referenced to prevent the same vehicle being listed multiple times Any seller or buyer found to be manipulating the bidding process is permanently banned from the platform and the relevant security deposit is forfeited. If you suspect bid manipulation on a listing, report it to safety@autoexports.live. Every report is reviewed by a team member. ✓ Mandatory KYC. AI-assisted shill bid monitoring. Human review of every report."
+        }
+      ]
+    },
+    {
+      "id": "cat08",
+      "title": "After Delivery & Disputes",
+      "intro": null,
+      "questions": [
+        {
+          "id": "q49",
+          "q": "What do I do when my vehicle arrives?",
+          "a": "Your vehicle will be delivered to your specified address by our logistics partner. At delivery: • Inspect the vehicle physically before signing anything • Check the exterior for any shipping damage not present in the pre-shipment photos • Start the engine and test basic functions • Verify the odometer reading matches the listed figure • Review the document pack handed to you (inspection report, insurance cert, customs receipt) • If everything is in order, sign the delivery receipt • If you have any concerns, do not sign — contact us immediately at +2349167706772 ✓ You have the right to inspect before signing acceptance of delivery"
+        },
+        {
+          "id": "q50",
+          "q": "What if I discover a problem after I have signed the delivery receipt?",
+          "a": "Post-delivery issues are taken seriously and are reviewed on a case-by-case basis. To raise a post-delivery concern: • Contact hello@autoexports.live or call +2349167706772 within 48 hours of delivery • Describe the issue in writing and attach photos or video evidence • We will acknowledge your case within 24 hours and assign a case handler Resolution depends on the nature of the issue: • Issues present in the pre-shipment inspection report but not disclosed to you: we are liable and will offer repair, price adjustment, or refund • Issues that were present in the inspection report and disclosed: these were part of the vehicle's known condition at purchase — seller and platform are not liable • Issues that arose during shipping and are covered by insurance: claim is raised on your behalf for those"
+        },
+        {
+          "id": "q51",
+          "q": "How does the dispute resolution process work?",
+          "a": "Our arbitration framework operates in four stages: Stage 1 — Initial report (Day 0) • You contact us. Your case is logged with a reference number. Stage 2 — Acknowledgement (24–48 hours) • A human case handler reviews your submission and contacts you. Stage 3 — Investigation (up to 7 days) • We review all evidence: inspection reports, photos, shipping records, delivery confirmation. Both buyer and seller are consulted. Stage 4 — Resolution • We issue a written resolution decision. Where we are at fault, remediation is offered (repair, refund, or replacement). Where the issue is buyer-caused or was disclosed, we explain clearly why a claim is not upheld. All dispute decisions are documented. If you disagree with our resolution, you retain all legal rights to escalate through Nigerian consumer protection or commercial law channels. ✓ Every dispute reviewed by a human. Written resolution within 7 days."
+        },
+        {
+          "id": "q52",
+          "q": "Can I resell my vehicle through the platform?",
+          "a": "Not at present. autoexports.live currently operates as a buyer-facing marketplace sourcing from verified Chinese suppliers. Peer-to-peer resale is not currently supported. If this is a service you would like to see, contact us at hello@autoexports.live — buyer feedback directly shapes our product roadmap."
+        }
+      ]
+    },
+    {
+      "id": "cat09",
+      "title": "Company Credibility & Trust",
+      "intro": "This is the section where you should feel comfortable asking the hard questions. We have nothing to hide and everything to prove.",
+      "questions": [
+        {
+          "id": "q53",
+          "q": "Who actually runs autoexports.live?",
+          "a": "autoexports.live is a product of Zoeafountain Limited, a Nigerian company incorporated with the Corporate Affairs Commission (CAC) in 2011. We are headquartered at Plot 777, Wole Olanipekun Street, Central Business District, Abuja. The platform was created following first-hand experience with the failures of the Nigerian used-car market — specifically the cycle of buying expensive vehicles that still require costly repairs. Our founding team has backgrounds in cross-border trade, automotive sourcing, and technology. We have physical offices and partners in Abuja, Lagos, Porthacourt, many other cities and active sourcing operations in China, giving us a genuinely two-continent operation — not just a website pointing at a foreign supplier. ✓ CAC-registered. Abuja-based. Operating since 2011."
+        },
+        {
+          "id": "q54",
+          "q": "Have you actually been to China? How do I know your suppliers are real?",
+          "a": "Yes. Our executive team made and makes in-person visits to China to vet suppliers before any inventory was listed on the platform. We do not list from suppliers we have not met and assessed directly. Our confirmed sourcing partners include: • Jiayi Autos — Guangzhou. Multi-brand automobile supplier with inspection facilities. • Hanhaiucar — Zhengzhou. Specialist in verified Chinese, Japanese, and European models. • Autocango — Digital and physical sourcing channel. We are happy to provide further details about our supplier relationships to Business tier members and corporate buyers upon request. Contact hello@autoexports.live. ✓ In-person supplier verification. Named partners with locations."
+        },
+        {
+          "id": "q55",
+          "q": "Why should I trust an online platform with ₦8–₦50 million of my money?",
+          "a": "This is the most important question — and a completely reasonable one to ask. Here is why the structure of autoexports.live protects your money, regardless of whether you trust us: 1. Escrow — your money does not go to us or the seller • Your payment goes into a third-party escrow account. Neither autoexports.live nor the seller will access it until delivery is confirmed. If delivery fails, the money comes back to you. 2. Insurance — every vehicle is insured • If the vehicle is lost or damaged in transit, you are covered by IGI Plc insurance. This is a licensed, regulated Nigerian insurer verified on the National Insurance Database. 3. Legal accountability — we are a Nigerian company • Zoeafountain Limited is CAC-registered with a physical Abuja address, the UK and US. We are subject to Nigerian commercial law and can be held accountable through Nigerian courts or consumer protection bodies. 4. Inspection — the vehicle is verified before you pay the full amount • The 180-point inspection is completed before funds are released to the seller. If the inspection fails, you are notified before the transaction is finalised. The combination of escrow, insurance, legal accountability, and independent inspection means your money is protected by multiple independent layers — not just our word. 5. Offer of Tentative vehicle Buyers may enjoy availability of cars to use pending the arrival of their order (terms and conditions apply) Courtesy mobility provisions can also be made available to customers. ✓ Protected by escrow + insurance + Nigerian law + independent inspection"
+        },
+        {
+          "id": "q56",
+          "q": "Are you affiliated with any Nigerian government body or regulatory authority?",
+          "a": "Zoeafountain Limited is registered with the Corporate Affairs Commission (CAC) of Nigeria. Our insurance partner, Industrial and General Insurance Plc (IGI), is regulated by the National Insurance Commission (NAICOM) of Nigeria. We operate in compliance with: • Nigeria Data Protection Regulation (NDPR) for data handling • Central Bank of Nigeria (CBN) guidelines on payment processing • Nigeria Customs Service procedures for vehicle importation We are not a government body, but we operate within the full regulatory framework of Nigerian commerce."
+        },
+        {
+          "id": "q57",
+          "q": "Why has nobody heard of you before? How new is this platform?",
+          "a": "autoexports.live launched its online marketplace in 2026. However, the company behind it — Zoeafountain Limited — has been operating in cross-border trade since 2011. The platform is the digital formalisation of relationships and expertise built over many years. With operations of other customer facing business solutions. We launched the platform precisely because we had seen how the existing market was failing buyers — and believed we could do it better. Every feature on the platform — escrow, inspection, insurance, Naira payments, courtesy vehicles — was designed to address a real failure of the existing options. We invite you to start as a Guest, browse our inventory, read the inspection reports, use the cost calculator, and make your assessment before committing to a purchase. We are confident the product will do the talking. ✓ Operating entity registered since 2011. Platform launched 2026."
+        },
+        {
+          "id": "q58",
+          "q": "How do I know the vehicles are not stolen or have hidden finance against them?",
+          "a": "Every vehicle on autoexports.live goes through a VIN (Vehicle Identification Number) check against multiple international databases before listing. This check includes: • Accident and total-loss history • Stolen vehicle records (INTERPOL database and Chinese national records) • Outstanding finance or lien checks in the country of origin • Manufacturer recall status The VIN check results are included in the inspection report available on every listing. We do not knowingly list vehicles with outstanding encumbrances. If a vehicle is discovered to have an undisclosed issue after purchase, we treat this as a serious breach and initiate full refund proceedings. ✓ VIN checked against INTERPOL and Chinese national records before listing"
+        }
+      ]
+    },
+    {
+      "id": "cat10",
+      "title": "Dealers, Partners & Business Buyers",
+      "intro": "This document is written for individuals and businesses who want to LIST and SELL vehicles on autoexports.live — not for buyers. If you are looking for the buyer FAQ, that is a separate document. Both documents are available from hello@autoexports.live.",
+      "questions": [
+        {
+          "id": "q59",
+          "q": "I am a car dealer. How can I work with autoexports.live?",
+          "a": "autoexports.live actively partners with local Nigerian car dealers in two ways: 1. As a buyer on the platform • Sign up for a Business membership (₦500,000/year) and access unlimited bidding, unlimited buying power, bulk shipping discounts, and dedicated account management. Stock your lot with verified, functional Chinese vehicles. 2. As a referral and service partner • Local dealers in our partner network serve as physical touchpoints for buyers who want in-person support, vehicle consultations, and post-delivery assistance. Partner dealers receive a referral commission on purchases made through their referral link. To discuss a dealer partnership, contact us at hello@autoexports.live or call +2349167706772 with 'Dealer Partnership' in your subject line. ✓ Active dealer partnership programme. Commission-based referral model."
+        },
+        {
+          "id": "q60",
+          "q": "Can I buy multiple vehicles at once for a fleet?",
+          "a": "Yes. Fleet orders are handled through our Business membership tier and are managed by a dedicated account manager who will: • Help you identify vehicles that meet your fleet specifications • Batch your orders to qualify for bulk shipping discounts • Coordinate simultaneous delivery where possible • Arrange consolidated customs clearance to reduce per-vehicle costs • Provide custom payment terms for large orders Fleet minimum is 3 vehicles per order to qualify for fleet pricing. Contact us to discuss your specific fleet requirements."
+        },
+        {
+          "id": "q61",
+          "q": "What API access does the Business tier include?",
+          "a": "Business tier members have access to our inventory API which allows you to: • Pull real-time vehicle listings into your own website or dealer management system • Receive automated notifications when new inventory matching your criteria is listed • Integrate bid status and order tracking into your own systems API documentation and credentials are provided to Business members after account setup. Contact hello@autoexports.live for the technical specification."
+        },
+        {
+          "id": "q62",
+          "q": "Can my company buy vehicles and claim it as a business expense?",
+          "a": "Yes. For corporate buyers, we can provide: • Official receipts and invoices on Zoeafountain Limited letterhead • VAT-compliant documentation for tax purposes • Proforma invoice before purchase for budget approval processes We recommend involving your company's finance team in the purchase process to ensure documentation meets your organisation's internal procurement requirements."
+        },
+        {
+          "id": "q63",
+          "q": "Do you offer after-sales services — servicing, spare parts, maintenance?",
+          "a": "Currently, autoexports.live focuses on vehicle procurement and delivery. Post-delivery servicing and maintenance are what we have partners for, including sourcing the spare parts for vehicles through our platform. Through our local dealer partner network, we can connect you with recommended service centres that have experience with Chinese EV brands and import vehicles. Spare parts availability for Chinese brands is also improving rapidly through other sources. BYD, in particular, has an expanding authorised service presence in major cities."
+        },
+        {
+          "id": "q64",
+          "q": "What if I do not like the vehicle when it arrives?",
+          "a": "Personal dissatisfaction with a vehicle's appearance or features — where the vehicle matches its listing description accurately — is not grounds for a refund. This is why we strongly encourage all buyers to: • Read the full inspection report before bidding • Review all available photos carefully • Request additional photos or video if uncertain • Use the 'Watchlist' feature to monitor a vehicle before committing If the vehicle does not match its listed description — condition, odometer, features — that is a different matter and falls under our dispute process. _Note: Please research thoroughly before bidding. Bids are binding commitments._"
+        },
+        {
+          "id": "q65",
+          "q": "Is this better value than buying locally in Nigeria?",
+          "a": "For most buyers in the ₦10–₦30 million range, the answer is yes — particularly for electric vehicles. Consider the comparison: • A tokunbo 2020 Toyota Camry in Nigeria: ₦25–30 million. Mileage unknown (odometer can be rolled back). No inspection guarantee. No warranty. Likely needs repairs. • A BYD Atto 3 on autoexports.live: starting from ₦8.5M, landed cost approx ₦13.4M. 50k kM on the odometer. 98% battery health. Fully inspected. Insured. The comparison is not always this stark — it depends on the specific vehicle and market conditions. Use our landed cost calculator to run your own numbers."
+        },
+        {
+          "id": "q66",
+          "q": "I have heard that Chinese cars are unreliable. Is that still true?",
+          "a": "This perception is outdated. The Chinese automotive industry has undergone a dramatic quality transformation in the last decade. Brands like BYD, NIO, and XPeng are now regarded globally as serious competitors to established German, Japanese, and American manufacturers. • BYD surpassed Tesla in global EV sales in 2023 • NIO and XPeng compete directly with BMW and Mercedes in China's premium market • J.D. Power quality surveys now consistently rank Chinese domestic brands above many legacy Western brands on initial quality metrics JAECOO is widely used in the UK The vehicles we list are sourced from leading Chinese manufacturers with strong track records. The 180-point inspection provides an objective quality baseline regardless of brand reputation. ✓ Chinese EVs now rank among the world's highest-quality vehicles by independent studies"
+        },
+        {
+          "id": "q67",
+          "q": "What if I cannot afford to pay the full amount at once?",
+          "a": "Currently, autoexports.live requires full payment before vehicle dispatch. We do not offer in-house financing or instalment plans yet. However, many Nigerian commercial banks offer vehicle purchase loans and asset finance products. If you are financing your purchase through a bank loan, we can provide all necessary documentation (proforma invoice, vehicle details, company registration) to support your loan application. If financing partnerships are something you would like us to develop, let us know at hello@autoexports.live — it is on our development roadmap."
+        },
+        {
+          "id": "q68",
+          "q": "Can I visit your office before I buy?",
+          "a": "Yes. Our Abuja office is located at Plot 777, Wole Olanipekun Street, Central Business District, Abuja. We welcome buyers who want to meet our team in person before committing to a purchase — particularly for large transactions. Please schedule an appointment in advance by calling +2349167706772 or emailing hello@autoexports.live so we can ensure the right team member is available to assist you. We also have local dealer partners across Nigeria who can provide in-person support and answer questions in your city. ✓ Physical office in Abuja. In-person appointments welcome."
+        },
+        {
+          "id": "q69",
+          "q": "How do I contact you if I have a problem?",
+          "a": "We have multiple contact channels: • Email (general): hello@autoexports.live • Email (trust & safety): safety@autoexports.live • Phone (Nigeria): +2349167706772 • Phone (China operations): +8615914293428 • Office: Plot 777, Wole Olanipekun Street, CBD, Abuja Support hours: Monday–Friday, 9am–6pm WAT. For urgent matters outside business hours, email safety@autoexports.live and a team member will respond as quickly as possible. You can also reachout on WhatsApp\u000b ✓ Nigeria and China contact lines. Physical office. Email and phone support."
+        },
+        {
+          "id": "q70",
+          "q": "What currencies are prices shown in?",
+          "a": "You can select preferred currency but all prices on autoexports.live are shown in Nigerian Naira (₦) by default. The landed cost calculator displays every cost component in Naira. You pay in Naira. There is no foreign currency exposure for the buyer."
+        },
+        {
+          "id": "q71",
+          "q": "I am worried this might be a scam. How do I verify you are real?",
+          "a": "This concern is completely understandable given how common online fraud is in Nigeria. Here is how to verify us independently: • CAC search: Search 'Zoeafountain Limited' on the Corporate Affairs Commission public search portal (search.cac.gov.ng) to verify our registration • Insurance verification: You will get the Insurance Policy momentarily at payment. Take your policy number and verify it on the Nigerian Insurance Database (niid.com.ng) • Physical visit: Come to any of our outlets and offices. Meet us in person. • Call us: +2349167706772 — speak to a real team member before committing anything • Start small: Register for free, browse, and ask questions before paying anything A legitimate platform has nothing to fear from verification. We actively encourage it. ✓ Independently verifiable via CAC, NID, and in-person office visit"
+        },
+        {
+          "id": "q72",
+          "q": "What is the single most important thing I should know before buying?",
+          "a": "Your money does not go to the seller until vehicle acquisition is done. That is the escrow guarantee — and it is the foundation of everything autoexports.live is built on.. Beyond that: read the inspection report. Use the cost calculator. Ask us every question you have. We would rather spend an hour answering your questions than have a buyer who is unsure proceed and feel anxious throughout the process. We are here to help you buy the right vehicle, not just any vehicle."
+        }
+      ]
+    }
+  ]
+}

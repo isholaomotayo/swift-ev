@@ -1,0 +1,92 @@
+{
+  "hero": {
+    "title": "We Know Exactly What It Feels Like to Buy the Wrong Car.",
+    "description": "That frustration — spending millions, still getting a vehicle that doesn't work — is exactly why autoexports.live exists. We built this platform from personal experience, not from a whiteboard."
+  },
+  "story": {
+    "title": "The Problem We Lived Through",
+    "quote": "You spend ₦14 to ₦16 million on a tokunbo. It arrives, and within weeks you're in the mechanic's yard fixing things that were never disclosed. Push the number further and you're at ₦18 million — for a car running on 120,000 kilometres that doesn't feel remotely worth it.",
+    "paragraphs": [
+      "For most Nigerians, buying a car is one of the most significant financial decisions they will make. And for too long, that decision has come with a troubling guarantee: something will go wrong.",
+      "One of our directors lived this story first-hand. His 2007 Toyota Camry developed a gearbox fault. At the time, Nigerian used alternatives ranged from ₦10–11 million. Tokunbo options from neighbouring countries ran ₦14–16 million — and you would still inherit problems. The repair bill on the Camry alone came to ₦4 million — a new engine, a new gearbox — and the car still didn't drive right. Fuel consumption shot up. New faults emerged. When it came time to sell, buyers offered ₦3.5 million.",
+      "He then tried the western import route — bought a vehicle from an overseas service, navigated the shipping stress, cleared it through customs, and discovered the repairs needed were far beyond what had been disclosed. Six months later, the problems were still not resolved. This was not an isolated story. Around him, three other people were managing near-identical automobile nightmares.",
+      "This is what built the awareness for a different approach — and ultimately, for autoexports.live."
+    ]
+  },
+  "discovery": {
+    "title": "A Super Better Offer — From China",
+    "intro": "China operates under a strict vehicle export policy: only fully functional, roadworthy vehicles can be shipped to buyers internationally. This policy — enforced at the point of export — eliminates the 'buy to fix' problem that plagues the Nigerian used-car market. It was the discovery that changed everything.",
+    "partners": [
+      {
+        "name": "Jiayi Autos",
+        "location": "Guangzhou",
+        "description": "Multi-brand automobile supplier with full inspection protocols."
+      },
+      {
+        "name": "Hanhaiucar",
+        "location": "Zhengzhou",
+        "description": "Specialist in high-quality Chinese, Japanese, and European models."
+      },
+      {
+        "name": "Autocango",
+        "location": "China",
+        "description": "Digital sourcing channel for verified inventory."
+      }
+    ],
+    "closing": "Through these partnerships, autoexports.live now offers buyers in Nigeria and across Africa access to Chinese, Japanese, American, and German vehicle brands — sourced directly, priced fairly, and delivered with full documentation."
+  },
+  "whoWeAre": {
+    "title": "autoexports.live is a Product of Zoeafountain Limited",
+    "paragraphs": [
+      "Zoeafountain Limited is a Nigerian company, registered with the Corporate Affairs Commission in 2011. Headquartered at Plot 777, Wole Olanipekun Street, Central Business District, Abuja, the company has spent over a decade building expertise in cross-border trade and automotive services.",
+      "autoexports.live is Zoeafountain's automobile flagship digital platform — the culmination of years of relationship-building in China, a deep understanding of the Nigerian automotive market, and a technology investment designed to bring trust and transparency to a category that has had precious little of either."
+    ]
+  },
+  "offerings": {
+    "title": "What Makes autoexports.live Different",
+    "intro": "We have built more than a marketplace. autoexports.live is an end-to-end vehicle acquisition platform with protections and services that no other platform in this market currently provides.",
+    "items": [
+      {
+        "title": "Functional vehicles only — guaranteed",
+        "description": "Every vehicle on our platform is fully operational before it leaves the source country. China's strict export policy, combined with our own 180-point inspection process, means you are never buying a car to fix. What you see is what arrives."
+      },
+      {
+        "title": "Escrow-protected transactions",
+        "description": "Your funds are held in a secure escrow account and only released to the seller after the vehicle has been inspected, cleared for export, and delivered. You are protected at every stage."
+      },
+      {
+        "title": "Verified insurance — underwritten by IGI Plc",
+        "description": "Every vehicle purchased on autoexports.live is insured. Policies are underwritten by Industrial and General Insurance Plc and verified on the Nigerian Insurance Database. This is not an add-on — it is built into every purchase."
+      },
+      {
+        "title": "Pay in Naira — directly from your account",
+        "description": "No forex headaches, no parallel-market exposure. You pay in Naira directly from your Nigerian bank account. We handle the international settlement on our end."
+      },
+      {
+        "title": "Courtesy vehicle while you wait",
+        "description": "For qualifying purchases, we provide access to a courtesy vehicle during the delivery period — because we understand that life does not pause while your car is at sea. Terms and conditions apply."
+      },
+      {
+        "title": "Source-country vehicle registration",
+        "description": "We can complete your vehicle registration in China before departure, so your car arrives with documentation already in order."
+      },
+      {
+        "title": "Direct purchase and live bidding",
+        "description": "Buy immediately at a fixed price, or compete in our live auction system for incredible deals. Both routes give you full visibility into the vehicle's condition, history, and landed cost before you commit."
+      },
+      {
+        "title": "Local dealer partnerships",
+        "description": "autoexports.live works with a network of trusted local car dealers across Nigeria, making it easy to get in-person support, vehicle viewings, and post-delivery assistance through a partner near you."
+      }
+    ]
+  },
+  "mission": {
+    "title": "Our Mission",
+    "quote": "To give every buyer access to a functional, affordable, and fully insured vehicle — sourced from the world's best automotive hubs, delivered to their door, with zero nasty surprises.",
+    "closing": "We believe every car buyer deserves better than the market has offered them. Better information. Better protection. Better value. autoexports.live was built to deliver exactly that — and we are only getting started."
+  },
+  "cta": {
+    "title": "Ready to Buy the Right Car?",
+    "description": "Browse our current inventory, register to bid, or speak to our team today."
+  }
+}

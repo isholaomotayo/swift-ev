@@ -72,14 +72,13 @@ export default function PricingPage() {
       description: m.pricing_desc_dealers(),
       features: [
         m.pricing_feature_everything_in_premier(),
-        m.common_unlimited_bids(),
-        m.common_unlimited_buying_power(),
+        m.pricing_feature_unlimited_daily_bids(),
         m.common_api_access(),
         m.common_bulk_shipping_discounts(),
         m.common_custom_payment_terms(),
         m.common_dedicated_support_team(),
       ],
-      dailyBids: m.common_unlimited_bids(),
+      dailyBids: m.pricing_feature_unlimited_daily_bids(),
       buyingPower: m.common_unlimited_buying_power(),
       icon: <Building2 className="h-6 w-6" />,
       popular: false,
@@ -103,9 +102,8 @@ export default function PricingPage() {
               <Badge variant="outline" className="mb-6 px-4 py-1 border-electric-blue/30 text-electric-blue font-bold tracking-wider uppercase text-[10px]">
                 {m.pricing_membership_plans()}
               </Badge>
-              <h1 className="text-5xl md:text-8xl font-black mb-8 tracking-tighter italic uppercase leading-[0.9]">
-                {m.pricing_your_gateway()} <br />
-                <span className="text-electric-blue not-italic">{m.pricing_to_premium_cars()}</span>
+              <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tight leading-[0.95]">
+                {m.pricing_membership_plans()}
               </h1>
               <p className="text-xl text-muted-foreground font-medium leading-relaxed mb-12 max-w-2xl mx-auto">
                 {m.pricing_headline()}
@@ -149,13 +147,17 @@ export default function PricingPage() {
                     <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                       <Gavel className="h-4 w-4 text-electric-blue" />
                       <div className="text-xs font-bold uppercase tracking-wider">
-                        {tier.dailyBids} {m.pricing_daily_bids()}
+                        {tier.name === m.pricing_tier_business()
+                          ? tier.dailyBids
+                          : `${tier.dailyBids} ${m.pricing_daily_bids()}`}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                       <TrendingUp className="h-4 w-4 text-volt-green" />
                       <div className="text-xs font-bold uppercase tracking-wider">
-                        {tier.buyingPower} {m.pricing_buying_power()}
+                        {tier.name === m.pricing_tier_business()
+                          ? tier.buyingPower
+                          : `${tier.buyingPower} ${m.pricing_buying_power()}`}
                       </div>
                     </div>
                   </div>
@@ -228,25 +230,6 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* TESTIMONIAL PREVIEW */}
-        <section className="py-24 bg-slate-950 text-white overflow-hidden relative">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-electric-blue/20 via-transparent to-transparent" />
-          <div className="container relative z-10 mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <span className="text-6xl text-volt-green font-black mb-12 block leading-none">“</span>
-              <p className="text-3xl md:text-5xl font-black italic uppercase tracking-tight leading-[1.1] mb-12">
-                &quot;Everything was perfect. The inspection report was incredibly detailed, and the shipping to Lagos was faster than expected.&quot;
-              </p>
-              <div className="flex items-center justify-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-slate-800 border-2 border-slate-700" />
-                <div className="text-left">
-                  <div className="font-black uppercase tracking-widest text-xs">Chidi Okafor</div>
-                  <div className="text-volt-green font-bold text-[10px] uppercase tracking-[0.2em]">Premier Member</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </div>

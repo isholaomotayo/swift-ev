@@ -1,5 +1,5 @@
 "use strict";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,7 +25,8 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
     const buyerPremium = currentBid * BUYER_PREMIUM_RATE;
     const totalLandedCost = currentBid + buyerPremium + DOCUMENTATION_FEE + SHIPPING_EST + CLEARING_EST + REGISTRATION_EST;
     const estimatedMarketValue = currentBid * 1.4; // Rough estimate of market value
-    const potentialSavings = estimatedMarketValue - totalLandedCost;
+    const priceDelta = estimatedMarketValue - totalLandedCost;
+    const isBelowMarket = priceDelta >= 0;
 
     return (
         <Card className="border-auction-gold/20 shadow-lg bg-gray-50/50">
@@ -89,9 +90,19 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
                         <span className="font-bold text-deep-navy">Total Landed Cost</span>
                         <span className="font-black text-xl text-deep-navy">{formatCurrency(totalLandedCost)}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-success-green font-medium">
-                        <span>Est. Market Value: {formatCurrency(estimatedMarketValue)}</span>
-                        <span>Save {formatCurrency(potentialSavings)}</span>
+                    <div className="flex justify-between text-xs font-medium">
+                        <span className="text-muted-foreground">
+                            Est. Market Value: {formatCurrency(estimatedMarketValue)}
+                        </span>
+                        <span
+                            className={
+                                isBelowMarket ? "text-success-green" : "text-amber-700 dark:text-amber-400"
+                            }
+                        >
+                            {isBelowMarket
+                                ? `Save ${formatCurrency(priceDelta)}`
+                                : `Est. above market by ${formatCurrency(Math.abs(priceDelta))}`}
+                        </span>
                     </div>
                 </div>
             </CardContent>

@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { VEHICLE_MAKES, CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
+import { CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
+import { MakeModelSelect } from "@/components/vehicles/make-model-select";
+import { isValidVehicleMakeModel } from "@/lib/vehicle-catalog";
 import { revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
@@ -282,10 +284,25 @@ export function VehicleForm({
       return;
     }
 
+    const resolvedMake =
+      formData.make === "Other" ? (formData.makeCustom?.trim() || "") : formData.make;
+    const resolvedModel = formData.model.trim();
+
+    if (!isValidVehicleMakeModel(resolvedMake, resolvedModel, { allowOtherMake: true })) {
+      setCurrentStep("basic");
+      toast({
+        title: "Invalid make or model",
+        description: "Please select a make and model from the catalog, or enter a custom make and model.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Resolve "Other" values before submitting
     const resolvedData = {
       ...formData,
-      make: formData.make === "Other" ? (formData.makeCustom || "Other") : formData.make,
+      make: resolvedMake,
+      model: resolvedModel,
       batteryType: formData.batteryType === "Other" ? (formData.batteryTypeCustom || "Other") : formData.batteryType,
       locationCountry:
         formData.locationCountry === "Other"
@@ -363,43 +380,16 @@ export function VehicleForm({
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="make">Make</Label>
-                <Select
-                  value={formData.make}
-                  onValueChange={(value) => updateFormData("make", value)}
-                >
-                  <SelectTrigger id="make">
-                    <SelectValue placeholder="Select make" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VEHICLE_MAKES.map((make) => (
-                      <SelectItem key={make} value={make}>
-                        {make}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {formData.make === "Other" && (
-                  <Input
-                    className="mt-2"
-                    placeholder="Enter manufacturer name"
-                    value={formData.makeCustom || ""}
-                    onChange={(e) => updateFormData("makeCustom", e.target.value)}
-                  />
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  value={formData.model}
-                  onChange={(e) => updateFormData("model", e.target.value)}
-                  placeholder="e.g., Model 3"
-                />
-              </div>
+              <MakeModelSelect
+                className="sm:col-span-2"
+                make={formData.make}
+                model={formData.model}
+                makeCustom={formData.makeCustom}
+                allowOtherMake
+                onMakeChange={(value) => updateFormData("make", value)}
+                onModelChange={(value) => updateFormData("model", value)}
+                onMakeCustomChange={(value) => updateFormData("makeCustom", value)}
+              />
 
               <div>
                 <Label htmlFor="year">Year</Label>

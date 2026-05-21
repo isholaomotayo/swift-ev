@@ -172,6 +172,54 @@ export const listAuctions = query({
 });
 
 /**
+ * Returns the best auction to promote on the homepage: live first, else next scheduled.
+ */
+export const getPromotedAuction = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const auctions = await ctx.db.query("auctions").collect();
+
+    const withLotCounts = await Promise.all(
+      auctions.map(async (auction) => {
+        const lots = await ctx.db
+          .query("auctionLots")
+          .withIndex("by_auction", (q) => q.eq("auctionId", auction._id))
+          .collect();
+        return { ...auction, totalLots: lots.length };
+      }),
+    );
+
+    const live = withLotCounts
+      .filter((a) => a.status === "live")
+      .sort((a, b) => b.scheduledStart - a.scheduledStart)[0];
+
+    if (live) {
+      return live;
+    }
+
+    const upcoming = withLotCounts
+      .filter(
+        (a) =>
+          a.status === "scheduled" &&
+          a.scheduledStart > now &&
+          a.totalLots > 0,
+      )
+      .sort((a, b) => a.scheduledStart - b.scheduledStart)[0];
+
+    if (upcoming) {
+      return upcoming;
+    }
+
+    return (
+      withLotCounts
+        .filter((a) => a.status === "scheduled" && a.totalLots > 0)
+        .sort((a, b) => a.scheduledStart - b.scheduledStart)[0] ?? null
+    );
+  },
+});
+
+/**
  * Get auction by ID with all lots
  */
 export const getAuctionById = query({
