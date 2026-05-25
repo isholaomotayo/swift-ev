@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
 
 // Query limits - imported from constants would require client-side import
 // Keeping local constants for server-side code
@@ -87,7 +88,7 @@ export const placeBid = mutation({
 
     // Check 10% wallet balance requirement (FEAT-001)
     const walletBalance = user.walletBalance ?? 0;
-    const requiredReserve = Math.ceil(args.amount * 0.1);
+    const requiredReserve = calculateBidReserveAmountKobo(args.amount);
     if (walletBalance < requiredReserve) {
       throw new Error(
         `Insufficient wallet balance. Need ₦${(requiredReserve / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
@@ -161,7 +162,7 @@ export const placeBid = mutation({
       currency: "NGN",
       status: "completed",
       reference,
-      description: `Bid reserve for ₦${(args.amount / 100).toLocaleString()} bid`,
+      description: `Bid reserve for ₦${args.amount.toLocaleString()} bid`,
       relatedBidId: bidId,
       createdAt: Date.now(),
       completedAt: Date.now(),
@@ -186,7 +187,7 @@ export const placeBid = mutation({
       const outbidUser = await ctx.db.get(bid.userId);
       if (outbidUser) {
         // Calculate the reserve that was held for this outbid amount
-        const outbidReserve = Math.ceil(bid.bidAmount * 0.1);
+        const outbidReserve = calculateBidReserveAmountKobo(bid.bidAmount);
         const userReserved = outbidUser.reservedBalance ?? 0;
 
         // Release up to what was actually reserved

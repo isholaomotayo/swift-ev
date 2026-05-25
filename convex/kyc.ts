@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
+import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
 
 /**
  * Get KYC status for the current user
@@ -497,7 +498,7 @@ export const canUserBid = query({
 
         // Check wallet balance if bid amount provided
         if (args.bidAmount) {
-            const requiredBalance = Math.ceil(args.bidAmount * 0.1);
+            const requiredBalance = calculateBidReserveAmountKobo(args.bidAmount);
             const available = user.walletBalance ?? 0;
 
             if (available < requiredBalance) {

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
-import { VehicleForm, VehicleFormData } from "@/components/vendor/vehicle-form";
+import { VehicleForm } from "@/components/vendor/vehicle-form";
+import type { VehicleFormData, VehicleSubmitData } from "@/lib/vehicle-form-payload";
 import { Id } from "@/convex/_generated/dataModel";
 import { getMutationErrorMessage, isValidVehicleCondition } from "@/lib/auth-errors";
 import { isPersistableImageRef } from "@/lib/vehicle-image-refs";
@@ -89,7 +90,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     return String(storageId);
   };
 
-  const handleSubmit = async (formData: VehicleFormData, newFiles: File[], deletedImageIds: string[]) => {
+  const handleSubmit = async (formData: VehicleSubmitData, newFiles: File[], deletedImageIds: string[]) => {
     if (!user || !token) {
       toast({
         title: "Error",

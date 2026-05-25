@@ -5,7 +5,8 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/components/providers/auth-provider";
-import { VehicleForm, type VehicleFormData } from "@/components/vendor/vehicle-form";
+import { VehicleForm } from "@/components/vendor/vehicle-form";
+import type { VehicleSubmitData } from "@/lib/vehicle-form-payload";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -54,7 +55,7 @@ export default function AdminVehicleUploadPage() {
     return String(storageId);
   };
 
-  const handleSubmit = async (formData: VehicleFormData, files: File[]) => {
+  const handleSubmit = async (formData: VehicleSubmitData, files: File[]) => {
     if (!token) {
       toast({
         title: "Error",
@@ -90,17 +91,37 @@ export default function AdminVehicleUploadPage() {
         ? await uploadFileToStorage(videoWalkthroughFile)
         : undefined;
 
-      await createVehicle({
-        token,
-        vehicleData: {
-          ...formData,
-          buyItNowEnabled: formData.buyItNowPrice !== undefined,
-          initialStatus,
-          mediaUploads,
-          inspectionReportStorageId,
-          ...(videoWalkthroughStorageId ? { videoWalkthroughStorageId } : {}),
-        },
-      });
+      const vehicleData = {
+        make: formData.make,
+        model: formData.model,
+        year: formData.year,
+        vin: formData.vin,
+        odometer: formData.odometer,
+        exteriorColor: formData.exteriorColor,
+        interiorColor: formData.interiorColor,
+        fuelType: formData.fuelType,
+        batteryCapacity: formData.batteryCapacity,
+        batteryHealthPercent: formData.batteryHealthPercent,
+        range: formData.range,
+        batteryType: formData.batteryType,
+        chargingTypes: formData.chargingTypes,
+        motorPower: formData.motorPower,
+        condition: formData.condition,
+        damageDescription: formData.damageDescription,
+        locationCity: formData.locationCity,
+        locationState: formData.locationState,
+        locationCountry: formData.locationCountry,
+        startingBid: formData.startingBid,
+        reservePrice: formData.reservePrice,
+        buyItNowPrice: formData.buyItNowPrice,
+        buyItNowEnabled: formData.buyItNowPrice !== undefined,
+        initialStatus,
+        mediaUploads,
+        ...(inspectionReportStorageId ? { inspectionReportStorageId } : {}),
+        ...(videoWalkthroughStorageId ? { videoWalkthroughStorageId } : {}),
+      } satisfies Parameters<typeof createVehicle>[0]["vehicleData"];
+
+      await createVehicle({ token, vehicleData });
 
       toast({
         title: "Vehicle uploaded",

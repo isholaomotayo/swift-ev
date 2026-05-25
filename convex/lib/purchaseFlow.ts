@@ -17,6 +17,6 @@ export function isPreAuctionBuyNowAvailable(
   return lotStatus === "pending" && auctionStatus === "scheduled";
 }
 
-export function calculateBidReserveAmount(bidAmount: number): number {
-  return Math.ceil(bidAmount * 0.1);
+export function calculateBidReserveAmountKobo(bidAmountNaira: number): number {
+  return Math.ceil(bidAmountNaira * 10);
 }

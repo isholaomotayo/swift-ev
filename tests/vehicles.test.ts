@@ -254,7 +254,6 @@ describe("Vehicles", () => {
         model: "Model 3",
         year: 2023,
         vin: "TEST123456789",
-        lotNumber: "TEST-LOT-001",
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -277,6 +276,7 @@ describe("Vehicles", () => {
           { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
           { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
           { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+          { storageId: "https://example.com/engine.jpg", category: "Engine Bay", isRequired: true },
         ],
         videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
@@ -296,7 +296,6 @@ describe("Vehicles", () => {
         model: "Model 3",
         year: 2023,
         vin: "TEST123456790",
-        lotNumber: "TEST-LOT-002",
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -318,6 +317,7 @@ describe("Vehicles", () => {
           { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
           { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
           { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+          { storageId: "https://example.com/engine.jpg", category: "Engine Bay", isRequired: true },
         ],
         videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
@@ -336,7 +336,6 @@ describe("Vehicles", () => {
         model: "Model 3",
         year: 2023,
         vin: "TEST123456791",
-        lotNumber: "TEST-LOT-003",
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -358,6 +357,7 @@ describe("Vehicles", () => {
           { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
           { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
           { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+          { storageId: "https://example.com/engine.jpg", category: "Engine Bay", isRequired: true },
         ],
         videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
       };
@@ -377,7 +377,6 @@ describe("Vehicles", () => {
       model: "Model 3",
       year: 2023,
       vin: `APPROVE${suffix}`.slice(0, 17),
-      lotNumber: `APPROVE-${suffix}`,
       odometer: 15000,
       exteriorColor: "Red",
       interiorColor: "Black",
@@ -399,6 +398,7 @@ describe("Vehicles", () => {
         { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
         { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
         { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+        { storageId: "https://example.com/engine.jpg", category: "Engine Bay", isRequired: true },
       ],
       videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
     });

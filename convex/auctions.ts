@@ -10,7 +10,7 @@ import {
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
 import {
-  calculateBidReserveAmount,
+  calculateBidReserveAmountKobo,
   isPreAuctionBuyNowAvailable,
 } from "./lib/purchaseFlow";
 
@@ -82,7 +82,7 @@ async function cancelPreBidsAndReleaseReserves(
 
     const reservedBalance = bidder.reservedBalance ?? 0;
     const releaseAmount = Math.min(
-      calculateBidReserveAmount(bid.bidAmount),
+      calculateBidReserveAmountKobo(bid.bidAmount),
       reservedBalance
     );
 

@@ -36,14 +36,13 @@ describe("Orders", () => {
       expect(Array.isArray(orders)).toBe(true);
       if (orders.length > 0) {
         const order = orders[0] as Doc<"orders"> & {
-          orderStatus?: string;
-          vehiclePrice?: number;
           vehicle?: { make: string; model: string; year: number };
         };
         expect(order).toHaveProperty("_id");
-        expect(order).toHaveProperty("orderStatus");
-        expect(order).toHaveProperty("vehiclePrice");
+        expect(order).toHaveProperty("status");
+        expect(order).toHaveProperty("winningBid");
         expect(order).toHaveProperty("totalAmount");
+        expect(order).toHaveProperty("balanceDue");
         expect(order).toHaveProperty("vehicle");
         if (order.vehicle) {
           expect(order.vehicle).toHaveProperty("make");
@@ -54,12 +53,11 @@ describe("Orders", () => {
     });
 
     test("requires valid token", async () => {
-      const orders = await client.query(api.orders.getUserOrders, {
-        token: "invalid_token",
-      });
-
-      // Should return empty array or throw error
-      expect(Array.isArray(orders) || orders === null).toBe(true);
+      await expect(
+        client.query(api.orders.getUserOrders, {
+          token: "invalid_token",
+        })
+      ).rejects.toThrow();
     });
   });
 
@@ -100,6 +98,23 @@ describe("Orders", () => {
       expect(Array.isArray(result.orders)).toBe(true);
       result.orders.forEach((order: Doc<"orders">) => {
         expect(order.orderType).toBe("auction_win");
+      });
+    });
+
+    test("buy now orders expose canonical purchase fields", async () => {
+      const result = await client.query(api.orders.listOrders, {
+        token: adminToken,
+        orderType: "buy_it_now",
+      });
+
+      expect(Array.isArray(result.orders)).toBe(true);
+      result.orders.forEach((order: Doc<"orders">) => {
+        expect(order.orderType).toBe("buy_it_now");
+        expect(order).toHaveProperty("winningBid");
+        expect(order).toHaveProperty("totalAmount");
+        expect(order).toHaveProperty("paidAmount");
+        expect(order).toHaveProperty("balanceDue");
+        expect(order.balanceDue).toBe(order.totalAmount - order.paidAmount);
       });
     });
 
@@ -354,4 +369,3 @@ describe("Orders", () => {
     });
   });
 });
-

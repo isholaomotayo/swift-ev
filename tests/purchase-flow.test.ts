@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  calculateBidReserveAmount,
+  calculateBidReserveAmountKobo,
   isAuctionLotHoldingVehicleForPurchase,
   isPreAuctionBuyNowAvailable,
 } from "../convex/lib/purchaseFlow";
@@ -24,8 +24,8 @@ describe("purchase flow helpers", () => {
     expect(isPreAuctionBuyNowAvailable("sold", "scheduled")).toBe(false);
   });
 
-  test("calculates the same 10 percent reserve used when bids are placed", () => {
-    expect(calculateBidReserveAmount(1_000_000)).toBe(100_000);
-    expect(calculateBidReserveAmount(1_000_001)).toBe(100_001);
+  test("calculates the 10 percent bid reserve in kobo from a naira bid", () => {
+    expect(calculateBidReserveAmountKobo(1_000_000)).toBe(10_000_000);
+    expect(calculateBidReserveAmountKobo(1_000_001)).toBe(10_000_010);
   });
 });

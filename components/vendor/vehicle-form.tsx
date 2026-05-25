@@ -20,6 +20,11 @@ import { CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
 import { isValidVehicleMakeModel } from "@/lib/vehicle-catalog";
 import { revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
+import {
+  sanitizeVehicleFormDataForSubmit,
+  type VehicleFormData,
+  type VehicleSubmitData,
+} from "@/lib/vehicle-form-payload";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
@@ -44,45 +49,6 @@ const getRegionLabel = (country: string) => {
       return "State / Region";
   }
 };
-
-export interface VehicleFormData {
-  // Basic Info
-  make: string;
-  makeCustom?: string;
-  model: string;
-  year: number;
-  vin?: string;
-
-  // Fuel type
-  fuelType: string;
-
-  // Car Specs (EV-specific fields are optional for non-EV vehicles)
-  batteryCapacity?: number;
-  batteryHealthPercent?: number;
-  range?: number;
-  batteryType?: string;
-  batteryTypeCustom?: string;
-  chargingTypes?: string[];
-  motorPower?: number;
-
-  // Condition
-  condition: string;
-  odometer: number;
-  exteriorColor: string;
-  interiorColor: string;
-  damageDescription: string;
-
-  // Pricing
-  startingBid: number;
-  reservePrice: number;
-  buyItNowPrice?: number;
-
-  // Location
-  locationCity: string;
-  locationState: string;
-  locationCountry: string;
-  locationCountryCustom?: string;
-}
 
 export const initialFormData: VehicleFormData = {
   make: "",
@@ -115,7 +81,7 @@ interface VehicleFormProps {
   initialData?: VehicleFormData;
   initialImages?: any[];
   isSubmitting: boolean;
-  onSubmit: (data: VehicleFormData, images: File[], deletedImageIds: string[]) => void;
+  onSubmit: (data: VehicleSubmitData, images: File[], deletedImageIds: string[]) => void;
   submitButtonText?: string;
   showSteps?: boolean;
 }
@@ -284,11 +250,9 @@ export function VehicleForm({
       return;
     }
 
-    const resolvedMake =
-      formData.make === "Other" ? (formData.makeCustom?.trim() || "") : formData.make;
-    const resolvedModel = formData.model.trim();
+    const resolvedData = sanitizeVehicleFormDataForSubmit(formData);
 
-    if (!isValidVehicleMakeModel(resolvedMake, resolvedModel, { allowOtherMake: true })) {
+    if (!isValidVehicleMakeModel(resolvedData.make, resolvedData.model, { allowOtherMake: true })) {
       setCurrentStep("basic");
       toast({
         title: "Invalid make or model",
@@ -298,17 +262,6 @@ export function VehicleForm({
       return;
     }
 
-    // Resolve "Other" values before submitting
-    const resolvedData = {
-      ...formData,
-      make: resolvedMake,
-      model: resolvedModel,
-      batteryType: formData.batteryType === "Other" ? (formData.batteryTypeCustom || "Other") : formData.batteryType,
-      locationCountry:
-        formData.locationCountry === "Other"
-          ? (formData.locationCountryCustom || "Other")
-          : formData.locationCountry,
-    };
     onSubmit(resolvedData, newImages, deletedImageIds);
   };
 

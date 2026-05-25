@@ -118,10 +118,10 @@ export function DashboardClient({
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Wallet Balance</p>
               <p className="text-2xl font-bold tracking-tight text-auction-gold">
-                {walletData ? formatCurrency(walletData.available) : "—"}
+                {walletData ? formatCurrency(walletData.available / 100) : "—"}
               </p>
               {walletData && walletData.reserved > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">+{formatCurrency(walletData.reserved)} reserved</p>
+                <p className="text-xs text-muted-foreground mt-1">+{formatCurrency(walletData.reserved / 100)} reserved</p>
               )}
             </div>
             <Link href="/wallet">
@@ -406,4 +406,3 @@ export function DashboardClient({
     </div>
   );
 }
-

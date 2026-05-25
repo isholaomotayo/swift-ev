@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
+import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
 
 /**
  * Get wallet balance and details for the current user
@@ -274,7 +275,7 @@ export const reserveFundsForBid = mutation({
             throw new Error("User not found");
         }
 
-        const requiredReserve = Math.ceil(args.bidAmount * 0.1); // 10% of bid
+        const requiredReserve = calculateBidReserveAmountKobo(args.bidAmount);
         const available = user.walletBalance ?? 0;
 
         if (available < requiredReserve) {
@@ -300,7 +301,7 @@ export const reserveFundsForBid = mutation({
             currency: "NGN",
             status: "completed",
             reference,
-            description: `Bid reserve for ₦${(args.bidAmount / 100).toLocaleString()} bid`,
+            description: `Bid reserve for ₦${args.bidAmount.toLocaleString()} bid`,
             relatedBidId: args.bidId,
             createdAt: Date.now(),
             completedAt: Date.now(),
@@ -454,7 +455,7 @@ export const checkBiddingPower = query({
             return { canBid: false, reason: "User not found" };
         }
 
-        const requiredBalance = Math.ceil(args.bidAmount * 0.1); // 10% of bid
+        const requiredBalance = calculateBidReserveAmountKobo(args.bidAmount);
         const available = user.walletBalance ?? 0;
 
         if (available >= requiredBalance) {

@@ -75,8 +75,11 @@ export function BidButton({
   const biddingPower = walletData?.biddingPower ?? 0;
 
   const quickBidAmount = currentBid + bidIncrement;
-  const requireDeposit = Math.ceil(quickBidAmount * 0.1);
-  const hasEnoughDeposit = availableBalance >= requireDeposit;
+  const parsedCustomBid = parseFloat(customBid);
+  const bidAmountForDeposit =
+    customBid && Number.isFinite(parsedCustomBid) ? parsedCustomBid : quickBidAmount;
+  const requiredDepositKobo = Math.ceil(bidAmountForDeposit * 10);
+  const hasEnoughDeposit = availableBalance >= requiredDepositKobo;
 
   const handleQuickBid = async () => {
     if (!isAuthenticated) {
@@ -362,7 +365,7 @@ export function BidButton({
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Required 10% Deposit</span>
-                <span className="font-bold">{formatCurrency((customBid ? parseFloat(customBid) : quickBidAmount) * 0.1)}</span>
+                <span className="font-bold">{formatCurrency(requiredDepositKobo / 100)}</span>
               </div>
 
               {!hasEnoughDeposit && (

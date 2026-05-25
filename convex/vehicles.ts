@@ -644,6 +644,7 @@ export const createVehicle = mutation({
     vehicleData: v.object({
       // Basic details
       make: v.string(),
+      makeCustom: v.optional(v.string()),
       model: v.string(),
       year: v.number(),
       vin: v.optional(v.string()),
@@ -659,6 +660,7 @@ export const createVehicle = mutation({
       batteryHealthPercent: v.optional(v.number()),
       range: v.optional(v.number()),
       batteryType: v.optional(v.string()),
+      batteryTypeCustom: v.optional(v.string()),
       chargingTypes: v.optional(v.array(v.string())),
       motorPower: v.optional(v.number()),
 
@@ -670,6 +672,7 @@ export const createVehicle = mutation({
       locationCity: v.string(),
       locationState: v.string(),
       locationCountry: v.string(),
+      locationCountryCustom: v.optional(v.string()),
 
       // Pricing
       startingBid: v.number(),
@@ -722,6 +725,20 @@ export const createVehicle = mutation({
     if (initialStatus === "approved" && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("Only admins can create pre-approved vehicles");
     }
+
+    const resolvedMake =
+      vehicleData.make === "Other"
+        ? (vehicleData.makeCustom?.trim() || "")
+        : vehicleData.make.trim();
+    const resolvedModel = vehicleData.model.trim();
+    const resolvedBatteryType =
+      vehicleData.batteryType === "Other"
+        ? (vehicleData.batteryTypeCustom?.trim() || "Other")
+        : vehicleData.batteryType;
+    const resolvedLocationCountry =
+      vehicleData.locationCountry === "Other"
+        ? (vehicleData.locationCountryCustom?.trim() || "Other")
+        : vehicleData.locationCountry;
 
     // Hard validation to prevent client-side bypass
     const nextYear = new Date().getFullYear() + 1;
@@ -778,7 +795,13 @@ export const createVehicle = mutation({
     // Check for duplicate VIN
     await checkDuplicateVin(ctx, vehicleData.vin);
 
-    assertValidVehicleMakeModel(vehicleData.make, vehicleData.model);
+    if (vehicleData.make === "Other") {
+      if (!resolvedMake || !resolvedModel) {
+        throw new Error("Custom make and model are required.");
+      }
+    } else {
+      assertValidVehicleMakeModel(resolvedMake, resolvedModel);
+    }
 
     // Auto-generate a unique lot number
     const lotNumber = await generateUniqueLotNumber(ctx);
@@ -786,8 +809,8 @@ export const createVehicle = mutation({
     const now = Date.now();
 
     const searchableText = [
-      vehicleData.make,
-      vehicleData.model,
+      resolvedMake,
+      resolvedModel,
       vehicleData.vin || "",
       lotNumber,
       vehicleData.year.toString()
@@ -797,8 +820,8 @@ export const createVehicle = mutation({
     const vehicleId = await ctx.db.insert("vehicles", {
       lotNumber,
       vin: vehicleData.vin,
-      make: vehicleData.make,
-      model: vehicleData.model,
+      make: resolvedMake,
+      model: resolvedModel,
       year: vehicleData.year,
       fuelType: vehicleData.fuelType,
       exteriorColor: vehicleData.exteriorColor,
@@ -808,20 +831,20 @@ export const createVehicle = mutation({
       batteryHealthPercent: vehicleData.batteryHealthPercent,
       chargingType: vehicleData.chargingTypes,
       motorPower: vehicleData.motorPower,
-      batteryType: vehicleData.batteryType,
+      batteryType: resolvedBatteryType,
       odometer: vehicleData.odometer,
       odometerUnit: "km",
       condition: vehicleData.condition as "new" | "like_new" | "excellent" | "good" | "fair" | "salvage",
       damageDescription: vehicleData.damageDescription,
       titleType: "clean",
-      titleCountry: vehicleData.locationCountry,
+      titleCountry: resolvedLocationCountry,
       hasKeys: true, // Default
       sourceType: "consignment",
       sellerId: user._id,
       currentLocation: {
         facility: user.vendorCompany || "Vendor Facility",
         city: vehicleData.locationCity,
-        country: vehicleData.locationCountry,
+        country: resolvedLocationCountry,
       },
       startingBid: vehicleData.startingBid,
       reservePrice: vehicleData.reservePrice,
@@ -881,6 +904,7 @@ export const updateVehicle = mutation({
     vehicleId: v.id("vehicles"),
     updates: v.object({
       make: v.optional(v.string()),
+      makeCustom: v.optional(v.string()),
       model: v.optional(v.string()),
       year: v.optional(v.number()),
       vin: v.optional(v.string()), // Allow correcting VIN
@@ -895,8 +919,11 @@ export const updateVehicle = mutation({
       batteryCapacity: v.optional(v.number()),
       batteryHealthPercent: v.optional(v.number()),
       estimatedRange: v.optional(v.number()), // Note: Frontend might send 'range', map to 'estimatedRange'
+      range: v.optional(v.number()),
       batteryType: v.optional(v.string()),
+      batteryTypeCustom: v.optional(v.string()),
       chargingType: v.optional(v.array(v.string())),
+      chargingTypes: v.optional(v.array(v.string())),
       motorPower: v.optional(v.number()),
 
       condition: v.optional(
@@ -925,6 +952,10 @@ export const updateVehicle = mutation({
           country: v.string(),
         })
       ),
+      locationCity: v.optional(v.string()),
+      locationState: v.optional(v.string()),
+      locationCountry: v.optional(v.string()),
+      locationCountryCustom: v.optional(v.string()),
 
       status: v.optional(vehicleStatusValidator),
       // Images - Optional array of strings (URLs or Storage IDs)
@@ -967,7 +998,19 @@ export const updateVehicle = mutation({
 
     // 1. Update vehicle fields
     // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
-    const { imageUrls, status: requestedStatus, ...rawVehicleUpdates } = updates;
+    const {
+      imageUrls,
+      status: requestedStatus,
+      makeCustom,
+      batteryTypeCustom,
+      range,
+      chargingTypes,
+      locationCity,
+      locationState: _locationState,
+      locationCountry,
+      locationCountryCustom,
+      ...rawVehicleUpdates
+    } = updates;
 
     if (requestedStatus !== undefined && requestedStatus !== vehicle.status) {
       throw new Error(
@@ -984,8 +1027,68 @@ export const updateVehicle = mutation({
       "salvage",
     ]);
 
+    const normalizedRawUpdates: Record<string, unknown> = { ...rawVehicleUpdates };
+
+    if (rawVehicleUpdates.make === "Other") {
+      const resolvedMake = makeCustom?.trim();
+      if (!resolvedMake) {
+        throw new Error("Custom make is required.");
+      }
+      normalizedRawUpdates.make = resolvedMake;
+    } else if (rawVehicleUpdates.make !== undefined) {
+      normalizedRawUpdates.make = rawVehicleUpdates.make.trim();
+    } else if (makeCustom?.trim()) {
+      normalizedRawUpdates.make = makeCustom.trim();
+    }
+
+    if (range !== undefined && normalizedRawUpdates.estimatedRange === undefined) {
+      normalizedRawUpdates.estimatedRange = range;
+    }
+
+    if (chargingTypes !== undefined && normalizedRawUpdates.chargingType === undefined) {
+      normalizedRawUpdates.chargingType = chargingTypes;
+    }
+
+    if (rawVehicleUpdates.batteryType === "Other") {
+      normalizedRawUpdates.batteryType = batteryTypeCustom?.trim() || "Other";
+    }
+
+    if (
+      locationCity !== undefined ||
+      locationCountry !== undefined ||
+      locationCountryCustom !== undefined
+    ) {
+      const currentLocation = rawVehicleUpdates.currentLocation;
+      const resolvedCountry =
+        locationCountry === "Other"
+          ? (locationCountryCustom?.trim() || "Other")
+          : locationCountry;
+
+      normalizedRawUpdates.currentLocation = {
+        facility:
+          currentLocation?.facility ||
+          vehicle.currentLocation?.facility ||
+          "Default Facility",
+        city:
+          locationCity ??
+          currentLocation?.city ??
+          vehicle.currentLocation?.city ??
+          "",
+        country:
+          resolvedCountry ??
+          currentLocation?.country ??
+          vehicle.currentLocation?.country ??
+          "",
+      };
+    } else if (rawVehicleUpdates.currentLocation?.country === "Other") {
+      normalizedRawUpdates.currentLocation = {
+        ...rawVehicleUpdates.currentLocation,
+        country: "Other",
+      };
+    }
+
     const vehicleUpdates: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(rawVehicleUpdates)) {
+    for (const [key, value] of Object.entries(normalizedRawUpdates)) {
       if (value === undefined) continue;
       if (key === "condition" && typeof value === "string" && !validConditions.has(value)) {
         continue;
