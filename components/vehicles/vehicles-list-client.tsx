@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
+import { cn } from "@/lib/utils";
 
 const CONDITIONS = [
   { value: "excellent", label: "Excellent" },
@@ -57,6 +58,7 @@ export function VehiclesListClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [currentPage, setCurrentPage] = useState(0);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
     setSearchTerm(searchParams.get("search") ?? "");
@@ -158,16 +160,67 @@ export function VehiclesListClient({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <aside className="lg:col-span-1 space-y-6">
-        <div className="bg-background rounded-lg border p-6 space-y-6 sticky top-24">
+      {/* Mobile Filters Toggle Button */}
+      <div className="lg:hidden flex items-center justify-between gap-4 w-full">
+        <Button
+          variant="outline"
+          className="flex-1 h-12 flex items-center justify-center gap-2 border border-slate-200 dark:border-white/10 rounded-xl"
+          onClick={() => setMobileFiltersOpen(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sliders-horizontal"><line x1="21" y1="4" x2="14" y2="4"></line><line x1="10" y1="4" x2="3" y2="4"></line><line x1="21" y1="12" x2="12" y2="12"></line><line x1="8" y1="12" x2="3" y2="12"></line><line x1="21" y1="20" x2="16" y2="20"></line><line x1="12" y1="20" x2="3" y2="20"></line><line x1="14" y1="2" x2="14" y2="6"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="16" y1="18" x2="16" y2="22"></line></svg>
+          Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+        </Button>
+        {activeFilterCount > 0 && (
+          <Button
+            variant="ghost"
+            onClick={resetFilters}
+            className="text-electric-blue hover:text-electric-blue/80 text-sm font-semibold"
+          >
+            Clear All
+          </Button>
+        )}
+      </div>
+
+      {/* Mobile Drawer Backdrop overlay */}
+      {mobileFiltersOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setMobileFiltersOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Filter Drawer */}
+      <aside
+        className={cn(
+          "transition-all duration-300 ease-in-out",
+          // Mobile styles: off-screen fixed drawer
+          "fixed inset-y-0 left-0 z-50 w-80 max-w-[calc(100vw-3rem)] bg-background p-6 border-r border-border/50 shadow-2xl overflow-y-auto transform -translate-x-full",
+          mobileFiltersOpen ? "translate-x-0" : "",
+          // Desktop styles: static relative column
+          "lg:relative lg:translate-x-0 lg:z-0 lg:w-auto lg:p-0 lg:border-none lg:shadow-none lg:overflow-visible lg:col-span-1 space-y-6"
+        )}
+      >
+        <div className="bg-background rounded-lg border p-6 space-y-6 sticky top-24 max-lg:border-none max-lg:p-0 max-lg:static">
+          {/* Mobile Header in Drawer */}
+          <div className="flex items-center justify-between lg:hidden mb-2">
+            <h2 className="text-xl font-black uppercase tracking-tight">Filters</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileFiltersOpen(false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </Button>
+          </div>
+
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Filters</h2>
+            <h2 className="text-lg font-semibold max-lg:hidden">Filters</h2>
             {activeFilterCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={resetFilters}
-                className="text-electric-blue"
+                className="text-electric-blue max-lg:hidden"
               >
                 Reset ({activeFilterCount})
               </Button>

@@ -79,7 +79,7 @@ export function ImageGallery({
           <Button
             size="icon"
             variant="secondary"
-            className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
+            className="absolute bottom-4 right-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
             onClick={() => setIsZoomed(true)}
           >
             <ZoomIn className="h-5 w-5" />
@@ -91,7 +91,7 @@ export function ImageGallery({
               <Button
                 size="icon"
                 variant="secondary"
-                className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
+                className="absolute left-4 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
                 onClick={goToPrevious}
                 aria-label="Previous image"
               >
@@ -100,7 +100,7 @@ export function ImageGallery({
               <Button
                 size="icon"
                 variant="secondary"
-                className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
+                className="absolute right-4 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-carbon-black/80 hover:bg-carbon-black text-white backdrop-blur-sm"
                 onClick={goToNext}
                 aria-label="Next image"
               >

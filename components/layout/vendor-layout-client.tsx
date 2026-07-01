@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -67,12 +68,59 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const displayName = user.vendorCompany?.trim() || `${user.firstName} ${user.lastName}`.trim();
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   return (
-    <div className="flex min-h-screen bg-background selection:bg-volt-green/30">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-background selection:bg-volt-green/30">
+      {/* Mobile Top Header Bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card lg:hidden sticky top-0 z-40">
+        <Link href="/" className="flex items-center space-x-2 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe h-5 w-5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+              <path d="M2 12h20"></path>
+            </svg>
+          </div>
+          <span className="font-black text-xl tracking-tighter text-brand-primary dark:text-white">
+            autoexports<span className="text-brand-gold">.live</span>
+          </span>
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {sidebarOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          )}
+        </Button>
+      </div>
+
+      {/* Mobile Backdrop overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-card border-r border-border fixed h-screen overflow-y-auto z-50 transition-all duration-300">
+      <aside
+        className={cn(
+          "w-72 bg-card border-r border-border fixed h-screen overflow-y-auto z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:left-0 lg:top-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
         <div className="p-6">
           <Link href="/" className="flex items-center space-x-2 group mb-10">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary transition-all duration-300 group-hover:rotate-3">
@@ -142,7 +190,7 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-72">
+      <main className="flex-1 lg:ml-72 min-w-0">
         <div className="p-8 md:p-12 max-w-7xl mx-auto animate-in fade-in duration-500">
           {children}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search, Globe, Zap } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -28,6 +28,18 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   const isNavLinkActive = (href: string) => pathname === href;
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -40,9 +52,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md dark:bg-brand-primary/95 dark:border-white/10">
-      <div className="container mx-auto flex h-20 items-center px-4 md:px-6">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 mr-12 group">
+        <Link href="/" className="flex items-center space-x-2 mr-2 lg:mr-12 group shrink-0">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary transition-all duration-300 group-hover:rotate-3">
             <Globe className="h-6 w-6" />
           </div>
@@ -78,7 +90,7 @@ export function Header() {
         </nav>
 
         {/* Right Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <form
             onSubmit={handleSearchSubmit}
             className="hidden md:flex items-center group/search relative"
@@ -93,9 +105,11 @@ export function Header() {
             />
           </form>
 
-          <LanguageSwitcher />
-          <CurrencySelector />
-          <ThemeToggle />
+          <div className="hidden lg:flex items-center gap-4">
+            <LanguageSwitcher />
+            <CurrencySelector />
+            <ThemeToggle />
+          </div>
 
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
@@ -179,7 +193,7 @@ export function Header() {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/login"
                 className="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary transition-colors dark:text-slate-300 dark:hover:text-white"
@@ -189,7 +203,7 @@ export function Header() {
               <Button
                 size="sm"
                 asChild
-                className="h-11 px-6 bg-brand-primary text-white hover:bg-brand-primary shadow-[4px_4px_0px_0px_rgba(15,23,42,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] rounded-md text-xs font-black uppercase tracking-[0.2em] transition-all dark:bg-brand-gold dark:text-brand-primary"
+                className="h-10 sm:h-11 px-3 sm:px-6 bg-brand-primary text-white hover:bg-brand-primary shadow-[4px_4px_0px_0px_rgba(15,23,42,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] rounded-md text-xs font-black uppercase tracking-wider sm:tracking-[0.2em] transition-all dark:bg-brand-gold dark:text-brand-primary"
               >
                 <Link href="/register">{m.nav_join_now()}</Link>
               </Button>
@@ -214,20 +228,22 @@ export function Header() {
 
       {/* Mobile Menu - Rebuilt for solidity */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-20 z-50 bg-white dark:bg-brand-primary animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="container mx-auto px-6 py-12 flex flex-col h-full">
-            <div className="space-y-12">
+        <div className="absolute top-full left-0 right-0 h-[calc(100vh-5rem)] z-[60] bg-white dark:bg-brand-primary animate-in fade-in slide-in-from-top-4 duration-300 overflow-y-auto">
+          <div className="container mx-auto px-6 py-8 flex flex-col min-h-[calc(100vh-5rem)]">
+            <div className="space-y-8">
               <form onSubmit={handleSearchSubmit} className="relative">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                 <Input
                   type="search"
                   placeholder={m.nav_search_vin_or_model()}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="h-14 pl-12 text-lg rounded-xl border-2 border-slate-200 dark:border-white/10"
+                  className="h-12 pl-11 text-base rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary dark:border-white/10 dark:focus:border-brand-gold dark:focus:ring-brand-gold bg-slate-50/50 dark:bg-white/5"
                 />
               </form>
-              <div className="flex flex-col gap-6">
+
+              {/* Navigation Links list */}
+              <div className="flex flex-col gap-1 border-t border-slate-100 dark:border-white/5 pt-6">
                 {[
                   { href: "/vehicles", label: m.nav_inventory() },
                   { href: "/auctions", label: m.nav_live_bids() },
@@ -238,25 +254,28 @@ export function Header() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "text-5xl font-black tracking-tighter transition-all duration-300 uppercase italic",
+                      "flex items-center justify-between py-4 px-2 rounded-xl text-lg font-bold tracking-wide transition-all border-b border-slate-50 dark:border-white/5 last:border-b-0",
                       isNavLinkActive(item.href)
-                        ? "text-brand-gold"
-                        : "text-brand-primary/45 dark:text-white/45",
+                        ? "text-brand-gold bg-slate-50 dark:bg-white/5 px-4"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={cn("lucide lucide-chevron-right h-4 w-4 transition-transform", isNavLinkActive(item.href) ? "text-brand-gold translate-x-1" : "text-slate-400")}>
+                      <path d="m9 18 6-6-6-6"></path>
+                    </svg>
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="mt-auto space-y-4 pb-12">
+            <div className="mt-auto space-y-3 pt-8 pb-4">
               {!isAuthenticated ? (
                 <>
                   <Button
                     size="lg"
-                    className="h-20 w-full bg-brand-primary text-white hover:bg-brand-primary rounded-xl text-xl font-black uppercase tracking-widest dark:bg-brand-gold dark:text-brand-primary"
+                    className="h-12 w-full bg-brand-primary text-white hover:bg-brand-primary rounded-xl text-sm font-bold uppercase tracking-wider dark:bg-brand-gold dark:text-brand-primary shadow-lg shadow-brand-primary/10 dark:shadow-brand-gold/10"
                     asChild
                   >
                     <Link
@@ -269,7 +288,7 @@ export function Header() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="h-20 w-full rounded-xl text-xl font-black uppercase tracking-widest border-2 border-brand-primary text-brand-primary dark:border-white dark:text-white"
+                    className="h-12 w-full rounded-xl text-sm font-bold uppercase tracking-wider border-2 border-brand-primary/20 text-brand-primary hover:bg-slate-50 dark:border-white/20 dark:text-white dark:hover:bg-white/5"
                     asChild
                   >
                     <Link
@@ -283,7 +302,7 @@ export function Header() {
               ) : (
                 <Button
                   variant="ghost"
-                  className="h-20 w-full text-xl font-black text-brand-accent uppercase italic underline decoration-4"
+                  className="h-12 w-full text-sm font-bold text-brand-accent uppercase tracking-wider hover:bg-brand-accent/5 rounded-xl"
                   onClick={() => {
                     logout();
                     setMobileMenuOpen(false);
@@ -292,6 +311,13 @@ export function Header() {
                   {m.nav_sign_out()}
                 </Button>
               )}
+            </div>
+
+            {/* Mobile Toolbar (Switchers) */}
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-around gap-4 pb-4">
+              <LanguageSwitcher />
+              <CurrencySelector />
+              <ThemeToggle />
             </div>
           </div>
         </div>

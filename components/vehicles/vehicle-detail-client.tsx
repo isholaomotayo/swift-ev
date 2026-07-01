@@ -251,8 +251,8 @@ export function VehicleDetailClient({
 
       <div className="container mx-auto px-4 -mt-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Gallery & Info */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* Left Column - Gallery Wrapper */}
+          <div className="lg:col-span-2 space-y-8 order-1">
             {/* Gallery (Thumbnails) */}
             <div className="bg-card rounded-2xl p-6 shadow-xl border border-border/50">
               {/* Gallery Component */}
@@ -261,7 +261,10 @@ export function VehicleDetailClient({
                 vehicleTitle={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               />
             </div>
+          </div>
 
+          {/* Left Column - Highlights & Tabs Wrapper */}
+          <div className="lg:col-span-2 space-y-8 order-3">
             {/* Highlights Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
@@ -703,7 +706,7 @@ export function VehicleDetailClient({
           </div>
 
           {/* Right Column - Sticky Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 lg:row-span-2 order-2">
             <div className="sticky top-24 space-y-6">
               {/* Sale Card */}
               <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
