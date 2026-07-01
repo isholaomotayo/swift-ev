@@ -49,6 +49,7 @@ export function VehiclesListClient({
 
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [selectedFuelType, setSelectedFuelType] = useState("");
   const [yearRange, setYearRange] = useState<[number, number]>([2018, 2025]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50_000_000]);
   const [batteryHealthMin, setBatteryHealthMin] = useState<number>(70);
@@ -65,6 +66,7 @@ export function VehiclesListClient({
     () => ({
       make: selectedMake || undefined,
       model: selectedModel || undefined,
+      fuelType: selectedFuelType || undefined,
       yearMin: yearRange[0],
       yearMax: yearRange[1],
       priceMin: priceRange[0],
@@ -78,6 +80,7 @@ export function VehiclesListClient({
     [
       selectedMake,
       selectedModel,
+      selectedFuelType,
       yearRange,
       priceRange,
       batteryHealthMin,
@@ -113,6 +116,7 @@ export function VehiclesListClient({
   const resetFilters = () => {
     setSelectedMake("");
     setSelectedModel("");
+    setSelectedFuelType("");
     setYearRange([2018, 2025]);
     setPriceRange([0, 50_000_000]);
     setBatteryHealthMin(70);
@@ -125,6 +129,7 @@ export function VehiclesListClient({
   const activeFilterCount =
     (selectedMake ? 1 : 0) +
     (selectedModel ? 1 : 0) +
+    (selectedFuelType ? 1 : 0) +
     selectedConditions.length +
     (yearRange[0] !== 2018 || yearRange[1] !== 2025 ? 1 : 0) +
     (priceRange[0] !== 0 || priceRange[1] !== 50_000_000 ? 1 : 0) +
@@ -178,6 +183,27 @@ export function VehiclesListClient({
             onMakeChange={handleMakeChange}
             onModelChange={handleModelChange}
           />
+
+          <Separator />
+
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Fuel Type</Label>
+            <Select value={selectedFuelType} onValueChange={(val) => {
+              setSelectedFuelType(val === "all" ? "" : val);
+              setCurrentPage(0);
+            }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Fuel Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Fuel Types</SelectItem>
+                <SelectItem value="EV (Electric)">EV (Electric)</SelectItem>
+                <SelectItem value="Hybrid">Hybrid</SelectItem>
+                <SelectItem value="Gas/Petrol">Gas/Petrol</SelectItem>
+                <SelectItem value="Solar">Solar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <Separator />
 

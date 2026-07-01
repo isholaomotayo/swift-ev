@@ -13,6 +13,16 @@ import {
   ShieldCheck,
   Timer,
   CheckCircle2,
+  Fuel,
+  Key,
+  Compass,
+  Activity,
+  Wrench,
+  Warehouse,
+  ShieldAlert,
+  Calendar,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { ImageGallery } from "@/components/autoexports/image-gallery";
 import { BatteryHealthBadge } from "@/components/autoexports/battery-health-badge";
@@ -39,6 +49,8 @@ import {
   formatRelativeTime,
   cn,
 } from "@/lib/utils";
+import { useCurrencyStore } from "@/store/currency";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import Link from "next/link";
 import { RemoteImage } from "@/components/ui/remote-image";
 import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
@@ -65,15 +77,30 @@ interface AuctionLot {
 interface Vehicle {
   _id: Id<"vehicles">;
   lotNumber: string;
-  vin: string;
+  vin?: string;
   make: string;
   model: string;
   year: number;
-  batteryCapacity: number;
-  estimatedRange: number;
+  trim?: string;
+  exteriorColor: string;
+  interiorColor?: string;
+  fuelType?: string;
+  batteryCapacity?: number;
+  estimatedRange?: number;
   batteryHealthPercent?: number;
+  chargingType?: string[];
+  motorPower?: number;
+  batteryType?: string;
+  drivetrain?: string;
   odometer: number;
+  condition: string;
+  damageDescription?: string;
+  titleType: string;
+  titleCountry: string;
+  hasKeys: boolean;
+  sourceType: string;
   currentLocation: {
+    facility: string;
     city: string;
     country: string;
   };
@@ -95,11 +122,8 @@ interface Vehicle {
   heroImage?: string;
   auctionLot?: AuctionLot;
   bids: Bid[];
-  damageDescription?: string;
   bodyType?: string;
   transmission?: string;
-  drivetrain?: string;
-  motorPower?: number;
 }
 
 interface VehicleDetailClientProps {
@@ -112,6 +136,8 @@ export function VehicleDetailClient({
   vehicleId,
 }: VehicleDetailClientProps) {
   const router = useRouter();
+  const currency = useCurrencyStore((s) => s.currency);
+  const exchangeRates = useExchangeRates();
 
   // Use real-time data if available, otherwise use initial data
   const realtimeVehicle =
@@ -236,6 +262,49 @@ export function VehicleDetailClient({
               />
             </div>
 
+            {/* Highlights Strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
+                <div className="p-3 rounded-xl bg-electric-blue/10 text-electric-blue">
+                  <Fuel className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Fuel Type</p>
+                  <p className="font-extrabold text-sm capitalize">{vehicle.fuelType || "Electric"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
+                <div className="p-3 rounded-xl bg-volt-green/10 text-volt-green">
+                  <Activity className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Condition</p>
+                  <p className="font-extrabold text-sm capitalize">{vehicle.condition || "Excellent"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
+                <div className="p-3 rounded-xl bg-warning-amber/10 text-warning-amber">
+                  <Key className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Keys</p>
+                  <p className="font-extrabold text-sm capitalize">{vehicle.hasKeys ? "Available (2)" : "No Keys"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
+                <div className="p-3 rounded-xl bg-success-green/10 text-success-green">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Title Type</p>
+                  <p className="font-extrabold text-sm capitalize">{vehicle.titleType || "Clean"}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Comprehensive Tabs */}
             <div className="bg-card rounded-2xl border border-border/50 shadow-xl overflow-hidden">
               <Tabs defaultValue="overview" className="w-full">
@@ -274,49 +343,192 @@ export function VehicleDetailClient({
 
                 <div className="p-6">
                   {/* OVERVIEW TAB */}
-                  <TabsContent value="overview" className="mt-0 space-y-8">
-                    {/* Specs Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                  <TabsContent value="overview" className="mt-0 space-y-8 animate-in fade-in duration-300">
+                    {/* Visual Key Specs Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Gauge className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Odometer</p>
+                          <p className="font-bold text-base">{vehicle.odometer.toLocaleString()} km</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Model Year</p>
+                          <p className="font-bold text-base">{vehicle.year}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Layers className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Body Style</p>
+                          <p className="font-bold text-base capitalize">{vehicle.bodyType || "SUV"}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Wrench className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Transmission</p>
+                          <p className="font-bold text-base capitalize">{vehicle.transmission || "Automatic"}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Compass className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Drivetrain</p>
+                          <p className="font-bold text-base capitalize">{vehicle.drivetrain || "AWD"}</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/20 border rounded-xl flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-electric-blue shrink-0" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Trim Level</p>
+                          <p className="font-bold text-base capitalize">{vehicle.trim || "Standard"}</p>
+                        </div>
+                      </div>
+                    </div>
 
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">Mileage</p>
-                        <p className="font-medium">
-                          {vehicle.odometer.toLocaleString()} km
-                        </p>
+                    <div className="border-t border-border/60 my-6" />
+
+                    {/* Specifications Details Table */}
+                    <div>
+                      <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
+                        <Info className="h-5 w-5 text-electric-blue" />
+                        Vehicle Details
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">VIN (Chassis Number)</span>
+                          <span className="font-mono font-semibold">{formatVIN(vehicle.vin)}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">Lot Number</span>
+                          <span className="font-mono font-semibold">{formatLotNumber(vehicle.lotNumber)}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">Exterior Color</span>
+                          <span className="font-semibold capitalize">{vehicle.exteriorColor || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">Interior Color</span>
+                          <span className="font-semibold capitalize">{vehicle.interiorColor || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">Title Status</span>
+                          <span className="font-semibold capitalize">{vehicle.titleType} ({vehicle.titleCountry})</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-dashed">
+                          <span className="text-muted-foreground font-medium">Source Type</span>
+                          <span className="font-semibold capitalize">{vehicle.sourceType || "Dealer"}</span>
+                        </div>
                       </div>
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">Body Type</p>
-                        <p className="font-medium">
-                          {vehicle.bodyType || "SUV"}
-                        </p>
-                      </div>
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">Transmission</p>
-                        <p className="font-medium">
-                          {vehicle.transmission || "Automatic"}
-                        </p>
-                      </div>
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">Drive Type</p>
-                        <p className="font-medium">
-                          {vehicle.drivetrain || "AWD"}
-                        </p>
-                      </div>
-                      <div className="space-y-1 py-2 border-b border-dashed">
-                        <p className="text-muted-foreground">Engine/Motor</p>
-                        <p className="font-medium">
-                          {vehicle.motorPower
-                            ? `${vehicle.motorPower} kW`
-                            : "2.0L 4-Cyl"}
+                    </div>
+
+                    {/* Powertrain specs (Adaptive EV vs ICE) */}
+                    <div className="pt-2">
+                      {((vehicle.fuelType?.toLowerCase().includes("ev") || vehicle.fuelType?.toLowerCase().includes("electric")) || (vehicle.batteryCapacity && vehicle.batteryCapacity > 0)) ? (
+                        <div>
+                          <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
+                            <Zap className="h-5 w-5 text-warning-amber animate-pulse" />
+                            Electric Vehicle Powertrain Specs
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Battery Capacity</span>
+                              <span className="font-semibold">{vehicle.batteryCapacity} kWh</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Battery Health (SoH)</span>
+                              <span className="font-semibold text-volt-green">{vehicle.batteryHealthPercent || 100}%</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Estimated Range</span>
+                              <span className="font-semibold">{vehicle.estimatedRange || "N/A"} km</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Motor Power</span>
+                              <span className="font-semibold">{vehicle.motorPower ? `${vehicle.motorPower} kW` : "N/A"}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Battery Chemistry</span>
+                              <span className="font-semibold capitalize">{vehicle.batteryType || "Lithium-ion"}</span>
+                            </div>
+                            {vehicle.chargingType && vehicle.chargingType.length > 0 && (
+                              <div className="flex justify-between py-2 border-b border-dashed col-span-1 md:col-span-2">
+                                <span className="text-muted-foreground font-medium">Supported Charging Types</span>
+                                <div className="flex flex-wrap gap-1.5 justify-end">
+                                  {vehicle.chargingType.map((ct) => (
+                                    <Badge key={ct} variant="secondary" className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                                      {ct}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
+                            <Gauge className="h-5 w-5 text-electric-blue" />
+                            Powertrain Specs
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Engine / Motor</span>
+                              <span className="font-semibold">{vehicle.motorPower ? `${vehicle.motorPower} kW` : "Internal Combustion"}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Fuel Type</span>
+                              <span className="font-semibold capitalize">{vehicle.fuelType || "Gas/Petrol"}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Transmission</span>
+                              <span className="font-semibold capitalize">{vehicle.transmission || "Automatic"}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-dashed">
+                              <span className="text-muted-foreground font-medium">Drive Type</span>
+                              <span className="font-semibold capitalize">{vehicle.drivetrain || "AWD"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-border/60 my-6" />
+
+                    {/* Logistics and Location */}
+                    <div>
+                      <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
+                        <Warehouse className="h-5 w-5 text-electric-blue" />
+                        Location & Logistics
+                      </h3>
+                      <div className="p-4 bg-muted/10 border border-border/50 rounded-xl space-y-3 text-sm">
+                        <div className="flex items-start gap-2.5">
+                          <MapPin className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-slate-200">
+                              {vehicle.currentLocation.facility || "Guangzhou Export Hub"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {vehicle.currentLocation.city}, {vehicle.currentLocation.country}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                          This vehicle is stored at the facility specified above. International buyers must arrange shipping via container or RoRo. Live tracking will begin once customs clearance starts.
                         </p>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="font-bold mb-4 text-deep-navy">
-                        Condition & Features
+                      <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
+                        <ShieldAlert className="h-5 w-5 text-electric-blue" />
+                        Condition Details
                       </h3>
-                      <p className="text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg">
+                      <p className="text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg text-sm">
                         {vehicle.damageDescription ||
                           "Overall Condition: Excellent. Run & Drive: Yes. Keys Available: Yes (2 sets). Title Status: Clean. Export Eligible: Yes."}
                       </p>
@@ -474,7 +686,7 @@ export function VehicleDetailClient({
                                 User {bid.userId.slice(-4)}
                               </TableCell>
                               <TableCell className="font-bold text-foreground">
-                                {formatCurrency(bid.amount)}
+                                {formatCurrency(bid.amount, { currency, exchangeRates })}
                               </TableCell>
                               <TableCell className="text-muted-foreground text-xs">
                                 {formatRelativeTime(bid.createdAt)}

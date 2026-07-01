@@ -2,7 +2,7 @@
 
 import { RemoteImage } from "@/components/ui/remote-image";
 import Link from "next/link";
-import { Heart, Zap, Battery, Timer } from "lucide-react";
+import { Heart, Zap, Battery, Timer, MapPin, Gauge, Fuel } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,6 +23,13 @@ interface VehicleCardProps {
     make: string;
     model: string;
     year: number;
+    fuelType?: string;
+    odometer?: number;
+    condition?: string;
+    currentLocation?: {
+      city: string;
+      country: string;
+    };
     batteryCapacity?: number;
     estimatedRange?: number;
     batteryHealthPercent?: number;
@@ -54,6 +61,10 @@ export function VehicleCard({
     make,
     model,
     year,
+    fuelType,
+    odometer,
+    condition,
+    currentLocation,
     batteryCapacity,
     estimatedRange,
     batteryHealthPercent,
@@ -149,19 +160,59 @@ export function VehicleCard({
           )}
         </div>
 
-        {/* Specs Row */}
-        <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mt-2">
-          {batteryCapacity != null && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
-              <Battery className="h-4 w-4 text-electric-blue" />
-              <span>{batteryCapacity} kWh</span>
+        {/* Location & Condition Badges */}
+        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+          {currentLocation && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0" />
+              <span className="truncate">{currentLocation.city}, {currentLocation.country}</span>
             </div>
           )}
-          {estimatedRange != null && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50">
-              <Zap className="h-4 w-4 text-warning-amber" />
-              <span>{estimatedRange} km range</span>
+          {condition && (
+            <Badge variant="outline" className={cn(
+              "text-[10px] py-0 px-2 font-semibold capitalize border",
+              condition === "excellent" || condition === "new" || condition === "like_new"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : condition === "good"
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : condition === "fair"
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : "bg-red-50 text-red-700 border-red-200"
+            )}>
+              {condition}
+            </Badge>
+          )}
+          {fuelType && (
+            <Badge variant="outline" className="text-[10px] py-0 px-2 font-semibold bg-slate-50 text-slate-700 border-slate-200 capitalize">
+              {fuelType}
+            </Badge>
+          )}
+        </div>
+
+        {/* Specs Row */}
+        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mt-3 text-muted-foreground">
+          {odometer !== undefined && (
+            <div className="flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-md">
+              <Gauge className="h-3.5 w-3.5 text-slate-500" />
+              <span>{odometer.toLocaleString()} km</span>
             </div>
+          )}
+          {/* If it's EV (or has EV params) show battery capacities */}
+          {((fuelType?.toLowerCase().includes("ev") || fuelType?.toLowerCase().includes("electric")) || batteryCapacity) && (
+            <>
+              {batteryCapacity != null && batteryCapacity > 0 && (
+                <div className="flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-md">
+                  <Battery className="h-3.5 w-3.5 text-electric-blue" />
+                  <span>{batteryCapacity} kWh</span>
+                </div>
+              )}
+              {estimatedRange != null && estimatedRange > 0 && (
+                <div className="flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-md">
+                  <Zap className="h-3.5 w-3.5 text-warning-amber" />
+                  <span>{estimatedRange} km range</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </CardHeader>

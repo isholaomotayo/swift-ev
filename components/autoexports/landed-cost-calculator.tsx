@@ -1,9 +1,11 @@
-"use strict";
+"use client";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
+import { useCurrencyStore } from "@/store/currency";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { Calculator, Plane, FileText, ShieldCheck } from "lucide-react";
 
 interface LandedCostCalculatorProps {
@@ -12,6 +14,8 @@ interface LandedCostCalculatorProps {
 
 export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) {
     const [destination, setDestination] = useState("Lagos");
+    const currency = useCurrencyStore((s) => s.currency);
+    const exchangeRates = useExchangeRates();
 
     // Fee Constants
     const BUYER_PREMIUM_RATE = 0.05;
@@ -40,34 +44,34 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Detailed Breakdown</span>
-                        <span className="font-medium text-deep-navy">If you win at {formatCurrency(currentBid)}</span>
+                        <span className="font-medium text-deep-navy">If you win at {formatCurrency(currentBid, { currency, exchangeRates })}</span>
                     </div>
 
                     <div className="bg-white p-3 rounded-lg border border-border space-y-2 text-sm">
                         <div className="flex justify-between">
                             <span>Winning Bid</span>
-                            <span className="font-semibold">{formatCurrency(currentBid)}</span>
+                            <span className="font-semibold">{formatCurrency(currentBid, { currency, exchangeRates })}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                             <span>Buyer Premium (5%)</span>
-                            <span>{formatCurrency(buyerPremium)}</span>
+                            <span>{formatCurrency(buyerPremium, { currency, exchangeRates })}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                             <span>Doc Fee</span>
-                            <span>{formatCurrency(DOCUMENTATION_FEE)}</span>
+                            <span>{formatCurrency(DOCUMENTATION_FEE, { currency, exchangeRates })}</span>
                         </div>
                         <div className="border-t border-dashed my-2" />
                         <div className="flex justify-between text-muted-foreground">
                             <span className="flex items-center gap-1"><Plane className="h-3 w-3" /> Shipping (Est.)</span>
-                            <span>{formatCurrency(SHIPPING_EST)}</span>
+                            <span>{formatCurrency(SHIPPING_EST, { currency, exchangeRates })}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                             <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Customs & Clearing</span>
-                            <span>{formatCurrency(CLEARING_EST)}</span>
+                            <span>{formatCurrency(CLEARING_EST, { currency, exchangeRates })}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
                             <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Registration</span>
-                            <span>{formatCurrency(REGISTRATION_EST)}</span>
+                            <span>{formatCurrency(REGISTRATION_EST, { currency, exchangeRates })}</span>
                         </div>
                     </div>
                 </div>
@@ -88,11 +92,11 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
                 <div className="pt-2 border-t border-border">
                     <div className="flex justify-between items-end mb-1">
                         <span className="font-bold text-deep-navy">Total Landed Cost</span>
-                        <span className="font-black text-xl text-deep-navy">{formatCurrency(totalLandedCost)}</span>
+                        <span className="font-black text-xl text-deep-navy">{formatCurrency(totalLandedCost, { currency, exchangeRates })}</span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                         <span className="text-muted-foreground">
-                            Est. Market Value: {formatCurrency(estimatedMarketValue)}
+                            Est. Market Value: {formatCurrency(estimatedMarketValue, { currency, exchangeRates })}
                         </span>
                         <span
                             className={
@@ -100,8 +104,8 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
                             }
                         >
                             {isBelowMarket
-                                ? `Save ${formatCurrency(priceDelta)}`
-                                : `Est. above market by ${formatCurrency(Math.abs(priceDelta))}`}
+                                ? `Save ${formatCurrency(priceDelta, { currency, exchangeRates })}`
+                                : `Est. above market by ${formatCurrency(Math.abs(priceDelta), { currency, exchangeRates })}`}
                         </span>
                     </div>
                 </div>

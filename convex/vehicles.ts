@@ -162,6 +162,7 @@ export const listVehicles = query({
   args: {
     make: v.optional(v.string()),
     model: v.optional(v.string()),
+    fuelType: v.optional(v.string()),
     yearMin: v.optional(v.number()),
     yearMax: v.optional(v.number()),
     priceMin: v.optional(v.number()),
@@ -192,6 +193,7 @@ export const listVehicles = query({
     const {
       make,
       model,
+      fuelType,
       yearMin,
       yearMax,
       priceMin,
@@ -214,6 +216,7 @@ export const listVehicles = query({
       const conditions = [];
       if (make) conditions.push(q.eq(q.field("make"), make));
       if (model) conditions.push(q.eq(q.field("model"), model));
+      if (fuelType) conditions.push(q.eq(q.field("fuelType"), fuelType));
       if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
       if (yearMax) conditions.push(q.lte(q.field("year"), yearMax));
       if (batteryHealthMin) conditions.push(q.gte(q.field("batteryHealthPercent"), batteryHealthMin));

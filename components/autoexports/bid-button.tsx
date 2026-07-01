@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
+import { useCurrencyStore } from "@/store/currency";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { useToast } from "@/hooks/use-toast";
 
 interface BidButtonProps {
@@ -59,6 +61,8 @@ export function BidButton({
   const [maxBid, setMaxBid] = useState<string>("");
   const { toast } = useToast();
   const { isAuthenticated, token } = useAuth();
+  const currency = useCurrencyStore((s) => s.currency);
+  const exchangeRates = useExchangeRates();
 
   const placeBidMutation = useMutation(api.bids.placeBid);
   const setMaxBidMutation = useMutation(api.bids.setMaxBid);
@@ -121,7 +125,7 @@ export function BidButton({
 
       toast({
         title: "Bid Placed Successfully!",
-        description: `You've placed a bid of ${formatCurrency(quickBidAmount)}`,
+        description: `You've placed a bid of ${formatCurrency(quickBidAmount, { currency, exchangeRates })}${currency !== "NGN" ? ` (~${formatCurrency(quickBidAmount, { currency: "NGN" })})` : ""}`,
       });
 
       setOpen(false);
@@ -183,7 +187,7 @@ export function BidButton({
 
       toast({
         title: "Bid Placed Successfully!",
-        description: `You've placed a bid of ${formatCurrency(bidAmount)}`,
+        description: `You've placed a bid of ${formatCurrency(bidAmount, { currency, exchangeRates })}${currency !== "NGN" ? ` (~${formatCurrency(bidAmount, { currency: "NGN" })})` : ""}`,
       });
 
       setOpen(false);
@@ -246,7 +250,7 @@ export function BidButton({
 
       toast({
         title: "Max Bid Set Successfully!",
-        description: `We'll automatically bid on your behalf up to ${formatCurrency(maxBidAmount)}`,
+        description: `We'll automatically bid on your behalf up to ${formatCurrency(maxBidAmount, { currency, exchangeRates })}${currency !== "NGN" ? ` (~${formatCurrency(maxBidAmount, { currency: "NGN" })})` : ""}`,
       });
 
       setOpen(false);
@@ -305,7 +309,7 @@ export function BidButton({
         <DialogHeader>
           <DialogTitle>Place Your Bid</DialogTitle>
           <DialogDescription>
-            Current bid: <span className="font-semibold font-mono">{formatCurrency(currentBid)}</span>
+            Current bid: <span className="font-semibold font-mono">{formatCurrency(currentBid, { currency, exchangeRates })}</span>
             {isUserHighBidder && (
               <span className="ml-2 text-volt-green">(You're the high bidder!)</span>
             )}
@@ -324,11 +328,11 @@ export function BidButton({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Quick Bid Amount</span>
                 <span className="text-2xl font-bold font-mono text-electric-blue">
-                  {formatCurrency(quickBidAmount)}
+                  {formatCurrency(quickBidAmount, { currency, exchangeRates })}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Minimum increment: {formatCurrency(bidIncrement)}
+                Minimum increment: {formatCurrency(bidIncrement, { currency, exchangeRates })}
               </p>
             </div>
 
@@ -337,7 +341,7 @@ export function BidButton({
               <Input
                 id="custom-bid"
                 type="number"
-                placeholder={`Min: ${formatCurrency(quickBidAmount)}`}
+                placeholder={`Min: ${formatCurrency(quickBidAmount, { currency, exchangeRates })}`}
                 value={customBid}
                 onChange={(e) => setCustomBid(e.target.value)}
                 className="font-mono h-12 text-lg"
@@ -357,7 +361,7 @@ export function BidButton({
                   Available Wallet Balance
                 </div>
                 <span className={`font-mono font-bold ${hasEnoughDeposit ? "text-volt-green" : "text-red-500"}`}>
-                  {formatCurrency(availableBalance / 100)}
+                  {formatCurrency(availableBalance / 100, { currency, exchangeRates })}
                 </span>
               </div>
 
@@ -365,14 +369,14 @@ export function BidButton({
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Required 10% Deposit</span>
-                <span className="font-bold">{formatCurrency(requiredDepositKobo / 100)}</span>
+                <span className="font-bold">{formatCurrency(requiredDepositKobo / 100, { currency, exchangeRates })}</span>
               </div>
 
               {!hasEnoughDeposit && (
                 <div className="flex items-start gap-2 pt-1">
                   <ShieldCheck className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-xs text-red-600 dark:text-red-400 font-medium leading-tight">
-                    Insufficient funds. Your bidding power is {formatCurrency(biddingPower / 100)}. Please fund your wallet.
+                    Insufficient funds. Your bidding power is {formatCurrency(biddingPower / 100, { currency, exchangeRates })}. Please fund your wallet.
                   </p>
                 </div>
               )}
@@ -386,7 +390,7 @@ export function BidButton({
                     disabled={loading || !hasEnoughDeposit}
                     className="flex-1 h-12 rounded-xl text-lg font-bold"
                   >
-                    {loading ? "Placing Bid..." : `Bid ${formatCurrency(parseFloat(customBid) || 0)}`}
+                    {loading ? "Placing Bid..." : `Bid ${formatCurrency(parseFloat(customBid) || 0, { currency, exchangeRates })}`}
                   </Button>
                 ) : (
                   <Button
@@ -394,7 +398,7 @@ export function BidButton({
                     disabled={loading || !hasEnoughDeposit}
                     className="flex-1 h-12 rounded-xl text-lg font-bold"
                   >
-                    {loading ? "Placing Bid..." : `Quick Bid ${formatCurrency(quickBidAmount)}`}
+                    {loading ? "Placing Bid..." : `Quick Bid ${formatCurrency(quickBidAmount, { currency, exchangeRates })}`}
                   </Button>
                 )}
               </div>
@@ -409,7 +413,7 @@ export function BidButton({
                     className="w-full h-12 rounded-xl border-volt-green/50 text-volt-green hover:bg-volt-green hover:text-slate-950 transition-all font-bold gap-2"
                   >
                     <ShoppingCart className="h-5 w-5" />
-                    Buy Now for {formatCurrency(buyNowPrice)}
+                    Buy Now for {formatCurrency(buyNowPrice, { currency, exchangeRates })}
                   </Button>
                   <p className="text-[10px] text-center text-muted-foreground mt-2 uppercase tracking-widest font-bold">
                     {lotId ? "Skip the auction & win instantly" : "Purchase instantly"}
@@ -436,7 +440,7 @@ export function BidButton({
               <div className="rounded-lg border p-3 bg-volt-green/10 border-volt-green/30">
                 <p className="text-sm">
                   Current max bid:{" "}
-                  <span className="font-semibold font-mono">{formatCurrency(userMaxBid)}</span>
+                  <span className="font-semibold font-mono">{formatCurrency(userMaxBid, { currency, exchangeRates })}</span>
                 </p>
               </div>
             )}
@@ -448,7 +452,7 @@ export function BidButton({
               <Input
                 id="max-bid"
                 type="number"
-                placeholder={`Min: ${formatCurrency(quickBidAmount)}`}
+                placeholder={`Min: ${formatCurrency(quickBidAmount, { currency, exchangeRates })}`}
                 value={maxBid}
                 onChange={(e) => setMaxBid(e.target.value)}
                 className="font-mono"

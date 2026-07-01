@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
 import { cn } from "@/lib/utils";
 import * as m from "@/src/paraglide/messages.js";
 
@@ -93,6 +94,7 @@ export function Header() {
           </form>
 
           <LanguageSwitcher />
+          <CurrencySelector />
           <ThemeToggle />
 
           {isAuthenticated ? (

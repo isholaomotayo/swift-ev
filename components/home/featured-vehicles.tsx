@@ -9,6 +9,13 @@ export interface Vehicle {
   make: string;
   model: string;
   year: number;
+  fuelType?: string;
+  odometer?: number;
+  condition?: string;
+  currentLocation?: {
+    city: string;
+    country: string;
+  };
   batteryCapacity?: number;
   estimatedRange?: number;
   batteryHealthPercent?: number;
