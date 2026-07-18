@@ -22,37 +22,62 @@ export type PlatformBankDetails = {
   currency: string;
 };
 
-export const DEFAULT_PLATFORM_BANK: PlatformBankDetails = {
-  bankName: "Platform Escrow Bank",
-  accountName: "autoexports.live Escrow",
-  accountNumber: "0000000000",
-  currency: "NGN",
-};
+const PLACEHOLDER_ACCOUNT_NUMBERS = new Set(["0000000000", "0", ""]);
+
+export function isValidPlatformBankDetails(
+  bank: Partial<PlatformBankDetails> | null | undefined
+): bank is PlatformBankDetails {
+  if (!bank) return false;
+  const bankName = bank.bankName?.trim() ?? "";
+  const accountName = bank.accountName?.trim() ?? "";
+  const accountNumber = (bank.accountNumber?.trim() ?? "").replace(/\s+/g, "");
+  if (bankName.length < 2 || accountName.length < 2) return false;
+  if (!/^\d{10}$/.test(accountNumber)) return false;
+  if (PLACEHOLDER_ACCOUNT_NUMBERS.has(accountNumber)) return false;
+  return true;
+}
+
+export function normalizePlatformBankDetails(
+  bank: Partial<PlatformBankDetails>
+): PlatformBankDetails | null {
+  const normalized: PlatformBankDetails = {
+    bankName: bank.bankName?.trim() ?? "",
+    accountName: bank.accountName?.trim() ?? "",
+    accountNumber: (bank.accountNumber?.trim() ?? "").replace(/\s+/g, ""),
+    bankCode: bank.bankCode?.trim() || undefined,
+    currency: bank.currency?.trim() || "NGN",
+  };
+  return isValidPlatformBankDetails(normalized) ? normalized : null;
+}
 
 export async function getPlatformBankDetails(
   ctx: { db: GenericDatabaseReader<DataModel> }
-): Promise<PlatformBankDetails> {
+): Promise<PlatformBankDetails | null> {
   const setting = await ctx.db
     .query("systemSettings")
     .withIndex("by_key", (q) => q.eq("key", "platform.escrowBank"))
     .first();
 
-  if (!setting) {
-    return DEFAULT_PLATFORM_BANK;
-  }
+  if (!setting) return null;
 
   try {
     const parsed = JSON.parse(setting.value) as Partial<PlatformBankDetails>;
-    return {
-      bankName: parsed.bankName ?? DEFAULT_PLATFORM_BANK.bankName,
-      accountName: parsed.accountName ?? DEFAULT_PLATFORM_BANK.accountName,
-      accountNumber: parsed.accountNumber ?? DEFAULT_PLATFORM_BANK.accountNumber,
-      bankCode: parsed.bankCode,
-      currency: parsed.currency ?? "NGN",
-    };
+    return normalizePlatformBankDetails(parsed);
   } catch {
-    return DEFAULT_PLATFORM_BANK;
+    return null;
   }
+}
+
+export async function requirePlatformBankDetails(
+  ctx: { db: GenericDatabaseReader<DataModel> }
+): Promise<PlatformBankDetails> {
+  const bank = await getPlatformBankDetails(ctx);
+  if (!bank) {
+    throw new Error(
+      "Platform escrow bank account is not configured. Please contact support."
+    );
+  }
+  return bank;
 }
 
 function vehicleStatusOf(status: string): VehicleStatus {
@@ -87,12 +112,14 @@ export async function syncVehicleFromOrderStatus(
 
 /**
  * Apply a successful payment amount (Naira) to an order and sync vehicle status.
+ * Credits at most the remaining balanceDue to prevent over-credit from concurrent payments.
  */
 export async function applySuccessfulPaymentToOrder(
   ctx: MutationCtx,
   orderId: Id<"orders">,
   amountNaira: number,
-  now = Date.now()
+  now = Date.now(),
+  exceptPaymentId?: Id<"payments">
 ): Promise<Doc<"orders">> {
   const order = await ctx.db.get(orderId);
   if (!order) {
@@ -103,9 +130,18 @@ export async function applySuccessfulPaymentToOrder(
     throw new Error("Cannot apply payment to a cancelled or refunded order");
   }
 
-  const paidAmount = order.paidAmount + amountNaira;
+  if (order.status === "payment_complete" || order.balanceDue <= 0) {
+    throw new Error("Order is already fully paid");
+  }
+
+  if (!Number.isFinite(amountNaira) || amountNaira <= 0) {
+    throw new Error("Payment amount must be positive");
+  }
+
+  const creditNaira = Math.min(amountNaira, order.balanceDue);
+  const paidAmount = Math.min(order.totalAmount, order.paidAmount + creditNaira);
   const balanceDue = Math.max(0, order.totalAmount - paidAmount);
-  let status: OrderStatus =
+  const status: OrderStatus =
     balanceDue <= 0
       ? "payment_complete"
       : paidAmount > 0
@@ -124,6 +160,25 @@ export async function applySuccessfulPaymentToOrder(
   }
 
   await ctx.db.patch(orderId, patch);
+
+  // Close out competing pending payment attempts once the order is settled.
+  if (status === "payment_complete") {
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_order", (q) => q.eq("orderId", orderId))
+      .collect();
+    for (const payment of payments) {
+      if (exceptPaymentId && payment._id === exceptPaymentId) continue;
+      if (payment.status === "pending" || payment.status === "processing") {
+        await ctx.db.patch(payment._id, {
+          status: "rejected",
+          rejectionReason: "Order already paid via another method",
+          completedAt: now,
+        });
+      }
+    }
+  }
+
   const updated = (await ctx.db.get(orderId))!;
   await syncVehicleFromOrderStatus(ctx, updated, status);
   return updated;

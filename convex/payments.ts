@@ -6,6 +6,7 @@ import {
   applySuccessfulPaymentToOrder,
   createInAppNotification,
   getPlatformBankDetails,
+  requirePlatformBankDetails,
   insertPayment,
   nextPaymentReferenceForOrder,
   buyingPowerFromWalletBalance,
@@ -50,6 +51,7 @@ export const getOrderPaymentState = query({
       order,
       payments: payments.sort((a, b) => b.createdAt - a.createdAt),
       bank,
+      bankConfigured: !!bank,
       walletAvailableKobo: isBuyer || isAdmin ? walletAvailable : 0,
       pendingBankTransfer: pendingBank ?? null,
       canPay:
@@ -83,6 +85,8 @@ export const initiateBankTransferPayment = mutation({
       throw new Error("Order cannot accept payments");
     }
 
+    const bank = await requirePlatformBankDetails(ctx);
+
     const existingPending = (
       await ctx.db
         .query("payments")
@@ -91,7 +95,6 @@ export const initiateBankTransferPayment = mutation({
     ).find((p) => p.provider === "bank_transfer" && p.status === "pending");
 
     if (existingPending) {
-      const bank = await getPlatformBankDetails(ctx);
       return {
         paymentId: existingPending._id,
         reference: existingPending.providerReference,
@@ -123,7 +126,6 @@ export const initiateBankTransferPayment = mutation({
       receiptStorageId: args.receiptStorageId,
     });
 
-    const bank = await getPlatformBankDetails(ctx);
     return {
       paymentId,
       reference,
@@ -338,18 +340,47 @@ async function processOrderCardPayment(
     throw new Error("Payment not successful");
   }
 
+  if (verification.currency !== "NGN") {
+    await ctx.db.patch(payment._id, {
+      status: "failed",
+      failureReason: "Invalid payment currency",
+      completedAt: Date.now(),
+    });
+    throw new Error("Invalid payment currency");
+  }
+
   const paidAmount = verification.charged_amount ?? verification.amount;
   if (paidAmount + 0.01 < payment.amount) {
     throw new Error("Payment amount is insufficient");
   }
 
   const now = Date.now();
+  let updated;
+  try {
+    updated = await applySuccessfulPaymentToOrder(
+      ctx,
+      payment.orderId,
+      payment.amount,
+      now,
+      payment._id
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Payment could not be applied";
+    await ctx.db.patch(payment._id, {
+      status: "rejected",
+      rejectionReason: message,
+      failureReason: message,
+      completedAt: now,
+    });
+    throw error;
+  }
+
   await ctx.db.patch(payment._id, {
     status: "successful",
     completedAt: now,
+    rejectionReason: undefined,
+    failureReason: undefined,
   });
-
-  const updated = await applySuccessfulPaymentToOrder(ctx, payment.orderId, payment.amount, now);
 
   await createInAppNotification(ctx, {
     userId: payment.userId,
@@ -447,24 +478,44 @@ export const verifyPayment = mutation({
 
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) throw new Error("Payment not found");
+    if (payment.provider !== "bank_transfer") {
+      throw new Error("Only bank transfer payments can be manually verified");
+    }
     if (payment.status !== "pending" && payment.status !== "processing") {
       throw new Error(`Payment cannot be verified from status: ${payment.status}`);
     }
 
     const now = Date.now();
+    let updated;
+    try {
+      updated = await applySuccessfulPaymentToOrder(
+        ctx,
+        payment.orderId,
+        payment.amount,
+        now,
+        args.paymentId
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Payment could not be applied";
+      await ctx.db.patch(args.paymentId, {
+        status: "rejected",
+        rejectionReason: message,
+        failureReason: message,
+        verifiedBy: admin._id,
+        verifiedAt: now,
+        completedAt: now,
+      });
+      throw error;
+    }
+
     await ctx.db.patch(args.paymentId, {
       status: "successful",
       verifiedBy: admin._id,
       verifiedAt: now,
       completedAt: now,
+      rejectionReason: undefined,
+      failureReason: undefined,
     });
-
-    const updated = await applySuccessfulPaymentToOrder(
-      ctx,
-      payment.orderId,
-      payment.amount,
-      now
-    );
 
     await createInAppNotification(ctx, {
       userId: payment.userId,
@@ -502,6 +553,9 @@ export const rejectPayment = mutation({
 
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) throw new Error("Payment not found");
+    if (payment.provider !== "bank_transfer") {
+      throw new Error("Only bank transfer payments can be manually rejected");
+    }
     if (payment.status !== "pending" && payment.status !== "processing") {
       throw new Error(`Payment cannot be rejected from status: ${payment.status}`);
     }
@@ -558,19 +612,25 @@ export const processOverdueOrders = internalMutation({
       (o) => o.paymentDeadline < now && o.balanceDue > 0
     );
 
+    let forfeited = 0;
+    let escalated = 0;
+
     for (const order of overdue) {
       const payments = await ctx.db
         .query("payments")
         .withIndex("by_order", (q) => q.eq("orderId", order._id))
         .collect();
 
-      // Safety: if buyer already made a verified non-deposit payment, skip auto-forfeit
+      // Safety: verified non-deposit payments or pending bank transfers need admin review.
       const hasNonDepositPayment = payments.some(
-        (p) =>
-          p.status === "successful" &&
-          p.provider !== "deposit"
+        (p) => p.status === "successful" && p.provider !== "deposit"
       );
-      if (hasNonDepositPayment) {
+      const hasPendingBankTransfer = payments.some(
+        (p) => p.provider === "bank_transfer" && p.status === "pending"
+      );
+      if (hasNonDepositPayment || hasPendingBankTransfer) {
+        // Leave for admin review (pending bank queue / partial settlement).
+        escalated += 1;
         continue;
       }
 
@@ -587,6 +647,7 @@ export const processOverdueOrders = internalMutation({
         reason: "Order forfeited due to payment deadline",
         now,
       });
+      forfeited += 1;
 
       await createInAppNotification(ctx, {
         userId: order.userId,
@@ -611,6 +672,6 @@ export const processOverdueOrders = internalMutation({
       }
     }
 
-    return { processed: overdue.length };
+    return { processed: forfeited, escalated, overdue: overdue.length };
   },
 });

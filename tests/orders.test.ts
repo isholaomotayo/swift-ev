@@ -286,7 +286,7 @@ describe("Orders", () => {
         const result = await client.mutation(api.orders.updateOrderStatus, {
           token: adminToken,
           orderId: testOrderId,
-          status: "payment_complete",
+          status: "processing",
           notes: "Test status update",
         });
 
@@ -301,7 +301,7 @@ describe("Orders", () => {
           client.mutation(api.orders.updateOrderStatus, {
             token: buyerToken,
             orderId: testOrderId,
-            status: "payment_complete",
+            status: "processing",
           })
         ).rejects.toThrow();
       }
@@ -313,9 +313,26 @@ describe("Orders", () => {
         client.mutation(api.orders.updateOrderStatus, {
           token: adminToken,
           orderId: fakeOrderId,
-          status: "payment_complete",
+          status: "processing",
         })
       ).rejects.toThrow("not found");
+    });
+
+    test("cannot mark payment_complete while balance remains", async () => {
+      if (!testOrderId) return;
+      const details = await client.query(api.orders.getOrderDetails, {
+        token: adminToken,
+        orderId: testOrderId,
+      });
+      if (!details?.order || details.order.balanceDue <= 0) return;
+
+      await expect(
+        client.mutation(api.orders.updateOrderStatus, {
+          token: adminToken,
+          orderId: testOrderId,
+          status: "payment_complete",
+        })
+      ).rejects.toThrow(/balanceDue/i);
     });
   });
 

@@ -51,6 +51,20 @@ export const placeBid = mutation({
       throw new Error("This auction is not currently open for bidding");
     }
 
+    const auction = await ctx.db.get(lot.auctionId);
+    if (!auction) {
+      throw new Error("Auction not found");
+    }
+    if (auction.status === "paused") {
+      throw new Error("Bidding is paused while the auction is paused");
+    }
+    if (lot.status === "active" && auction.status !== "live") {
+      throw new Error("This auction is not currently live for bidding");
+    }
+    if (lot.status === "pending" && auction.status !== "scheduled" && auction.status !== "live") {
+      throw new Error("This auction is not open for pre-bidding");
+    }
+
     // Get vehicle to check restrictions
     const vehicle = await ctx.db.get(lot.vehicleId);
     if (!vehicle) {
@@ -223,6 +237,18 @@ export const placeBid = mutation({
             completedAt: Date.now(),
           });
         }
+
+        // Send outbid email notification
+        await ctx.scheduler.runAfter(0, internal.emails.sendOutbidEmail, {
+          userId: bid.userId,
+          email: outbidUser.email,
+          firstName: outbidUser.firstName,
+          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          yourBid: bid.bidAmount,
+          newBid: args.amount,
+          lotId: args.lotId,
+          auctionId: lot.auctionId,
+        });
       }
     }
 
@@ -292,6 +318,17 @@ export const setMaxBid = mutation({
     // Validate lot is active
     if (lot.status !== "active") {
       throw new Error("This auction is not currently active");
+    }
+
+    const auction = await ctx.db.get(lot.auctionId);
+    if (!auction) {
+      throw new Error("Auction not found");
+    }
+    if (auction.status === "paused") {
+      throw new Error("Bidding is paused while the auction is paused");
+    }
+    if (auction.status !== "live") {
+      throw new Error("This auction is not currently live for bidding");
     }
 
     // Validate max bid amount

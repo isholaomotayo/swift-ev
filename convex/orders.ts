@@ -224,19 +224,19 @@ export const getOrderDetails = query({
     // Get payment records
     const payments = await ctx.db
       .query("payments")
-      .filter((q) => q.eq(q.field("orderId"), args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", targetOrderId))
       .collect();
 
     // Get shipping records
     const shipments = await ctx.db
       .query("shipments")
-      .filter((q) => q.eq(q.field("orderId"), args.orderId))
+      .filter((q) => q.eq(q.field("orderId"), targetOrderId))
       .collect();
 
     // Get additional services
     const additionalServices = await ctx.db
       .query("additionalServices")
-      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", targetOrderId))
       .collect();
 
     return {
@@ -430,7 +430,7 @@ export const updateOrderStatus = mutation({
         userId: user._id,
         action: "update_order_status",
         entityType: "order",
-        entityId: args.orderId,
+        entityId: targetOrderId,
         changes: {
           oldStatus,
           newStatus: "cancelled",
@@ -443,10 +443,16 @@ export const updateOrderStatus = mutation({
       return { success: true };
     }
 
+    if (args.status === "payment_complete" && order.balanceDue > 0) {
+      throw new Error(
+        "Cannot mark payment complete while balanceDue > 0. Verify payments instead."
+      );
+    }
+
     const nextVehicleStatus = await syncVehicleStatusFromOrder(ctx, order, args.status);
 
     // Update order
-    await ctx.db.patch(args.orderId, {
+    await ctx.db.patch(targetOrderId, {
       status: args.status,
       updatedAt: Date.now(),
       paidAt: args.status === "payment_complete" ? Date.now() : order.paidAt,
@@ -458,7 +464,7 @@ export const updateOrderStatus = mutation({
       userId: user._id,
       action: "update_order_status",
       entityType: "order",
-      entityId: args.orderId,
+      entityId: targetOrderId,
       changes: {
         oldStatus,
         newStatus: args.status,
@@ -607,7 +613,7 @@ export const addShippingTracking = mutation({
 
     // Create shipment record
     await ctx.db.insert("shipments", {
-      orderId: args.orderId,
+      orderId: targetOrderId,
       vehicleId: order.vehicleId,
       shippingLine: args.carrier,
       trackingNumber: args.trackingNumber,
@@ -626,7 +632,7 @@ export const addShippingTracking = mutation({
     await syncVehicleStatusFromOrder(ctx, order, "shipped");
 
     // Update order status once tracking is assigned.
-    await ctx.db.patch(args.orderId, {
+    await ctx.db.patch(targetOrderId, {
       status: "shipped",
       updatedAt: Date.now(),
     });
@@ -636,7 +642,7 @@ export const addShippingTracking = mutation({
       userId: user._id,
       action: "add_shipping_tracking",
       entityType: "order",
-      entityId: args.orderId,
+      entityId: targetOrderId,
       metadata: { carrier: args.carrier, trackingNumber: args.trackingNumber },
     });
 

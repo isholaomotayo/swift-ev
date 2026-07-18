@@ -163,6 +163,30 @@ export function SettingsClient({
   const handleSavePlatformSettings = async () => {
     if (!token) return;
 
+    const bankName = platformSettings.escrowBankName.trim();
+    const accountName = platformSettings.escrowAccountName.trim();
+    const accountNumber = platformSettings.escrowAccountNumber.trim().replace(/\s+/g, "");
+    const hasAnyEscrow =
+      !!bankName || !!accountName || !!accountNumber || !!platformSettings.escrowBankCode.trim();
+    if (hasAnyEscrow) {
+      if (bankName.length < 2 || accountName.length < 2) {
+        toast({
+          title: "Invalid escrow account",
+          description: "Bank name and account name are required",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!/^\d{10}$/.test(accountNumber) || accountNumber === "0000000000") {
+        toast({
+          title: "Invalid account number",
+          description: "Enter a valid 10-digit Nigerian account number",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       await bulkUpdateSettings({
@@ -188,17 +212,21 @@ export function SettingsClient({
             value: platformSettings.supportEmail,
             description: "Support email",
           },
-          {
-            key: "platform.escrowBank",
-            value: JSON.stringify({
-              bankName: platformSettings.escrowBankName,
-              accountName: platformSettings.escrowAccountName,
-              accountNumber: platformSettings.escrowAccountNumber,
-              bankCode: platformSettings.escrowBankCode || undefined,
-              currency: "NGN",
-            }),
-            description: "Platform escrow bank account for buyer transfers",
-          },
+          ...(hasAnyEscrow
+            ? [
+                {
+                  key: "platform.escrowBank",
+                  value: JSON.stringify({
+                    bankName,
+                    accountName,
+                    accountNumber,
+                    bankCode: platformSettings.escrowBankCode.trim() || undefined,
+                    currency: "NGN",
+                  }),
+                  description: "Platform escrow bank account for buyer transfers",
+                },
+              ]
+            : []),
         ],
       });
 

@@ -1,6 +1,26 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireAdmin, isSuperadmin, createAuditLog } from "./lib/auth";
+import { normalizePlatformBankDetails } from "./lib/payments";
+
+function assertValidSettingValue(key: string, value: string) {
+  if (key !== "platform.escrowBank") return;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("Escrow bank settings must be valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Escrow bank settings are invalid");
+  }
+  const bank = normalizePlatformBankDetails(parsed as Record<string, string>);
+  if (!bank) {
+    throw new Error(
+      "Escrow bank requires bank name, account name, and a valid 10-digit account number"
+    );
+  }
+}
 
 /**
  * Get all system settings
@@ -120,6 +140,8 @@ export const updateSetting = mutation({
       throw new Error("Only superadmin can update system settings");
     }
 
+    assertValidSettingValue(args.key, args.value);
+
     // Check if setting exists
     const existing = await ctx.db
       .query("systemSettings")
@@ -183,6 +205,8 @@ export const bulkUpdateSettings = mutation({
 
     // Update each setting
     for (const setting of args.settings) {
+      assertValidSettingValue(setting.key, setting.value);
+
       const existing = await ctx.db
         .query("systemSettings")
         .withIndex("by_key", (q) => q.eq("key", setting.key))
@@ -245,16 +269,8 @@ export const initializeDefaultSettings = mutation({
       { key: "platform.documentationFee", value: "500", description: "Documentation fee" },
       { key: "platform.companyName", value: "autoexports.live", description: "Company name" },
       { key: "platform.supportEmail", value: "support@autoexports.live", description: "Support email" },
-      {
-        key: "platform.escrowBank",
-        value: JSON.stringify({
-          bankName: "Platform Escrow Bank",
-          accountName: "autoexports.live Escrow",
-          accountNumber: "0000000000",
-          currency: "NGN",
-        }),
-        description: "Platform escrow bank account for buyer transfers",
-      },
+      // platform.escrowBank is intentionally not seeded with placeholder account
+      // numbers — admins must configure a real escrow account before bank transfers.
 
       // Membership settings
       { key: "membership.basic.price", value: "0", description: "Basic membership price" },

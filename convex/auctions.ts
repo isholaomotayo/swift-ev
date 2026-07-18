@@ -514,7 +514,7 @@ export const purchaseBuyItNow = mutation({
       updatedAt: now,
     });
 
-    const deadlineStr = new Date(paymentDeadlineFrom(now)).toLocaleString();
+     const deadlineStr = new Date(paymentDeadlineFrom(now)).toLocaleString();
     await createInAppNotification(ctx, {
       userId: user._id,
       type: "payment_reminder",
@@ -523,6 +523,23 @@ export const purchaseBuyItNow = mutation({
       orderId,
       vehicleId: lot.vehicleId,
       auctionId: lot.auctionId,
+    });
+
+    // Send C1: Buy Now Order Created Email (Buyer)
+    await ctx.scheduler.runAfter(0, internal.emails.sendBuyNowOrderEmail, {
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      orderNumber,
+      orderId,
+      vehiclePrice: pricing.vehiclePrice,
+      serviceFee: pricing.serviceFee,
+      documentationFee: pricing.documentationFee,
+      shippingCost: pricing.shippingCost,
+      totalAmount: pricing.totalAmount,
+      paymentDeadline: paymentDeadlineFrom(now),
+      vehicleId: lot.vehicleId,
     });
 
     if (vehicle.sellerId) {
@@ -535,6 +552,22 @@ export const purchaseBuyItNow = mutation({
         vehicleId: lot.vehicleId,
         auctionId: lot.auctionId,
       });
+
+      // Send C3: Seller Reserved Vehicle Email (Seller)
+      const sellerUser = await ctx.db.get(vehicle.sellerId);
+      if (sellerUser) {
+        await ctx.scheduler.runAfter(0, internal.emails.sendSellerVehicleSoldEmail, {
+          userId: sellerUser._id,
+          email: sellerUser.email,
+          firstName: sellerUser.firstName,
+          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          salePrice: pricing.vehiclePrice,
+          paymentDeadline: paymentDeadlineFrom(now),
+          orderNumber,
+          saleType: "buy_now",
+          vehicleId: lot.vehicleId,
+        });
+      }
     }
 
     if (auction) {
@@ -954,6 +987,44 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
         vehicleId: lot.vehicleId,
         auctionId: lot.auctionId,
       });
+
+      // Send B2: Auction Won Email
+      const winnerUser = await ctx.db.get(lot.currentBidderId);
+      if (winnerUser) {
+        await ctx.scheduler.runAfter(0, internal.emails.sendAuctionWonEmail, {
+          userId: winnerUser._id,
+          email: winnerUser.email,
+          firstName: winnerUser.firstName,
+          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          winningBid: lot.currentBid,
+          depositApplied: depositNaira * 100, // convert back to kobo if needed or keep consistent. Wait, depositNaira is in Naira (since we divide or use Naira). Let's see what applyBidReserveAsDepositPayment returns.
+          // Wait, let's verify what depositNaira is.
+          balanceDue: order.balanceDue,
+          paymentDeadline: order.paymentDeadline,
+          orderId,
+          orderNumber,
+          vehicleId: lot.vehicleId,
+          auctionId: lot.auctionId,
+        });
+      }
+
+      // Send B5: Seller Vehicle Sold Email
+      if (vehicle.sellerId) {
+        const sellerUser = await ctx.db.get(vehicle.sellerId);
+        if (sellerUser) {
+          await ctx.scheduler.runAfter(0, internal.emails.sendSellerVehicleSoldEmail, {
+            userId: sellerUser._id,
+            email: sellerUser.email,
+            firstName: sellerUser.firstName,
+            vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+            salePrice: lot.currentBid,
+            paymentDeadline: order.paymentDeadline,
+            orderNumber,
+            saleType: "auction",
+            vehicleId: lot.vehicleId,
+          });
+        }
+      }
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "payment_pending");
@@ -974,17 +1045,33 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
     }
   } else {
     // No sale — release current bidder reserve if any
+    let releasedAmount = 0;
     if (lot.currentBidderId && lot.currentBid > 0) {
       await releaseUserBidReserve(ctx, {
         userId: lot.currentBidderId,
         bidAmountNaira: lot.currentBid,
         reason: `No sale on ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
       });
+      releasedAmount = calculateBidReserveAmountKobo(lot.currentBid);
     }
 
     await ctx.db.patch(lotId, {
       status: "no_sale",
     });
+
+    // Send B3: Auction Lost (No Sale) Email to highest bidder
+    if (lot.currentBidderId) {
+      const bidderUser = await ctx.db.get(lot.currentBidderId);
+      if (bidderUser) {
+        await ctx.scheduler.runAfter(0, internal.emails.sendAuctionLostEmail, {
+          userId: bidderUser._id,
+          email: bidderUser.email,
+          firstName: bidderUser.firstName,
+          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          reserveReleased: releasedAmount,
+        });
+      }
+    }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");
 

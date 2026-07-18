@@ -107,18 +107,25 @@ export function LiveAuctionClient({
   const bidCount = currentLot?.bidCount || 0;
 
   const isAuctionLive = auction.status === "live";
+  const isAuctionPaused = auction.status === "paused";
   const isLotActive = currentLot?.status === "active";
+  const canAcceptBids = isAuctionLive && isLotActive;
 
-  // Prepare images for carousel
-  const carouselImages = (currentVehicle?.images || []).map((url: string, index: number) => {
-    // Determine type based on index or url pattern
-    let type = "exterior";
-    if (url.includes("interior")) type = "interior";
-    else if (url.includes("engine")) type = "engine";
-    else if (url.includes("boot") || url.includes("trunk")) type = "boot";
-    else if (index === 0) type = "hero";
-    return { url, type };
-  });
+  // Prepare images for carousel (API returns { url, alt, type } objects)
+  const carouselImages = (currentVehicle?.images || []).map(
+    (image: string | { url?: string; type?: string }, index: number) => {
+      const url = typeof image === "string" ? image : image?.url || "";
+      let type =
+        typeof image === "object" && image?.type ? image.type : "exterior";
+      if (typeof image === "string" || !image?.type) {
+        if (url.includes("interior")) type = "interior";
+        else if (url.includes("engine")) type = "engine";
+        else if (url.includes("boot") || url.includes("trunk")) type = "boot";
+        else if (index === 0) type = "hero";
+      }
+      return { url, type };
+    }
+  );
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
@@ -298,11 +305,11 @@ export function LiveAuctionClient({
                         <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", isLotActive ? "bg-volt-green" : "bg-warning-amber")}></span>
                         <span className={cn("relative inline-flex rounded-full h-3 w-3", isLotActive ? "bg-volt-green" : "bg-warning-amber")}></span>
                       </span>
-                      <span className={cn("font-bold text-sm uppercase tracking-wider", isLotActive ? "text-volt-green" : "text-warning-amber")}>
-                        {isLotActive ? "Accepting Bids" : "Lot Closed"}
+                      <span className={cn("font-bold text-sm uppercase tracking-wider", canAcceptBids ? "text-volt-green" : "text-warning-amber")}>
+                        {canAcceptBids ? "Accepting Bids" : isAuctionPaused ? "Paused" : "Lot Closed"}
                       </span>
                     </div>
-                    {isLotActive && currentLot.endsAt && (
+                    {canAcceptBids && currentLot.endsAt && (
                       <AuctionTimer
                         endsAt={currentLot.endsAt}
                         variant="default"
@@ -313,12 +320,12 @@ export function LiveAuctionClient({
                         className="font-mono text-lg font-bold"
                       />
                     )}
-                    {isLotActive && !currentLot.endsAt && (
+                    {(isAuctionPaused || (isLotActive && !currentLot.endsAt)) && (
                       <Badge variant="secondary">Paused</Badge>
                     )}
-                    {!isLotActive && (
+                    {!isLotActive && isAuctionLive && (
                       <span className="text-sm font-medium text-muted-foreground animate-pulse">
-                        Closing lot…
+                        Next lot starting automatically…
                       </span>
                     )}
                   </div>
@@ -328,14 +335,14 @@ export function LiveAuctionClient({
                     <PriceDisplay amount={currentBid} variant="large" className="text-5xl justify-center font-black tracking-tight" />
                   </div>
 
-                  {isLotActive ? (
+                  {canAcceptBids ? (
                     <div className="space-y-3">
                       <BidButton
                         lotId={currentLot._id}
                         currentBid={currentBid}
                         bidIncrement={currentLot.bidIncrement || 50000}
                         buyNowPrice={currentLot.buyItNowPrice}
-                        buyNowEnabled={currentLot.buyItNowEnabled}
+                        buyNowEnabled={false}
                         status={currentLot.status}
                         className="w-full h-14 text-xl shadow-lg shadow-volt-green/20 bg-volt-green text-slate-950 hover:bg-volt-green/90"
                       />
@@ -345,7 +352,11 @@ export function LiveAuctionClient({
                     </div>
                   ) : (
                     <Button disabled className="w-full h-14 text-lg">
-                      {isAuctionLive ? "Waiting for next lot..." : "Auction Not Live"}
+                      {isAuctionPaused
+                        ? "Auction paused"
+                        : isAuctionLive
+                          ? "Next lot starting automatically…"
+                          : "Auction Not Live"}
                     </Button>
                   )}
                 </Card>

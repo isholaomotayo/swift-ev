@@ -195,7 +195,20 @@ export function AdminPaymentsClient({ token }: AdminPaymentsClientProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              payments.map((payment) => (
+              payments.map((payment: {
+                _id: Id<"payments">;
+                provider: string;
+                status: string;
+                amount: number;
+                providerReference?: string;
+                orderId?: Id<"orders">;
+                orderNumber?: string;
+                userName?: string;
+                userEmail?: string;
+                createdAt: number;
+                receiptUrl?: string | null;
+                buyerNote?: string;
+              }) => (
                 <TableRow key={payment._id}>
                   <TableCell className="font-mono text-xs">
                     {payment.providerReference || "—"}
@@ -239,7 +252,8 @@ export function AdminPaymentsClient({ token }: AdminPaymentsClientProps) {
                   <TableCell className="text-sm">{formatDate(payment.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {payment.status === "pending" && (
+                      {payment.status === "pending" &&
+                        payment.provider === "bank_transfer" && (
                         <>
                           <Button
                             size="sm"

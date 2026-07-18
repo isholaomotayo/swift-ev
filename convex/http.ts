@@ -203,14 +203,19 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     try {
       const secretHash = process.env.FLUTTERWAVE_SECRET_HASH;
-      if (secretHash) {
-        const signature = request.headers.get("verif-hash");
-        if (signature !== secretHash) {
-          return new Response(JSON.stringify({ error: "Invalid signature" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+      if (!secretHash) {
+        console.error("FLUTTERWAVE_SECRET_HASH is not configured");
+        return new Response(JSON.stringify({ error: "Webhook not configured" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const signature = request.headers.get("verif-hash");
+      if (signature !== secretHash) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       const body = await request.json();

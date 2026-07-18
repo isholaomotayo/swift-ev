@@ -63,14 +63,27 @@ export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
     );
   }
 
-  const { order, bank, walletAvailableKobo, canPay, payments, pendingBankTransfer, viewerRole } =
-    paymentState;
+  const {
+    order,
+    bank,
+    bankConfigured,
+    walletAvailableKobo,
+    canPay,
+    payments,
+    pendingBankTransfer,
+    viewerRole,
+  } = paymentState;
 
   const deadlinePassed = order.paymentDeadline < Date.now();
   const isSellerViewer = viewerRole === "seller";
   const depositPaid = payments
-    .filter((p) => p.provider === "deposit" && p.status === "successful")
-    .reduce((sum, p) => sum + p.amount, 0);
+    .filter((p: { provider: string; status: string; amount: number }) =>
+      p.provider === "deposit" && p.status === "successful"
+    )
+    .reduce(
+      (sum: number, p: { amount: number }) => sum + p.amount,
+      0
+    );
 
   const copyText = async (text: string, label: string) => {
     try {
@@ -187,7 +200,7 @@ export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
   };
 
   const instructions = bankInstructions ??
-    (pendingBankTransfer
+    (pendingBankTransfer && bank
       ? {
           reference: pendingBankTransfer.providerReference,
           amount: pendingBankTransfer.amount,
@@ -261,7 +274,11 @@ export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
               <Building2 className="h-4 w-4" />
               Bank transfer (escrow)
             </div>
-            {!instructions ? (
+            {!bankConfigured ? (
+              <p className="text-sm text-muted-foreground">
+                Bank transfer is temporarily unavailable. Please pay by card or wallet, or contact support.
+              </p>
+            ) : !instructions ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="buyerNote">Note (optional)</Label>
@@ -366,7 +383,15 @@ export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
       {payments.length > 0 && (
         <div className="pt-4 border-t space-y-2">
           <h3 className="font-semibold text-sm">Payment history</h3>
-          {payments.map((payment) => (
+          {payments.map((payment: {
+            _id: string;
+            provider: string;
+            status: string;
+            amount: number;
+            providerReference?: string;
+            rejectionReason?: string;
+            createdAt: number;
+          }) => (
             <div
               key={payment._id}
               className="flex items-center justify-between text-sm gap-2"

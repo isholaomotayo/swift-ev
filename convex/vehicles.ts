@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -1271,10 +1272,25 @@ export const approveVehicle = mutation({
       throw new Error("Only pending approval vehicles can be approved");
     }
 
+    if (
+      typeof vehicle.buyItNowPrice !== "number" ||
+      !Number.isFinite(vehicle.buyItNowPrice) ||
+      vehicle.buyItNowPrice <= 0
+    ) {
+      throw new Error("Cannot approve a listing without a Buy Now price");
+    }
+    if (
+      typeof vehicle.reservePrice === "number" &&
+      vehicle.buyItNowPrice < vehicle.reservePrice
+    ) {
+      throw new Error("Buy Now price must be at least the reserve price");
+    }
+
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
 
     await ctx.db.patch(args.vehicleId, {
       status: "approved",
+      buyItNowEnabled: true,
       approvedAt: Date.now(),
       approvedBy: user._id,
       updatedAt: Date.now(),
@@ -1390,10 +1406,25 @@ export const relistVehicle = mutation({
       throw new Error("Vehicle not found");
     }
 
+    if (
+      typeof vehicle.buyItNowPrice !== "number" ||
+      !Number.isFinite(vehicle.buyItNowPrice) ||
+      vehicle.buyItNowPrice <= 0
+    ) {
+      throw new Error("Cannot relist a vehicle without a Buy Now price");
+    }
+    if (
+      typeof vehicle.reservePrice === "number" &&
+      vehicle.buyItNowPrice < vehicle.reservePrice
+    ) {
+      throw new Error("Buy Now price must be at least the reserve price");
+    }
+
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
 
     await ctx.db.patch(args.vehicleId, {
       status: "approved",
+      buyItNowEnabled: true,
       updatedAt: Date.now(),
     });
 
@@ -1464,8 +1495,25 @@ export const overrideVehicleStatus = mutation({
       throw new Error("Vehicle not found");
     }
 
+    if (args.status === "approved") {
+      if (
+        typeof vehicle.buyItNowPrice !== "number" ||
+        !Number.isFinite(vehicle.buyItNowPrice) ||
+        vehicle.buyItNowPrice <= 0
+      ) {
+        throw new Error("Cannot set status to approved without a Buy Now price");
+      }
+      if (
+        typeof vehicle.reservePrice === "number" &&
+        vehicle.buyItNowPrice < vehicle.reservePrice
+      ) {
+        throw new Error("Buy Now price must be at least the reserve price");
+      }
+    }
+
     await ctx.db.patch(args.vehicleId, {
       status: args.status,
+      ...(args.status === "approved" ? { buyItNowEnabled: true } : {}),
       updatedAt: Date.now(),
     });
 
@@ -1615,6 +1663,23 @@ export const purchaseVehicleDirectly = mutation({
       vehicleId: vehicle._id,
     });
 
+    // Send C2: Buy Now Order Email (Buyer)
+    await ctx.scheduler.runAfter(0, internal.emails.sendBuyNowOrderEmail, {
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      orderNumber,
+      orderId,
+      vehiclePrice: pricing.vehiclePrice,
+      serviceFee: pricing.serviceFee,
+      documentationFee: pricing.documentationFee,
+      shippingCost: pricing.shippingCost,
+      totalAmount: pricing.totalAmount,
+      paymentDeadline: paymentDeadlineFrom(now),
+      vehicleId: vehicle._id,
+    });
+
     if (vehicle.sellerId) {
       await createInAppNotification(ctx, {
         userId: vehicle.sellerId,
@@ -1624,6 +1689,22 @@ export const purchaseVehicleDirectly = mutation({
         orderId,
         vehicleId: vehicle._id,
       });
+
+      // Send Seller Sold Email
+      const sellerUser = await ctx.db.get(vehicle.sellerId);
+      if (sellerUser) {
+        await ctx.scheduler.runAfter(0, internal.emails.sendSellerVehicleSoldEmail, {
+          userId: sellerUser._id,
+          email: sellerUser.email,
+          firstName: sellerUser.firstName,
+          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          salePrice: pricing.vehiclePrice,
+          paymentDeadline: paymentDeadlineFrom(now),
+          orderNumber,
+          saleType: "buy_now",
+          vehicleId: vehicle._id,
+        });
+      }
     }
 
     return { success: true, orderId, orderNumber };

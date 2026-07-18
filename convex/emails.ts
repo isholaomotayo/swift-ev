@@ -1,63 +1,233 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
+import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import {
+  verificationEmailTemplate,
+  passwordResetEmailTemplate,
+  kycApprovedEmailTemplate,
+  kycRejectedEmailTemplate,
+  outbidEmailTemplate,
+  auctionWonEmailTemplate,
+  auctionLostEmailTemplate,
+  sellerVehicleSoldEmailTemplate,
+  buyNowOrderCreatedEmailTemplate,
+  paymentReceivedEmailTemplate,
+  bankTransferPendingEmailTemplate,
+  bankTransferVerifiedEmailTemplate,
+  bankTransferRejectedEmailTemplate,
+  paymentCompleteEmailTemplate,
+  orderShippedEmailTemplate,
+  orderDeliveredEmailTemplate,
+  gatePassIssuedEmailTemplate,
+  orderForfeitedEmailTemplate,
+  purchaseRevokedEmailTemplate,
+  disputeResolvedEmailTemplate,
+  walletFundedEmailTemplate,
+} from "./lib/emailTemplates";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://autoexports.live";
 
+// =============================================
+// CORE: Send + Log
+// =============================================
+
 /**
- * Send a transactional email.
+ * Send a transactional email via Resend and log the result.
  *
- * Provider: Resend (https://resend.com)
- *   - Set RESEND_API_KEY in your Convex environment variables
- *   - Set EMAIL_FROM to your verified sender address (e.g. "noreply@autoexports.live")
- *
- * Development fallback: if RESEND_API_KEY is not set, the email content is
- * logged to the Convex dashboard so you can test flows without an API key.
+ * - Checks the emailSuppressions table before sending.
+ * - If RESEND_API_KEY is not set, logs to console (dev mode).
+ * - Always logs to the transactionalEmails table.
  */
-async function sendEmail(args: {
-  to: string;
-  subject: string;
-  html: string;
-}): Promise<void> {
+async function sendAndLogEmail(
+  ctx: any,
+  args: {
+    emailType: string;
+    to: string;
+    subject: string;
+    html: string;
+    recipientUserId?: Id<"users">;
+    relatedOrderId?: Id<"orders">;
+    relatedVehicleId?: Id<"vehicles">;
+    relatedAuctionId?: Id<"auctions">;
+  }
+): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "noreply@autoexports.live";
 
+  // Check suppression list
+  const suppression = await ctx.runQuery(
+    internal.emails.checkSuppression,
+    { email: args.to }
+  );
+
+  if (suppression) {
+    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+      emailType: args.emailType,
+      recipientEmail: args.to,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: "skipped_suppressed",
+      errorMessage: `Suppressed: ${suppression.reason}`,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
+    });
+    console.log(`[EMAIL SKIPPED — suppressed] ${args.to}: ${args.subject}`);
+    return;
+  }
+
   if (!apiKey) {
-    // Development fallback — log to Convex dashboard logs
+    // Development fallback
     console.log("[EMAIL STUB — set RESEND_API_KEY to enable sending]", {
       to: args.to,
       from,
       subject: args.subject,
+      type: args.emailType,
+    });
+    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+      emailType: args.emailType,
+      recipientEmail: args.to,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: "skipped_dev",
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
     });
     return;
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      from,
-      to: args.to,
-      subject: args.subject,
-      html: args.html,
-    }),
-  });
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from,
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+      }),
+    });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Email send failed (${res.status}): ${body}`);
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Email send failed (${res.status}): ${body}`);
+      await ctx.runMutation(internal.emails.logTransactionalEmail, {
+        emailType: args.emailType,
+        recipientEmail: args.to,
+        recipientUserId: args.recipientUserId,
+        subject: args.subject,
+        status: "failed",
+        errorMessage: `HTTP ${res.status}: ${body}`,
+        relatedOrderId: args.relatedOrderId,
+        relatedVehicleId: args.relatedVehicleId,
+        relatedAuctionId: args.relatedAuctionId,
+      });
+      return;
+    }
+
+    const data = await res.json();
+    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+      emailType: args.emailType,
+      recipientEmail: args.to,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: "sent",
+      resendEmailId: data.id,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
+    });
+  } catch (err: any) {
+    console.error("Email send error:", err);
+    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+      emailType: args.emailType,
+      recipientEmail: args.to,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: "failed",
+      errorMessage: err?.message ?? "Unknown error",
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
+    });
   }
 }
 
-/**
- * Generate a verification token, store it, and send the email to the user.
- * Called via ctx.scheduler.runAfter(0, ...) from the createUser mutation.
- */
+// =============================================
+// INTERNAL HELPERS (run inside Convex runtime)
+// =============================================
+
+/** Check if an email address is suppressed (bounced/complained). */
+export const checkSuppression = internalAction({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const record = await ctx.runQuery(
+      internal.emails.checkSuppressionQuery,
+      { email: args.email.toLowerCase().trim() }
+    );
+    return record;
+  },
+});
+
+import { internalQuery } from "./_generated/server";
+
+export const checkSuppressionQuery = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("emailSuppressions")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+  },
+});
+
+/** Log a transactional email send attempt. */
+export const logTransactionalEmail = internalMutation({
+  args: {
+    emailType: v.string(),
+    recipientEmail: v.string(),
+    recipientUserId: v.optional(v.id("users")),
+    subject: v.string(),
+    status: v.union(
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("skipped_suppressed"),
+      v.literal("skipped_dev")
+    ),
+    resendEmailId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    relatedOrderId: v.optional(v.id("orders")),
+    relatedVehicleId: v.optional(v.id("vehicles")),
+    relatedAuctionId: v.optional(v.id("auctions")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("transactionalEmails", {
+      emailType: args.emailType,
+      recipientEmail: args.recipientEmail,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: args.status,
+      resendEmailId: args.resendEmailId,
+      errorMessage: args.errorMessage,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// =============================================
+// A1: Verification Email
+// =============================================
+
 export const sendVerificationEmail = internalAction({
   args: {
     userId: v.id("users"),
@@ -73,30 +243,25 @@ export const sendVerificationEmail = internalAction({
     });
 
     const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
+    const { subject, html } = verificationEmailTemplate({
+      firstName: args.firstName,
+      verifyUrl,
+    });
 
-    await sendEmail({
+    await sendAndLogEmail(ctx, {
+      emailType: "verification",
       to: args.email,
-      subject: "Verify your autoexports.live email address",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0a0a0a;border-radius:12px;">
-          <h1 style="color:#0066FF;font-size:24px;margin-bottom:8px;">Welcome to autoexports.live!</h1>
-          <p style="color:#ccc;font-size:16px;">Hi ${args.firstName}, thanks for registering. Please verify your email address to activate your account.</p>
-          <a href="${verifyUrl}"
-             style="display:inline-block;margin:24px 0;padding:14px 32px;background:#0066FF;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">
-            Verify Email Address
-          </a>
-          <p style="color:#888;font-size:13px;">This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
-          <p style="color:#555;font-size:11px;word-break:break-all;">Or paste this link into your browser: ${verifyUrl}</p>
-        </div>
-      `,
+      subject,
+      html,
+      recipientUserId: args.userId,
     });
   },
 });
 
-/**
- * Generate a password-reset token, store it, and email the reset link.
- * Called via ctx.scheduler.runAfter(0, ...) from the requestPasswordReset mutation.
- */
+// =============================================
+// A2: Password Reset Email
+// =============================================
+
 export const sendPasswordResetEmail = internalAction({
   args: {
     userId: v.id("users"),
@@ -112,22 +277,674 @@ export const sendPasswordResetEmail = internalAction({
     });
 
     const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+    const { subject, html } = passwordResetEmailTemplate({
+      firstName: args.firstName,
+      resetUrl,
+    });
 
-    await sendEmail({
+    await sendAndLogEmail(ctx, {
+      emailType: "password_reset",
       to: args.email,
-      subject: "Reset your autoexports.live password",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0a0a0a;border-radius:12px;">
-          <h1 style="color:#0066FF;font-size:24px;margin-bottom:8px;">Password Reset Request</h1>
-          <p style="color:#ccc;font-size:16px;">Hi ${args.firstName}, we received a request to reset your password. Click the button below to choose a new one.</p>
-          <a href="${resetUrl}"
-             style="display:inline-block;margin:24px 0;padding:14px 32px;background:#0066FF;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">
-            Reset Password
-          </a>
-          <p style="color:#888;font-size:13px;">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password will not change.</p>
-          <p style="color:#555;font-size:11px;word-break:break-all;">Or paste this link into your browser: ${resetUrl}</p>
-        </div>
-      `,
+      subject,
+      html,
+      recipientUserId: args.userId,
+    });
+  },
+});
+
+// =============================================
+// A3: KYC Result Email
+// =============================================
+
+export const sendKycResultEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    approved: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const template = args.approved
+      ? kycApprovedEmailTemplate({ firstName: args.firstName })
+      : kycRejectedEmailTemplate({
+          firstName: args.firstName,
+          reason: args.reason ?? "Document verification failed",
+        });
+
+    await sendAndLogEmail(ctx, {
+      emailType: args.approved ? "kyc_approved" : "kyc_rejected",
+      to: args.email,
+      subject: template.subject,
+      html: template.html,
+      recipientUserId: args.userId,
+    });
+  },
+});
+
+// =============================================
+// B1: Outbid Email
+// =============================================
+
+export const sendOutbidEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    yourBid: v.number(),
+    newBid: v.number(),
+    lotId: v.string(),
+    auctionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = outbidEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      yourBid: args.yourBid,
+      newBid: args.newBid,
+      lotId: args.lotId,
+      auctionId: args.auctionId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "outbid",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+    });
+  },
+});
+
+// =============================================
+// B2: Auction Won Email
+// =============================================
+
+export const sendAuctionWonEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    winningBid: v.number(),
+    depositApplied: v.number(),
+    balanceDue: v.number(),
+    paymentDeadline: v.number(),
+    orderId: v.string(),
+    orderNumber: v.string(),
+    vehicleId: v.optional(v.id("vehicles")),
+    auctionId: v.optional(v.id("auctions")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = auctionWonEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      winningBid: args.winningBid,
+      depositApplied: args.depositApplied,
+      balanceDue: args.balanceDue,
+      paymentDeadline: args.paymentDeadline,
+      orderId: args.orderId,
+      orderNumber: args.orderNumber,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "auction_won",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedVehicleId: args.vehicleId,
+      relatedAuctionId: args.auctionId,
+    });
+  },
+});
+
+// =============================================
+// B3: Auction Lost (No Sale) Email
+// =============================================
+
+export const sendAuctionLostEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    reserveReleased: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = auctionLostEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      reserveReleased: args.reserveReleased,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "auction_lost",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+    });
+  },
+});
+
+// =============================================
+// B5: Seller Vehicle Sold Email
+// =============================================
+
+export const sendSellerVehicleSoldEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    salePrice: v.number(),
+    paymentDeadline: v.number(),
+    orderNumber: v.string(),
+    saleType: v.union(v.literal("auction"), v.literal("buy_now")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = sellerVehicleSoldEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      salePrice: args.salePrice,
+      paymentDeadline: args.paymentDeadline,
+      orderNumber: args.orderNumber,
+      saleType: args.saleType,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "seller_vehicle_sold",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// C1/C2: Buy Now Order Created Email
+// =============================================
+
+export const sendBuyNowOrderEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    orderId: v.string(),
+    vehiclePrice: v.number(),
+    serviceFee: v.number(),
+    documentationFee: v.number(),
+    shippingCost: v.number(),
+    totalAmount: v.number(),
+    paymentDeadline: v.number(),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = buyNowOrderCreatedEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      orderId: args.orderId,
+      vehiclePrice: args.vehiclePrice,
+      serviceFee: args.serviceFee,
+      documentationFee: args.documentationFee,
+      shippingCost: args.shippingCost,
+      totalAmount: args.totalAmount,
+      paymentDeadline: args.paymentDeadline,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "buy_now_order",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// D1: Payment Received Email
+// =============================================
+
+export const sendPaymentReceivedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    amount: v.number(),
+    orderNumber: v.string(),
+    balanceDue: v.number(),
+    orderId: v.string(),
+    paymentMethod: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = paymentReceivedEmailTemplate({
+      firstName: args.firstName,
+      amount: args.amount,
+      orderNumber: args.orderNumber,
+      balanceDue: args.balanceDue,
+      orderId: args.orderId,
+      paymentMethod: args.paymentMethod,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "payment_received",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// D2: Bank Transfer Pending Email
+// =============================================
+
+export const sendBankTransferPendingEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    amount: v.number(),
+    orderNumber: v.string(),
+    reference: v.string(),
+    bankName: v.string(),
+    accountNumber: v.string(),
+    accountName: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = bankTransferPendingEmailTemplate({
+      firstName: args.firstName,
+      amount: args.amount,
+      orderNumber: args.orderNumber,
+      reference: args.reference,
+      bankName: args.bankName,
+      accountNumber: args.accountNumber,
+      accountName: args.accountName,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "bank_transfer_pending",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+    });
+  },
+});
+
+// =============================================
+// D3: Bank Transfer Verified Email
+// =============================================
+
+export const sendBankTransferVerifiedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    amount: v.number(),
+    orderNumber: v.string(),
+    balanceDue: v.number(),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = bankTransferVerifiedEmailTemplate({
+      firstName: args.firstName,
+      amount: args.amount,
+      orderNumber: args.orderNumber,
+      balanceDue: args.balanceDue,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "bank_transfer_verified",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+    });
+  },
+});
+
+// =============================================
+// D4: Bank Transfer Rejected Email
+// =============================================
+
+export const sendBankTransferRejectedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    amount: v.number(),
+    orderNumber: v.string(),
+    reason: v.string(),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = bankTransferRejectedEmailTemplate({
+      firstName: args.firstName,
+      amount: args.amount,
+      orderNumber: args.orderNumber,
+      reason: args.reason,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "bank_transfer_rejected",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+    });
+  },
+});
+
+// =============================================
+// D5: Payment Complete Email
+// =============================================
+
+export const sendPaymentCompleteEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    totalAmount: v.number(),
+    orderNumber: v.string(),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = paymentCompleteEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      totalAmount: args.totalAmount,
+      orderNumber: args.orderNumber,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "payment_complete",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// E1: Order Shipped Email
+// =============================================
+
+export const sendOrderShippedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    carrier: v.string(),
+    trackingNumber: v.string(),
+    estimatedDelivery: v.optional(v.number()),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = orderShippedEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      carrier: args.carrier,
+      trackingNumber: args.trackingNumber,
+      estimatedDelivery: args.estimatedDelivery,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "order_shipped",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// E2: Order Delivered Email
+// =============================================
+
+export const sendOrderDeliveredEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = orderDeliveredEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "order_delivered",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+    });
+  },
+});
+
+// =============================================
+// E3: Gate Pass Issued Email
+// =============================================
+
+export const sendGatePassIssuedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    code: v.string(),
+    expiresAt: v.number(),
+    gatePassId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = gatePassIssuedEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      code: args.code,
+      expiresAt: args.expiresAt,
+      gatePassId: args.gatePassId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "gate_pass_issued",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// F1: Order Forfeited Email
+// =============================================
+
+export const sendOrderForfeitedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    forfeitedAmount: v.number(),
+    deadline: v.number(),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = orderForfeitedEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      forfeitedAmount: args.forfeitedAmount,
+      deadline: args.deadline,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "order_forfeited",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// F2: Purchase Revoked Email
+// =============================================
+
+export const sendPurchaseRevokedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    vehicleTitle: v.string(),
+    orderNumber: v.string(),
+    refundedAmount: v.optional(v.number()),
+    relatedOrderId: v.optional(v.id("orders")),
+    vehicleId: v.optional(v.id("vehicles")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = purchaseRevokedEmailTemplate({
+      firstName: args.firstName,
+      vehicleTitle: args.vehicleTitle,
+      orderNumber: args.orderNumber,
+      refundedAmount: args.refundedAmount,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "purchase_revoked",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.vehicleId,
+    });
+  },
+});
+
+// =============================================
+// G1: Dispute Resolved Email
+// =============================================
+
+export const sendDisputeResolvedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    orderNumber: v.string(),
+    resolution: v.string(),
+    resolutionNotes: v.string(),
+    refundAmount: v.optional(v.number()),
+    orderId: v.string(),
+    relatedOrderId: v.optional(v.id("orders")),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = disputeResolvedEmailTemplate({
+      firstName: args.firstName,
+      orderNumber: args.orderNumber,
+      resolution: args.resolution,
+      resolutionNotes: args.resolutionNotes,
+      refundAmount: args.refundAmount,
+      orderId: args.orderId,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "dispute_resolved",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
+      relatedOrderId: args.relatedOrderId,
+    });
+  },
+});
+
+// =============================================
+// H1: Wallet Funded Email
+// =============================================
+
+export const sendWalletFundedEmail = internalAction({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    firstName: v.string(),
+    amount: v.number(),
+    newBalance: v.number(),
+    buyingPower: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { subject, html } = walletFundedEmailTemplate({
+      firstName: args.firstName,
+      amount: args.amount,
+      newBalance: args.newBalance,
+      buyingPower: args.buyingPower,
+    });
+
+    await sendAndLogEmail(ctx, {
+      emailType: "wallet_funded",
+      to: args.email,
+      subject,
+      html,
+      recipientUserId: args.userId,
     });
   },
 });

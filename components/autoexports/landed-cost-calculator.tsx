@@ -29,9 +29,6 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
   const exchangeRates = useExchangeRates();
 
   const pricing = calculateBuyNowPricing(currentBid, destination);
-  const estimatedMarketValue = currentBid * 1.4;
-  const priceDelta = estimatedMarketValue - pricing.totalAmount;
-  const isBelowMarket = priceDelta >= 0;
 
   return (
     <Card className="border-auction-gold/20 shadow-lg bg-gray-50/50">
@@ -137,27 +134,10 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
         </div>
 
         <div className="pt-2 border-t border-border">
-          <div className="flex justify-between items-end mb-1">
+          <div className="flex justify-between items-end">
             <span className="font-bold text-deep-navy">Total Landed Cost</span>
             <span className="font-black text-xl text-deep-navy">
               {formatCurrency(pricing.totalAmount, { currency, exchangeRates })}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-muted-foreground">
-              Est. Market Value:{" "}
-              {formatCurrency(estimatedMarketValue, { currency, exchangeRates })}
-            </span>
-            <span
-              className={
-                isBelowMarket
-                  ? "text-success-green"
-                  : "text-amber-700 dark:text-amber-400"
-              }
-            >
-              {isBelowMarket
-                ? `Save ${formatCurrency(priceDelta, { currency, exchangeRates })}`
-                : `Est. above market by ${formatCurrency(Math.abs(priceDelta), { currency, exchangeRates })}`}
             </span>
           </div>
         </div>

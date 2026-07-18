@@ -26,6 +26,7 @@ import type * as http from "../http.js";
 import type * as kyc from "../kyc.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_buyNowPricing from "../lib/buyNowPricing.js";
+import type * as lib_emailTemplates from "../lib/emailTemplates.js";
 import type * as lib_flutterwave from "../lib/flutterwave.js";
 import type * as lib_orders from "../lib/orders.js";
 import type * as lib_payments from "../lib/payments.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   kyc: typeof kyc;
   "lib/auth": typeof lib_auth;
   "lib/buyNowPricing": typeof lib_buyNowPricing;
+  "lib/emailTemplates": typeof lib_emailTemplates;
   "lib/flutterwave": typeof lib_flutterwave;
   "lib/orders": typeof lib_orders;
   "lib/payments": typeof lib_payments;

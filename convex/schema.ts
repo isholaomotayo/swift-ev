@@ -998,4 +998,31 @@ export default defineSchema({
   })
     .index("by_vehicle", ["vehicleId"])
     .index("by_asker", ["askerId"]),
+
+  // ============================================
+  // TRANSACTIONAL EMAIL LOG
+  // ============================================
+
+  transactionalEmails: defineTable({
+    emailType: v.string(),
+    recipientEmail: v.string(),
+    recipientUserId: v.optional(v.id("users")),
+    subject: v.string(),
+    status: v.union(
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("skipped_suppressed"),
+      v.literal("skipped_dev")
+    ),
+    resendEmailId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    relatedOrderId: v.optional(v.id("orders")),
+    relatedVehicleId: v.optional(v.id("vehicles")),
+    relatedAuctionId: v.optional(v.id("auctions")),
+    createdAt: v.number(),
+  })
+    .index("by_type", ["emailType"])
+    .index("by_recipient", ["recipientEmail"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
 });

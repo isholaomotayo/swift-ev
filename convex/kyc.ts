@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
 
@@ -377,20 +378,36 @@ export const simulateKycApproval = mutation({
                 updatedAt: Date.now(),
             });
 
+            await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+                userId: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                approved: true,
+            });
+
             return {
                 success: true,
                 message: "KYC approved! Your account is now active.",
             };
         } else {
+            const reason = args.rejectionReason ?? "Document verification failed";
             await ctx.db.patch(session.userId, {
                 kycStatus: "rejected",
-                kycRejectionReason: args.rejectionReason ?? "Document verification failed",
+                kycRejectionReason: reason,
                 updatedAt: Date.now(),
+            });
+
+            await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+                userId: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                approved: false,
+                reason,
             });
 
             return {
                 success: true,
-                message: `KYC rejected: ${args.rejectionReason ?? "Document verification failed"}`,
+                message: `KYC rejected: ${reason}`,
             };
         }
     },
@@ -431,15 +448,30 @@ export const processSumsubWebhook = mutation({
                     status: "active",
                     updatedAt: Date.now(),
                 });
-                break;
-
-            case "RED":
-                await ctx.db.patch(user._id, {
-                    kycStatus: "rejected",
-                    kycRejectionReason: args.rejectLabels?.join(", ") ?? "Verification failed",
-                    updatedAt: Date.now(),
+                await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+                    userId: user._id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    approved: true,
                 });
                 break;
+
+            case "RED": {
+                const reason = args.rejectLabels?.join(", ") ?? "Verification failed";
+                await ctx.db.patch(user._id, {
+                    kycStatus: "rejected",
+                    kycRejectionReason: reason,
+                    updatedAt: Date.now(),
+                });
+                await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+                    userId: user._id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    approved: false,
+                    reason,
+                });
+                break;
+            }
 
             case "PENDING":
                 await ctx.db.patch(user._id, {
