@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth, requireAdmin } from "./lib/auth";
 
 /**
@@ -249,6 +250,23 @@ export const resolveDispute = mutation({
             resolvedAt: Date.now(),
             resolvedBy: user._id,
         });
+
+        // Send G1: Dispute Resolved Email
+        const reporterUser = await ctx.db.get(dispute.reporterId);
+        if (reporterUser) {
+            const orderRecord = await ctx.db.get(dispute.orderId);
+            await ctx.scheduler.runAfter(0, internal.emails.sendDisputeResolvedEmail, {
+                userId: reporterUser._id,
+                email: reporterUser.email,
+                firstName: reporterUser.firstName,
+                orderNumber: orderRecord?.orderNumber ?? "",
+                resolution: args.resolution,
+                resolutionNotes: args.resolutionNotes,
+                refundAmount: args.refundAmount,
+                orderId: dispute.orderId,
+                relatedOrderId: dispute.orderId,
+            });
+        }
 
         // TODO: Handle actual refund via wallet if applicable
 

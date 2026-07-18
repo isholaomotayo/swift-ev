@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 
@@ -242,6 +243,16 @@ async function processWalletFunding(ctx: any, txRef: string, transactionId: numb
         walletBalance: newBalance,
         buyingPower: buyingPowerFromWalletKobo(newBalance),
         updatedAt: Date.now(),
+    });
+
+    // Send H1: Wallet Funded Email
+    await ctx.scheduler.runAfter(0, internal.emails.sendWalletFundedEmail, {
+        userId: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        amount: transaction.amount / 100,
+        newBalance: newBalance / 100,
+        buyingPower: buyingPowerFromWalletKobo(newBalance),
     });
 
     return {

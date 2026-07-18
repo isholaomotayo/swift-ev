@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import {
@@ -126,6 +127,20 @@ export const initiateBankTransferPayment = mutation({
       receiptStorageId: args.receiptStorageId,
     });
 
+    // Send D2: Bank Transfer Pending Email
+    await ctx.scheduler.runAfter(0, internal.emails.sendBankTransferPendingEmail, {
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      amount,
+      orderNumber: order.orderNumber,
+      reference,
+      bankName: bank.bankName,
+      accountNumber: bank.accountNumber,
+      accountName: bank.accountName,
+      relatedOrderId: order._id,
+    });
+
     return {
       paymentId,
       reference,
@@ -216,6 +231,20 @@ export const payOrderFromWallet = mutation({
       title: "Payment received",
       message: `₦${amountNaira.toLocaleString()} applied to order ${order.orderNumber}. Balance due: ₦${updated.balanceDue.toLocaleString()}.`,
       orderId: order._id,
+      vehicleId: order.vehicleId,
+    });
+
+    // Send D1: Payment Received Email (Wallet)
+    await ctx.scheduler.runAfter(0, internal.emails.sendPaymentReceivedEmail, {
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      amount: amountNaira,
+      orderNumber: order.orderNumber,
+      balanceDue: updated.balanceDue,
+      orderId: order._id,
+      paymentMethod: "Wallet",
+      relatedOrderId: order._id,
       vehicleId: order.vehicleId,
     });
 
@@ -391,6 +420,24 @@ async function processOrderCardPayment(
     vehicleId: updated.vehicleId,
   });
 
+  // Send D1: Payment Received Email (Card)
+  const buyerUser = await ctx.db.get(payment.userId);
+  if (buyerUser) {
+    const orderRecord = await ctx.db.get(payment.orderId);
+    await ctx.scheduler.runAfter(0, internal.emails.sendPaymentReceivedEmail, {
+      userId: buyerUser._id,
+      email: buyerUser.email,
+      firstName: buyerUser.firstName,
+      amount: payment.amount,
+      orderNumber: orderRecord?.orderNumber ?? "",
+      balanceDue: updated.balanceDue,
+      orderId: payment.orderId,
+      paymentMethod: "Card",
+      relatedOrderId: payment.orderId,
+      vehicleId: updated.vehicleId,
+    });
+  }
+
   return { success: true, order: updated };
 }
 
@@ -526,6 +573,22 @@ export const verifyPayment = mutation({
       vehicleId: updated.vehicleId,
     });
 
+    // Send D3: Bank Transfer Verified Email
+    const buyerUser = await ctx.db.get(payment.userId);
+    if (buyerUser) {
+      const orderRecord = await ctx.db.get(payment.orderId);
+      await ctx.scheduler.runAfter(0, internal.emails.sendBankTransferVerifiedEmail, {
+        userId: buyerUser._id,
+        email: buyerUser.email,
+        firstName: buyerUser.firstName,
+        amount: payment.amount,
+        orderNumber: orderRecord?.orderNumber ?? "",
+        balanceDue: updated.balanceDue,
+        orderId: payment.orderId,
+        relatedOrderId: payment.orderId,
+      });
+    }
+
     await createAuditLog(ctx, {
       userId: admin._id,
       action: "verify_payment",
@@ -580,6 +643,22 @@ export const rejectPayment = mutation({
       message: `Your bank transfer of ₦${payment.amount.toLocaleString()} was rejected: ${reason}. Please submit a new payment.`,
       orderId: payment.orderId,
     });
+
+    // Send D4: Bank Transfer Rejected Email
+    const buyerUser = await ctx.db.get(payment.userId);
+    if (buyerUser) {
+      const orderRecord = await ctx.db.get(payment.orderId);
+      await ctx.scheduler.runAfter(0, internal.emails.sendBankTransferRejectedEmail, {
+        userId: buyerUser._id,
+        email: buyerUser.email,
+        firstName: buyerUser.firstName,
+        amount: payment.amount,
+        orderNumber: orderRecord?.orderNumber ?? "",
+        reason,
+        orderId: payment.orderId,
+        relatedOrderId: payment.orderId,
+      });
+    }
 
     await createAuditLog(ctx, {
       userId: admin._id,
@@ -660,6 +739,22 @@ export const processOverdueOrders = internalMutation({
         orderId: order._id,
         vehicleId: order.vehicleId,
       });
+
+      // Send F1: Order Forfeited Email
+      const buyerUser = await ctx.db.get(order.userId);
+      if (buyerUser) {
+        await ctx.scheduler.runAfter(0, internal.emails.sendOrderForfeitedEmail, {
+          userId: buyerUser._id,
+          email: buyerUser.email,
+          firstName: buyerUser.firstName,
+          vehicleTitle: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : "vehicle",
+          orderNumber: order.orderNumber,
+          forfeitedAmount: forfeitedDepositNaira,
+          deadline: order.paymentDeadline,
+          relatedOrderId: order._id,
+          vehicleId: order.vehicleId,
+        });
+      }
 
       if (vehicle?.sellerId) {
         await createInAppNotification(ctx, {

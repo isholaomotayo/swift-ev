@@ -46,6 +46,7 @@ export default async function AdminVehicleApprovalsPage() {
     <VehicleApprovalsClient
       initialVehicles={vehiclesData?.vehicles || []}
       totalCount={vehiclesData?.pagination?.total || 0}
+      token={token}
     />
   );
 }

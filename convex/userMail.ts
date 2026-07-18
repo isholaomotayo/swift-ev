@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -388,6 +388,51 @@ export const sendEmail = mutation({
       bodyText: args.bodyText,
       inReplyTo: args.inReplyTo,
       draftId: args.draftId,
+    });
+  },
+});
+
+export const checkSuppressionQuery = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("emailSuppressions")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+  },
+});
+
+export const logTransactionalEmail = internalMutation({
+  args: {
+    emailType: v.string(),
+    recipientEmail: v.string(),
+    recipientUserId: v.optional(v.id("users")),
+    subject: v.string(),
+    status: v.union(
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("skipped_suppressed"),
+      v.literal("skipped_dev")
+    ),
+    resendEmailId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    relatedOrderId: v.optional(v.id("orders")),
+    relatedVehicleId: v.optional(v.id("vehicles")),
+    relatedAuctionId: v.optional(v.id("auctions")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("transactionalEmails", {
+      emailType: args.emailType,
+      recipientEmail: args.recipientEmail,
+      recipientUserId: args.recipientUserId,
+      subject: args.subject,
+      status: args.status,
+      resendEmailId: args.resendEmailId,
+      errorMessage: args.errorMessage,
+      relatedOrderId: args.relatedOrderId,
+      relatedVehicleId: args.relatedVehicleId,
+      relatedAuctionId: args.relatedAuctionId,
+      createdAt: Date.now(),
     });
   },
 });

@@ -69,7 +69,7 @@ export const ALLOWED_TRANSITIONS: Record<VehicleStatus, readonly VehicleStatus[]
   sold: ["in_transit", "delivered", "cancelled"],
   unsold: ["approved", "withdrawn", "payment_pending", "scheduled"],
   withdrawn: [],
-  rejected: [],
+  rejected: ["approved", "pending_approval"],
   in_transit: ["delivered", "cancelled"],
   delivered: [],
   cancelled: [],

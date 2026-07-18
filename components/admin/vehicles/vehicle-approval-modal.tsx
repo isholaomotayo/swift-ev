@@ -129,9 +129,13 @@ export function VehicleApprovalModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Approve Vehicle</DialogTitle>
+          <DialogTitle>
+            {vehicle.status === "rejected" ? "Review Rejected Vehicle" : "Approve Vehicle"}
+          </DialogTitle>
           <DialogDescription>
-            Review this pending submission before making it available for auction assignment.
+            {vehicle.status === "rejected"
+              ? "Review this rejected submission. You can approve it or update the rejection reason."
+              : "Review this pending submission before making it available for auction assignment."}
           </DialogDescription>
         </DialogHeader>
 
@@ -172,8 +176,9 @@ export function VehicleApprovalModal({
           </div>
 
           <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Approving this vehicle changes its status from Pending Approval to Approved. It will
-            become Ready for Auction only after it is added to an auction.
+            {vehicle.status === "rejected"
+              ? "Approving this vehicle changes its status from Rejected to Approved. It will become Ready for Auction only after it is added to an auction."
+              : "Approving this vehicle changes its status from Pending Approval to Approved. It will become Ready for Auction only after it is added to an auction."}
           </div>
 
           <div className="space-y-2">

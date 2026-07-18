@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth } from "./lib/auth";
 import {
     assertVehicleStatusTransition,
@@ -66,6 +67,7 @@ export const generateGatePass = mutation({
         // Generate specific Code (QR payload)
         const code = `GP-${order.orderNumber}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
+        const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // Valid for 7 days
         const gatePassId = await ctx.db.insert("gatePasses", {
             orderId: args.orderId,
             vehicleId: order.vehicleId,
@@ -73,8 +75,25 @@ export const generateGatePass = mutation({
             code,
             status: "active",
             issuedAt: Date.now(),
-            expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // Valid for 7 days
+            expiresAt,
         });
+
+        // Send E3: Gate Pass Issued Email
+        const vehicle = await ctx.db.get(order.vehicleId);
+        if (vehicle) {
+            await ctx.scheduler.runAfter(0, internal.emails.sendGatePassIssuedEmail, {
+                userId: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+                orderNumber: order.orderNumber,
+                code,
+                expiresAt,
+                gatePassId,
+                relatedOrderId: order._id,
+                vehicleId: vehicle._id,
+            });
+        }
 
         return { gatePassId, code };
     },
@@ -138,6 +157,21 @@ export const scanGatePass = mutation({
             status: "delivered",
             updatedAt: now
         });
+
+        // Send E2: Order Delivered Email (Buyer)
+        const buyerUser = await ctx.db.get(pass.userId);
+        const orderRecord = await ctx.db.get(pass.orderId);
+        if (buyerUser && orderRecord) {
+            await ctx.scheduler.runAfter(0, internal.emails.sendOrderDeliveredEmail, {
+                userId: buyerUser._id,
+                email: buyerUser.email,
+                firstName: buyerUser.firstName,
+                vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+                orderNumber: orderRecord.orderNumber,
+                orderId: pass.orderId,
+                relatedOrderId: pass.orderId,
+            });
+        }
 
         return { success: true, message: "Gate Pass Validated. Vehicle Released." };
     }

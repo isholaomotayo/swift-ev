@@ -48,7 +48,8 @@ describe("vehicle lifecycle", () => {
     expect(canTransitionVehicleStatus("delivered", "approved")).toBe(false);
     expect(canTransitionVehicleStatus("cancelled", "approved")).toBe(false);
     expect(canTransitionVehicleStatus("withdrawn", "approved")).toBe(false);
-    expect(canTransitionVehicleStatus("rejected", "approved")).toBe(false);
+    expect(canTransitionVehicleStatus("rejected", "approved")).toBe(true);
+    expect(canTransitionVehicleStatus("rejected", "pending_approval")).toBe(true);
   });
 
   test("maps order statuses back to vehicle statuses", () => {

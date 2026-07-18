@@ -59,12 +59,12 @@ async function sendAndLogEmail(
 
   // Check suppression list
   const suppression = await ctx.runQuery(
-    internal.emails.checkSuppression,
-    { email: args.to }
+    internal.userMail.checkSuppressionQuery,
+    { email: args.to.toLowerCase().trim() }
   );
 
   if (suppression) {
-    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+    await ctx.runMutation(internal.userMail.logTransactionalEmail, {
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
@@ -87,7 +87,7 @@ async function sendAndLogEmail(
       subject: args.subject,
       type: args.emailType,
     });
-    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+    await ctx.runMutation(internal.userMail.logTransactionalEmail, {
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
@@ -118,7 +118,7 @@ async function sendAndLogEmail(
     if (!res.ok) {
       const body = await res.text();
       console.error(`Email send failed (${res.status}): ${body}`);
-      await ctx.runMutation(internal.emails.logTransactionalEmail, {
+      await ctx.runMutation(internal.userMail.logTransactionalEmail, {
         emailType: args.emailType,
         recipientEmail: args.to,
         recipientUserId: args.recipientUserId,
@@ -133,7 +133,7 @@ async function sendAndLogEmail(
     }
 
     const data = await res.json();
-    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+    await ctx.runMutation(internal.userMail.logTransactionalEmail, {
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
@@ -146,7 +146,7 @@ async function sendAndLogEmail(
     });
   } catch (err: any) {
     console.error("Email send error:", err);
-    await ctx.runMutation(internal.emails.logTransactionalEmail, {
+    await ctx.runMutation(internal.userMail.logTransactionalEmail, {
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
@@ -160,69 +160,9 @@ async function sendAndLogEmail(
   }
 }
 
-// =============================================
-// INTERNAL HELPERS (run inside Convex runtime)
-// =============================================
 
-/** Check if an email address is suppressed (bounced/complained). */
-export const checkSuppression = internalAction({
-  args: { email: v.string() },
-  handler: async (ctx, args) => {
-    const record = await ctx.runQuery(
-      internal.emails.checkSuppressionQuery,
-      { email: args.email.toLowerCase().trim() }
-    );
-    return record;
-  },
-});
 
-import { internalQuery } from "./_generated/server";
 
-export const checkSuppressionQuery = internalQuery({
-  args: { email: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("emailSuppressions")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-  },
-});
-
-/** Log a transactional email send attempt. */
-export const logTransactionalEmail = internalMutation({
-  args: {
-    emailType: v.string(),
-    recipientEmail: v.string(),
-    recipientUserId: v.optional(v.id("users")),
-    subject: v.string(),
-    status: v.union(
-      v.literal("sent"),
-      v.literal("failed"),
-      v.literal("skipped_suppressed"),
-      v.literal("skipped_dev")
-    ),
-    resendEmailId: v.optional(v.string()),
-    errorMessage: v.optional(v.string()),
-    relatedOrderId: v.optional(v.id("orders")),
-    relatedVehicleId: v.optional(v.id("vehicles")),
-    relatedAuctionId: v.optional(v.id("auctions")),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("transactionalEmails", {
-      emailType: args.emailType,
-      recipientEmail: args.recipientEmail,
-      recipientUserId: args.recipientUserId,
-      subject: args.subject,
-      status: args.status,
-      resendEmailId: args.resendEmailId,
-      errorMessage: args.errorMessage,
-      relatedOrderId: args.relatedOrderId,
-      relatedVehicleId: args.relatedVehicleId,
-      relatedAuctionId: args.relatedAuctionId,
-      createdAt: Date.now(),
-    });
-  },
-});
 
 // =============================================
 // A1: Verification Email

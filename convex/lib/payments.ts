@@ -1,5 +1,6 @@
 import { GenericMutationCtx, GenericDatabaseReader } from "convex/server";
 import { DataModel, Doc, Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import {
   assertVehicleStatusTransition,
   getVehicleStatusForOrderStatus,
@@ -181,6 +182,26 @@ export async function applySuccessfulPaymentToOrder(
 
   const updated = (await ctx.db.get(orderId))!;
   await syncVehicleFromOrderStatus(ctx, updated, status);
+
+  // Send D5: Payment Complete Email if the order is fully paid
+  if (status === "payment_complete") {
+    const user = await ctx.db.get(updated.userId);
+    const vehicle = await ctx.db.get(updated.vehicleId);
+    if (user && vehicle) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendPaymentCompleteEmail, {
+        userId: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        totalAmount: updated.totalAmount,
+        orderNumber: updated.orderNumber,
+        orderId: updated._id,
+        relatedOrderId: updated._id,
+        vehicleId: vehicle._id,
+      });
+    }
+  }
+
   return updated;
 }
 

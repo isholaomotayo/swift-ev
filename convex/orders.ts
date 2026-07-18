@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth, requireAdmin, requireSeller, hasOwnershipOrAdmin, createAuditLog, getAuthUserOrNull } from "./lib/auth";
 import {
@@ -545,6 +546,22 @@ export const revokePurchase = mutation({
       vehicleId: order.vehicleId,
     });
 
+    // Send F2: Purchase Revoked Email
+    const buyerUser = await ctx.db.get(order.userId);
+    const vehicle = await ctx.db.get(order.vehicleId);
+    if (buyerUser && vehicle) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendPurchaseRevokedEmail, {
+        userId: buyerUser._id,
+        email: buyerUser.email,
+        firstName: buyerUser.firstName,
+        vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        orderNumber: order.orderNumber,
+        refundedAmount: refundedDepositNaira > 0 ? refundedDepositNaira : undefined,
+        relatedOrderId: order._id,
+        vehicleId: vehicle._id,
+      });
+    }
+
     await createAuditLog(ctx, {
       userId: user._id,
       action: "revoke_purchase",
@@ -646,7 +663,33 @@ export const addShippingTracking = mutation({
       metadata: { carrier: args.carrier, trackingNumber: args.trackingNumber },
     });
 
-    // TODO: Create notification for buyer
+    // Send E1: Order Shipped Email (Buyer)
+    const buyerUser = await ctx.db.get(order.userId);
+    if (buyerUser) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendOrderShippedEmail, {
+        userId: buyerUser._id,
+        email: buyerUser.email,
+        firstName: buyerUser.firstName,
+        vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        orderNumber: order.orderNumber,
+        carrier: args.carrier,
+        trackingNumber: args.trackingNumber,
+        estimatedDelivery: args.estimatedDelivery,
+        orderId: targetOrderId,
+        relatedOrderId: targetOrderId,
+        vehicleId: vehicle._id,
+      });
+    }
+
+    // Create in-app notification
+    await createInAppNotification(ctx, {
+      userId: order.userId,
+      type: "shipment_update",
+      title: "Your vehicle has been shipped",
+      message: `Your vehicle ${vehicle.year} ${vehicle.make} ${vehicle.model} has been shipped via ${args.carrier}. Tracking: ${args.trackingNumber}.`,
+      orderId: targetOrderId,
+      vehicleId: vehicle._id,
+    });
 
     return { success: true };
   },
