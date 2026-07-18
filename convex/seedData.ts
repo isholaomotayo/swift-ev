@@ -633,11 +633,11 @@ export const seedDatabase = mutation({
       createdBy: adminId,
     });
 
-    // Live auction for immediate bidding
+    // Timed concurrent auction: all lots active with independent timers
     const auctionId = await ctx.db.insert("auctions", {
       name: "AutoExports Weekly EV Auction",
       description:
-        "Premium electric vehicles from top Chinese manufacturers. All vehicles inspected and certified with battery health reports.",
+        "Timed concurrent auction — every lot is open for bidding at once with its own countdown. Premium Chinese EVs with inspection reports.",
       auctionType: "timed",
       status: "live",
       scheduledStart: now - 2 * 60 * 60 * 1000,
@@ -653,13 +653,13 @@ export const seedDatabase = mutation({
       createdBy: adminId,
     });
 
-    console.log("✓ Created scheduled and live auctions");
+    console.log("✓ Created scheduled and timed-concurrent live auctions");
 
     // ============================================
-    // AUCTION LOTS
+    // AUCTION LOTS (timed concurrent — all active)
     // ============================================
 
-    // Lot 1 - BYD Tang (Active - currently bidding)
+    // Lot 1 - BYD Tang (Active - highest activity)
     const lot1Id = await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle5Id,
@@ -681,8 +681,8 @@ export const seedDatabase = mutation({
       endsAt: now + 3 * 60 * 60 * 1000, // Ends in 3 hours
     });
 
-    // Lot 2 - BYD Atto 3 (Active)
-    const lot2Id = await ctx.db.insert("auctionLots", {
+    // Lot 2 - BYD Atto 3 (Active — concurrent with lot 1)
+    await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle1Id,
       lotOrder: 2,
@@ -701,7 +701,7 @@ export const seedDatabase = mutation({
       endsAt: now + 23 * 60 * 60 * 1000,
     });
 
-    // Lot 3 - BYD Seal (Active)
+    // Lot 3 - BYD Seal (Active — concurrent)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle2Id,
@@ -721,7 +721,7 @@ export const seedDatabase = mutation({
       endsAt: now + 23.5 * 60 * 60 * 1000,
     });
 
-    // Lot 4 - XPeng P7 (Active)
+    // Lot 4 - XPeng P7 (Active — concurrent)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle3Id,
@@ -741,7 +741,7 @@ export const seedDatabase = mutation({
       endsAt: now + 23.75 * 60 * 60 * 1000,
     });
 
-    // Lot 5 - XPeng G9 (Active)
+    // Lot 5 - XPeng G9 (Active — concurrent)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle4Id,
@@ -761,7 +761,7 @@ export const seedDatabase = mutation({
       endsAt: now + 23.8 * 60 * 60 * 1000,
     });
 
-    // Lot 6 - NIO ES6 (Active)
+    // Lot 6 - NIO ES6 (Active — concurrent)
     await ctx.db.insert("auctionLots", {
       auctionId,
       vehicleId: vehicle6Id,
@@ -780,6 +780,119 @@ export const seedDatabase = mutation({
       startsAt: now - 5 * 60 * 1000,
       endsAt: now + 23.9 * 60 * 60 * 1000,
     });
+
+    // Live sequential floor auction — one active lot, completed history, pending queue
+    const liveAuctionId = await ctx.db.insert("auctions", {
+      name: "AutoExports Live Floor Auction",
+      description:
+        "Live sequential auction — lots run one at a time. Inspect every car, bid only on the current active lot.",
+      auctionType: "live",
+      status: "live",
+      scheduledStart: now - 45 * 60 * 1000,
+      scheduledEnd: now + 3 * 60 * 60 * 1000,
+      actualStart: now - 45 * 60 * 1000,
+      bidIncrement: 100_000,
+      extendOnBid: true,
+      extendMinutes: 2,
+      autoAdvanceLots: true,
+      totalLots: 4,
+      soldLots: 1,
+      totalBids: 3,
+      createdAt: now - 2 * 24 * 60 * 60 * 1000,
+      createdBy: adminId,
+    });
+
+    await ctx.db.insert("auctionLots", {
+      auctionId: liveAuctionId,
+      vehicleId: vehicle1Id,
+      lotOrder: 1,
+      status: "sold",
+      currentBid: 9_200_000,
+      currentBidderId: buyer1Id,
+      winnerId: buyer1Id,
+      winningBid: 9_200_000,
+      bidCount: 3,
+      reserveMet: true,
+      startingBid: 8_500_000,
+      reservePrice: 9_000_000,
+      buyItNowEnabled: false,
+      bidIncrement: 100_000,
+      lotDuration: 10 * 60 * 1000,
+      estimatedStartTime: now - 45 * 60 * 1000,
+      startsAt: now - 45 * 60 * 1000,
+      endsAt: now - 35 * 60 * 1000,
+      soldAt: now - 35 * 60 * 1000,
+    });
+
+    const liveActiveLotId = await ctx.db.insert("auctionLots", {
+      auctionId: liveAuctionId,
+      vehicleId: vehicle2Id,
+      lotOrder: 2,
+      status: "active",
+      currentBid: 15_300_000,
+      currentBidderId: buyer2Id,
+      bidCount: 2,
+      reserveMet: false,
+      startingBid: 15_000_000,
+      reservePrice: 17_500_000,
+      buyItNowEnabled: false,
+      bidIncrement: 100_000,
+      lotDuration: 10 * 60 * 1000,
+      estimatedStartTime: now - 35 * 60 * 1000,
+      startsAt: now - 10 * 60 * 1000,
+      endsAt: now + 8 * 60 * 1000,
+    });
+
+    await ctx.db.insert("auctionLots", {
+      auctionId: liveAuctionId,
+      vehicleId: vehicle3Id,
+      lotOrder: 3,
+      status: "pending",
+      currentBid: 12_500_000,
+      bidCount: 0,
+      reserveMet: false,
+      startingBid: 12_500_000,
+      reservePrice: 14_000_000,
+      buyItNowEnabled: false,
+      bidIncrement: 100_000,
+      lotDuration: 10 * 60 * 1000,
+      estimatedStartTime: now + 8 * 60 * 1000,
+    });
+
+    await ctx.db.insert("auctionLots", {
+      auctionId: liveAuctionId,
+      vehicleId: vehicle4Id,
+      lotOrder: 4,
+      status: "pending",
+      currentBid: 18_000_000,
+      bidCount: 0,
+      reserveMet: false,
+      startingBid: 18_000_000,
+      reservePrice: 20_000_000,
+      buyItNowEnabled: false,
+      bidIncrement: 100_000,
+      lotDuration: 10 * 60 * 1000,
+      estimatedStartTime: now + 18 * 60 * 1000,
+    });
+
+    await ctx.db.insert("bids", {
+      auctionLotId: liveActiveLotId,
+      userId: buyer1Id,
+      bidAmount: 15_100_000,
+      bidType: "live",
+      status: "outbid",
+      createdAt: now - 8 * 60 * 1000,
+    });
+    await ctx.db.insert("bids", {
+      auctionLotId: liveActiveLotId,
+      userId: buyer2Id,
+      bidAmount: 15_300_000,
+      bidType: "live",
+      status: "winning",
+      createdAt: now - 3 * 60 * 1000,
+    });
+
+    console.log("✓ Created live sequential floor auction (1 sold, 1 active, 2 pending)");
 
     // Scheduled auction lots (pending — opens on event day)
     const scheduledVehicleIds = [
@@ -815,7 +928,7 @@ export const seedDatabase = mutation({
       });
     }
 
-    console.log("✓ Created 6 live lots and 6 scheduled lots");
+    console.log("✓ Created 6 timed-concurrent lots, 4 live-sequential lots, and 6 scheduled lots");
 
     // ============================================
     // BIDS
@@ -930,9 +1043,9 @@ export const seedDatabase = mutation({
       summary: {
         users: 6,
         vehicles: 6,
-        auctions: 1,
-        lots: 4,
-        bids: 8,
+        auctions: 3,
+        lots: 16,
+        bids: 10,
         maxBids: 2,
         watchlist: 4,
       },

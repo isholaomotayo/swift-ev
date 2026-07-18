@@ -37,6 +37,12 @@ describe("vehicle lifecycle", () => {
     ).toThrow("Invalid vehicle status transition");
   });
 
+  test("supports re-listing unsold vehicles through scheduled before auction", () => {
+    expect(canTransitionVehicleStatus("unsold", "scheduled")).toBe(true);
+    expect(canTransitionVehicleStatus("scheduled", "in_auction")).toBe(true);
+    expect(canTransitionVehicleStatus("approved", "scheduled")).toBe(true);
+  });
+
   test("supports explicit review, unsold, and terminal branches", () => {
     expect(canTransitionVehicleStatus("pending_approval", "rejected")).toBe(true);
     expect(canTransitionVehicleStatus("approved", "withdrawn")).toBe(true);

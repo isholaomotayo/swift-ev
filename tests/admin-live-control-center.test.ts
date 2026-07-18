@@ -1,14 +1,11 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { createTestConvexClient } from "./convex-client";
 
-const CONVEX_URL =
-  process.env.NEXT_PUBLIC_CONVEX_URL ||
-  "https://greedy-rhinoceros-131.convex.cloud";
-const client = new ConvexHttpClient(CONVEX_URL);
+const client = createTestConvexClient();
 
 describe("Admin Live Control Center", () => {
   let adminToken: string;
@@ -37,8 +34,16 @@ describe("Admin Live Control Center", () => {
     expect(existsSync(componentPath)).toBe(true);
   });
 
-  test("getLiveControlCenterData returns allHydratedLots and control center data structure", async () => {
-    const data = await client.query(api.auctions.getLiveControlCenterData, {});
+  test("getLiveControlCenterData requires admin auth and returns control center data", async () => {
+    await expect(
+      client.query(api.auctions.getLiveControlCenterData, {
+        token: buyerToken,
+      })
+    ).rejects.toThrow();
+
+    const data = await client.query(api.auctions.getLiveControlCenterData, {
+      token: adminToken,
+    });
 
     if (data) {
       expect(data).toHaveProperty("auction");

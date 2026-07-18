@@ -17,22 +17,25 @@ export async function generateMetadata({
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   try {
-    const auctionData = await convex.query(api.auctions.getAuctionById, { auctionId });
-    if (!auctionData) {
+    const room = await convex.query(api.auctions.getPublicLiveAuctionRoom, {
+      auctionId,
+    });
+    if (!room) {
       return {
         title: "Auction Not Found | autoexports.live",
       };
     }
 
     return {
-      title: `${auctionData.auction.name} | autoexports.live`,
-      description: auctionData.auction.description || `Live auction with ${auctionData.lots.length} lots`,
+      title: `${room.auction.name} | autoexports.live`,
+      description:
+        room.auction.description || `Live auction with ${room.lots.length} lots`,
       openGraph: {
-        title: auctionData.auction.name,
-        description: auctionData.auction.description || "Live vehicle auction",
+        title: room.auction.name,
+        description: room.auction.description || "Live vehicle auction",
       },
     };
-  } catch (error) {
+  } catch {
     return {
       title: "Auction | autoexports.live",
     };
@@ -49,20 +52,18 @@ export default async function LiveAuctionPage({
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-  let initialAuctionData: any = null;
-  let initialCurrentLotData: any = null;
+  let initialRoomData: any = null;
 
   try {
-    [initialAuctionData, initialCurrentLotData] = await Promise.all([
-      convex.query(api.auctions.getAuctionById, { auctionId }),
-      convex.query(api.auctions.getCurrentLot, { auctionId }),
-    ]);
+    initialRoomData = await convex.query(api.auctions.getPublicLiveAuctionRoom, {
+      auctionId,
+    });
   } catch (error) {
     console.error("Failed to fetch auction data:", error);
     notFound();
   }
 
-  if (!initialAuctionData) {
+  if (!initialRoomData) {
     notFound();
   }
 
@@ -71,8 +72,7 @@ export default async function LiveAuctionPage({
       <Header />
       <main className="flex-1 bg-background">
         <LiveAuctionClient
-          initialAuctionData={initialAuctionData}
-          initialCurrentLotData={initialCurrentLotData}
+          initialRoomData={initialRoomData}
           auctionId={auctionId}
         />
       </main>

@@ -11,13 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
@@ -43,6 +36,7 @@ export default function CreateAuctionPage() {
   const [auctionName, setAuctionName] = useState("");
   const [description, setDescription] = useState("");
   const [auctionType, setAuctionType] = useState<"live" | "timed">("live");
+  const [autoAdvanceLots, setAutoAdvanceLots] = useState(true);
   const [scheduledStart, setScheduledStart] = useState("");
   const [defaultLotDuration, setDefaultLotDuration] = useState("5");
 
@@ -194,6 +188,7 @@ export default function CreateAuctionPage() {
         auctionType,
         scheduledStart: new Date(scheduledStart).getTime(),
         bidIncrement: defaultBidIncrement,
+        autoAdvanceLots: auctionType === "live" ? autoAdvanceLots : false,
         lots,
       });
 
@@ -291,18 +286,62 @@ export default function CreateAuctionPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="auctionType">Auction Type</Label>
-                <Select value={auctionType} onValueChange={(v: any) => setAuctionType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="live">Live Auction</SelectItem>
-                    <SelectItem value="timed">Timed Auction</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <Label>Bidding Format *</Label>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuctionType("live")}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      auctionType === "live"
+                        ? "border-electric-blue bg-electric-blue/5 ring-2 ring-electric-blue/20"
+                        : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <p className="font-semibold text-sm">Live — lots run one at a time</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sequential. Only the current lot accepts bids. Closing it advances to the next.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuctionType("timed");
+                      setAutoAdvanceLots(false);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      auctionType === "timed"
+                        ? "border-electric-blue bg-electric-blue/5 ring-2 ring-electric-blue/20"
+                        : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <p className="font-semibold text-sm">Timed — all lots run together</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Concurrent. Every lot gets its own timer and bid stream when the auction starts.
+                    </p>
+                  </button>
+                </div>
+                {auctionType === "live" && (
+                  <label className="flex items-start gap-3 mt-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30">
+                    <Checkbox
+                      checked={autoAdvanceLots}
+                      onCheckedChange={(checked) =>
+                        setAutoAdvanceLots(checked === true)
+                      }
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">
+                        Auto-advance to next lot
+                      </span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        When the current lot ends — sold or no sale — open the next
+                        lot automatically. Turn off to require an admin to advance.
+                      </span>
+                    </span>
+                  </label>
+                )}
               </div>
 
               <div>
@@ -464,8 +503,19 @@ export default function CreateAuctionPage() {
                   <span className="text-gray-600">Name:</span> {auctionName}
                 </p>
                 <p>
-                  <span className="text-gray-600">Type:</span> {auctionType}
+                  <span className="text-gray-600">Format:</span>{" "}
+                  {auctionType === "live"
+                    ? "Live — sequential (one lot at a time)"
+                    : "Timed — concurrent (all lots together)"}
                 </p>
+                {auctionType === "live" && (
+                  <p>
+                    <span className="text-gray-600">Auto-advance:</span>{" "}
+                    {autoAdvanceLots
+                      ? "On — next lot opens after sold or no sale"
+                      : "Off — admin advances manually"}
+                  </p>
+                )}
                 <p>
                   <span className="text-gray-600">Start:</span>{" "}
                   {new Date(scheduledStart).toLocaleString()}

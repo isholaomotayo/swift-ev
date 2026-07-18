@@ -1,9 +1,8 @@
 import { describe, test, expect } from "bun:test";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
+import { createTestConvexClient } from "./convex-client";
 
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
-const client = new ConvexHttpClient(CONVEX_URL);
+const client = createTestConvexClient();
 
 describe("Database Check", () => {
   test("check what password hashes are actually stored", async () => {

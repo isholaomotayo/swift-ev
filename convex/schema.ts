@@ -328,6 +328,11 @@ export default defineSchema({
     bidIncrement: v.number(),
     extendOnBid: v.boolean(),
     extendMinutes: v.optional(v.number()),
+    /**
+     * Live/sequential only. When true (default), closing a lot (sold or no sale)
+     * automatically activates the next pending lot without admin action.
+     */
+    autoAdvanceLots: v.optional(v.boolean()),
     totalLots: v.number(),
     soldLots: v.number(),
     totalBids: v.number(),

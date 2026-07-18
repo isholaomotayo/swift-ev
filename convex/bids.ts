@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 import { internal } from "./_generated/api";
 
@@ -61,7 +60,13 @@ export const placeBid = mutation({
     if (lot.status === "active" && auction.status !== "live") {
       throw new Error("This auction is not currently live for bidding");
     }
-    if (lot.status === "pending" && auction.status !== "scheduled" && auction.status !== "live") {
+
+    // Live (sequential): only the active lot accepts bids during a live auction
+    if (lot.status === "pending" && auction.status === "live" && auction.auctionType === "live") {
+      throw new Error("Bidding is only open on the current active lot in a live auction");
+    }
+    // Pre-bids: only when auction is still scheduled (before start)
+    if (lot.status === "pending" && auction.status !== "scheduled") {
       throw new Error("This auction is not open for pre-bidding");
     }
 
@@ -144,21 +149,25 @@ export const placeBid = mutation({
       throw new Error(`You've reached your daily bid limit. Upgrade your membership for more bids.`);
     }
 
-    // Create bid
+    // Create bid as the current winning bid
     const bidId = await ctx.db.insert("bids", {
       auctionLotId: args.lotId,
       userId: session.userId,
       bidAmount: args.amount,
       bidType: "live",
-      status: "active",
+      status: "winning",
       createdAt: Date.now(),
     });
 
-    // Update lot with new current bid
+    const reservePrice = lot.reservePrice ?? vehicle.reservePrice;
+    const reserveMet = !reservePrice || args.amount >= reservePrice;
+
+    // Update lot with new current bid and reserve status
     await ctx.db.patch(args.lotId, {
       currentBid: args.amount,
       currentBidderId: session.userId,
       bidCount: lot.bidCount + 1,
+      reserveMet,
     });
 
     // Move funds from available to reserved (locking the 10% reserve)
@@ -187,14 +196,17 @@ export const placeBid = mutation({
       completedAt: Date.now(),
     });
 
-    // Mark previous bids as outbid and release their reserved funds
+    // Mark previous high bids as outbid and release their reserved funds
     const previousBids = await ctx.db
       .query("bids")
       .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", args.lotId))
       .filter((q) =>
         q.and(
           q.neq(q.field("_id"), bidId),
-          q.eq(q.field("status"), "active")
+          q.or(
+            q.eq(q.field("status"), "active"),
+            q.eq(q.field("status"), "winning")
+          )
         )
       )
       .collect();
@@ -398,7 +410,7 @@ export const getBidsForLot = query({
       users.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => [u._id, u])
     );
 
-    // Map bids with pre-fetched user data
+    // Map bids with privacy-safe public bidder labels (first name only)
     const bidsWithUsers = bids.map((bid) => {
       const user = userMap.get(bid.userId);
       return {
@@ -406,12 +418,10 @@ export const getBidsForLot = query({
         amount: bid.bidAmount,
         bidType: bid.bidType,
         status: bid.status,
-        createdAt: bid._creationTime,
+        createdAt: bid.createdAt,
         user: user
           ? {
             firstName: user.firstName,
-            lastName: user.lastName,
-            membershipTier: user.membershipTier,
           }
           : null,
       };
@@ -625,15 +635,20 @@ export const processProxyBids = internalMutation({
       userId: highestMaxBid.userId,
       bidAmount: newBidAmount,
       bidType: "proxy",
-      status: "active",
+      status: "winning",
       createdAt: Date.now(),
     });
+
+    const vehicle = await ctx.db.get(lot.vehicleId);
+    const reservePrice = lot.reservePrice ?? vehicle?.reservePrice;
+    const reserveMet = !reservePrice || newBidAmount >= reservePrice;
 
     // Update lot
     await ctx.db.patch(args.lotId, {
       currentBid: newBidAmount,
       currentBidderId: highestMaxBid.userId,
       bidCount: lot.bidCount + 1,
+      reserveMet,
     });
 
     // Mark previous bids as outbid
@@ -643,7 +658,10 @@ export const processProxyBids = internalMutation({
       .filter((q) =>
         q.and(
           q.neq(q.field("_id"), bidId),
-          q.eq(q.field("status"), "active")
+          q.or(
+            q.eq(q.field("status"), "active"),
+            q.eq(q.field("status"), "winning")
+          )
         )
       )
       .collect();

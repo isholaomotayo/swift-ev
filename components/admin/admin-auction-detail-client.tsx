@@ -69,6 +69,10 @@ export function AdminAuctionDetailClient({
   const startAuction = useMutation(api.auctions.startAuction);
   const pauseAuction = useMutation(api.auctions.pauseAuction);
   const advanceLot = useMutation(api.auctions.advanceLot);
+  const updateAuctionType = useMutation(api.auctions.updateAuctionType);
+  const updateAuctionAutoAdvance = useMutation(api.auctions.updateAuctionAutoAdvance);
+  const [pendingFormatChange, setPendingFormatChange] = useState(false);
+  const [pendingAutoAdvanceChange, setPendingAutoAdvanceChange] = useState(false);
 
   const lots = auctionData?.lots ?? [];
   const auction = auctionData?.auction;
@@ -194,6 +198,60 @@ export function AdminAuctionDetailClient({
   const isScheduled = auction.status === "scheduled";
   const isPaused = auction.status === "paused";
   const isClosed = auction.status === "ended" || auction.status === "cancelled";
+  const isSequential = auction.auctionType === "live";
+  const autoAdvanceEnabled = isSequential && auction.autoAdvanceLots !== false;
+  const formatLabel =
+    auction.auctionType === "live"
+      ? "Live · Sequential"
+      : auction.auctionType === "timed"
+        ? "Timed · Concurrent"
+        : auction.auctionType;
+
+  const handleFormatChange = async (nextType: "live" | "timed") => {
+    if (!token || nextType === auction.auctionType || !isScheduled) return;
+    setPendingFormatChange(true);
+    try {
+      const result = await updateAuctionType({
+        token,
+        auctionId,
+        auctionType: nextType,
+      });
+      toast({ title: "Format updated", description: result.message });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Could not update format",
+        description: error instanceof Error ? error.message : "Update failed",
+        variant: "destructive",
+      });
+    } finally {
+      setPendingFormatChange(false);
+    }
+  };
+
+  const handleAutoAdvanceChange = async (enabled: boolean) => {
+    if (!token || !isScheduled || !isSequential || enabled === autoAdvanceEnabled) {
+      return;
+    }
+    setPendingAutoAdvanceChange(true);
+    try {
+      const result = await updateAuctionAutoAdvance({
+        token,
+        auctionId,
+        autoAdvanceLots: enabled,
+      });
+      toast({ title: "Auto-advance updated", description: result.message });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Could not update auto-advance",
+        description: error instanceof Error ? error.message : "Update failed",
+        variant: "destructive",
+      });
+    } finally {
+      setPendingAutoAdvanceChange(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -229,10 +287,22 @@ export function AdminAuctionDetailClient({
           )}
           <Button
             onClick={() => handleAuctionAction("start")}
-            disabled={pendingAction !== null || (!isScheduled && !isPaused)}
+            disabled={
+              pendingAction !== null ||
+              (!isScheduled &&
+                !isPaused &&
+                !(isLive && lots.some((l) => l.lot.status === "pending") &&
+                  !lots.some((l) => l.lot.status === "active")))
+            }
           >
             <Play className="mr-2 h-4 w-4" />
-            {pendingAction === "start" ? "Starting..." : "Start"}
+            {pendingAction === "start"
+              ? "Starting..."
+              : isLive &&
+                  !lots.some((l) => l.lot.status === "active") &&
+                  lots.some((l) => l.lot.status === "pending")
+                ? "Recover lot"
+                : "Start"}
           </Button>
           <Button
             variant="outline"
@@ -245,7 +315,14 @@ export function AdminAuctionDetailClient({
           <Button
             variant="outline"
             onClick={() => handleAuctionAction("advance")}
-            disabled={pendingAction !== null || !isLive || isClosed}
+            disabled={
+              pendingAction !== null || !isLive || isClosed || !isSequential
+            }
+            title={
+              isSequential
+                ? "Close current lot and open the next"
+                : "Advance lot is only for live (sequential) auctions"
+            }
           >
             <SkipForward className="mr-2 h-4 w-4" />
             {pendingAction === "advance" ? "Advancing..." : "Advance lot"}
@@ -278,12 +355,82 @@ export function AdminAuctionDetailClient({
         </TabsContent>
 
         <TabsContent value="lots-list" className="mt-6 space-y-6">
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Auction Type</p>
-              <p className="mt-1 text-2xl font-semibold capitalize">
-                {auction.auctionType}
+              <p className="text-sm text-muted-foreground">Bidding Format</p>
+              <p className="mt-1 text-lg font-semibold">{formatLabel}</p>
+              {isScheduled ? (
+                <div className="mt-3 flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    variant={auction.auctionType === "live" ? "default" : "outline"}
+                    disabled={pendingFormatChange}
+                    onClick={() => handleFormatChange("live")}
+                  >
+                    Live · Sequential
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={auction.auctionType === "timed" ? "default" : "outline"}
+                    disabled={pendingFormatChange}
+                    onClick={() => handleFormatChange("timed")}
+                  >
+                    Timed · Concurrent
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">
+                    Format can only be changed while scheduled.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Locked after bidding starts.
+                </p>
+              )}
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-muted-foreground">Auto-advance</p>
+              <p className="mt-1 text-lg font-semibold">
+                {isSequential
+                  ? autoAdvanceEnabled
+                    ? "On"
+                    : "Off"
+                  : "N/A"}
               </p>
+              {isSequential ? (
+                isScheduled ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      variant={autoAdvanceEnabled ? "default" : "outline"}
+                      disabled={pendingAutoAdvanceChange}
+                      onClick={() => handleAutoAdvanceChange(true)}
+                    >
+                      Auto-open next lot
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={!autoAdvanceEnabled ? "default" : "outline"}
+                      disabled={pendingAutoAdvanceChange}
+                      onClick={() => handleAutoAdvanceChange(false)}
+                    >
+                      Manual advance only
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground">
+                      Applies on sold and no-sale closes. Editable while scheduled.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {autoAdvanceEnabled
+                      ? "Next lot opens automatically after each close."
+                      : "Admin must advance after each lot closes."}
+                  </p>
+                )
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Timed lots close independently.
+                </p>
+              )}
             </Card>
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">Lots</p>

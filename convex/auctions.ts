@@ -6,6 +6,7 @@ import { requireAdmin, requireAuth, requireSeller } from "./lib/auth";
 import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 import {
   assertVehicleStatusTransition,
+  canTransitionVehicleStatus,
   isVehicleStatus,
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
@@ -18,7 +19,6 @@ import {
   applyBidReserveAsDepositPayment,
   createInAppNotification,
   paymentDeadlineFrom,
-  releaseUserBidReserve,
 } from "./lib/payments";
 import { calculateBuyNowPricing } from "./lib/buyNowPricing";
 import { internal } from "./_generated/api";
@@ -36,14 +36,270 @@ async function requireAdminUser(ctx: any, token: string) {
   return user;
 }
 
-async function getNextPendingLot(ctx: MutationCtx, auctionId: Id<"auctions">) {
-  const pendingLots = await ctx.db
+/** Live = sequential (one lot at a time). Timed = concurrent (all lots active together). */
+function isSequentialAuction(auction: Doc<"auctions">): boolean {
+  return auction.auctionType === "live";
+}
+
+function isConcurrentAuction(auction: Doc<"auctions">): boolean {
+  return auction.auctionType === "timed";
+}
+
+/** Sequential auctions auto-advance by default unless explicitly disabled. */
+function shouldAutoAdvanceLots(auction: Doc<"auctions">): boolean {
+  return isSequentialAuction(auction) && auction.autoAdvanceLots !== false;
+}
+
+type ActivateLotResult =
+  | { ok: true; lotId: Id<"auctionLots"> }
+  | { ok: false; lotId: Id<"auctionLots">; reason: string };
+
+/**
+ * Prepare a vehicle for auction activation. Returns a failure reason when the
+ * vehicle cannot enter in_auction (sold, payment hold, missing, etc.).
+ */
+async function prepareVehicleForLotActivation(
+  ctx: MutationCtx,
+  vehicleId: Id<"vehicles">,
+  now: number
+): Promise<{ ok: true; status: VehicleStatus } | { ok: false; reason: string }> {
+  const vehicle = await ctx.db.get(vehicleId);
+  if (!vehicle) {
+    return { ok: false, reason: "Vehicle not found" };
+  }
+
+  let status = vehicleStatusOf(vehicle.status);
+
+  if (status === "in_auction") {
+    return { ok: true, status };
+  }
+
+  if (
+    status === "sold" ||
+    status === "withdrawn" ||
+    status === "cancelled" ||
+    status === "delivered" ||
+    status === "in_transit" ||
+    status === "draft" ||
+    status === "pending_approval" ||
+    status === "pending_inspection" ||
+    status === "rejected"
+  ) {
+    return { ok: false, reason: `Vehicle status is ${status}` };
+  }
+
+  if (status === "payment_pending") {
+    return {
+      ok: false,
+      reason: "Vehicle has a pending payment hold",
+    };
+  }
+
+  // Unsold / approved must pass through scheduled before going live.
+  if (status === "unsold" || status === "approved") {
+    if (!canTransitionVehicleStatus(status, "scheduled")) {
+      return { ok: false, reason: `Cannot schedule vehicle from ${status}` };
+    }
+    await ctx.db.patch(vehicleId, {
+      status: "scheduled",
+      updatedAt: now,
+    });
+    status = "scheduled";
+  }
+
+  if (!canTransitionVehicleStatus(status, "in_auction")) {
+    return {
+      ok: false,
+      reason: `Cannot move vehicle from ${status} to in_auction`,
+    };
+  }
+
+  return { ok: true, status };
+}
+
+async function activateLot(
+  ctx: MutationCtx,
+  lot: Doc<"auctionLots">,
+  now = Date.now()
+): Promise<ActivateLotResult> {
+  if (lot.status === "active") {
+    return { ok: true, lotId: lot._id };
+  }
+  if (lot.status !== "pending") {
+    return {
+      ok: false,
+      lotId: lot._id,
+      reason: `Lot #${lot.lotOrder} is ${lot.status}, not pending`,
+    };
+  }
+
+  const prepared = await prepareVehicleForLotActivation(ctx, lot.vehicleId, now);
+  if (!prepared.ok) {
+    return {
+      ok: false,
+      lotId: lot._id,
+      reason: `Lot #${lot.lotOrder}: ${prepared.reason}`,
+    };
+  }
+
+  const lotDuration = lot.lotDuration ?? 5 * 60 * 1000;
+  const endsAt = now + lotDuration;
+  await ctx.db.patch(lot._id, {
+    status: "active",
+    startsAt: now,
+    endsAt,
+    pausedRemainingMs: undefined,
+  });
+
+  await ctx.db.patch(lot.vehicleId, {
+    status: "in_auction",
+    updatedAt: now,
+  });
+
+  await ctx.scheduler.runAt(endsAt, internal.auctions.closeLotAt, {
+    lotId: lot._id,
+  });
+
+  return { ok: true, lotId: lot._id };
+}
+
+/**
+ * Mark a pending lot as passed when its vehicle cannot be activated so the
+ * auction can continue to the next runnable lot.
+ */
+async function passUnrunnableLot(
+  ctx: MutationCtx,
+  lot: Doc<"auctionLots">,
+  _reason: string
+) {
+  if (lot.status !== "pending") return;
+  await ctx.db.patch(lot._id, { status: "passed" });
+}
+
+/**
+ * Walk pending lots in order until one activates. Unrunnable lots are passed.
+ * Returns null when nothing could be activated.
+ */
+async function activateNextRunnablePendingLot(
+  ctx: MutationCtx,
+  auctionId: Id<"auctions">,
+  now = Date.now()
+): Promise<{ lotId: Id<"auctionLots">; skipped: string[] } | null> {
+  const pendingLots = await getPendingLots(ctx, auctionId);
+  const skipped: string[] = [];
+
+  for (const lot of pendingLots) {
+    const result = await activateLot(ctx, lot, now);
+    if (result.ok) {
+      return { lotId: result.lotId, skipped };
+    }
+    skipped.push(result.reason);
+    await passUnrunnableLot(ctx, lot, result.reason);
+  }
+
+  return null;
+}
+
+/**
+ * After a sequential lot closes (sold or no sale), optionally activate the next
+ * runnable pending lot. Returns true when a next lot was activated.
+ */
+async function maybeAutoAdvanceSequentialLot(
+  ctx: MutationCtx,
+  auction: Doc<"auctions">,
+  now = Date.now()
+): Promise<boolean> {
+  if (!shouldAutoAdvanceLots(auction)) {
+    return false;
+  }
+  const activated = await activateNextRunnablePendingLot(ctx, auction._id, now);
+  return activated !== null;
+}
+
+async function getLotsForAuction(ctx: MutationCtx, auctionId: Id<"auctions">) {
+  const lots = await ctx.db
     .query("auctionLots")
     .withIndex("by_auction", (q) => q.eq("auctionId", auctionId))
-    .filter((q) => q.eq(q.field("status"), "pending"))
     .collect();
+  return lots.sort((a, b) => a.lotOrder - b.lotOrder);
+}
 
-  return pendingLots.sort((a, b) => a.lotOrder - b.lotOrder)[0] ?? null;
+async function getActiveLots(ctx: MutationCtx, auctionId: Id<"auctions">) {
+  const lots = await getLotsForAuction(ctx, auctionId);
+  return lots.filter((l) => l.status === "active");
+}
+
+async function getPendingLots(ctx: MutationCtx, auctionId: Id<"auctions">) {
+  const lots = await getLotsForAuction(ctx, auctionId);
+  return lots.filter((l) => l.status === "pending");
+}
+
+async function getNextPendingLot(ctx: MutationCtx, auctionId: Id<"auctions">) {
+  const pendingLots = await getPendingLots(ctx, auctionId);
+  return pendingLots[0] ?? null;
+}
+
+async function activateAllPendingLots(
+  ctx: MutationCtx,
+  auctionId: Id<"auctions">,
+  now = Date.now()
+) {
+  const pendingLots = await getPendingLots(ctx, auctionId);
+  let activated = 0;
+  const failures: string[] = [];
+
+  for (const lot of pendingLots) {
+    const result = await activateLot(ctx, lot, now);
+    if (result.ok) {
+      activated += 1;
+    } else {
+      failures.push(result.reason);
+      await passUnrunnableLot(ctx, lot, result.reason);
+    }
+  }
+
+  if (activated === 0) {
+    throw new Error(
+      failures.length > 0
+        ? `Could not activate any lots: ${failures.slice(0, 3).join("; ")}`
+        : "No pending lots to activate"
+    );
+  }
+
+  return { activated, failed: failures.length, failures };
+}
+
+async function pauseAllActiveLots(ctx: MutationCtx, auctionId: Id<"auctions">, now: number) {
+  const activeLots = await getActiveLots(ctx, auctionId);
+  for (const lot of activeLots) {
+    if (lot.endsAt) {
+      const remaining = Math.max(0, lot.endsAt - now);
+      await ctx.db.patch(lot._id, {
+        pausedRemainingMs: remaining,
+        endsAt: undefined,
+      });
+    }
+  }
+  return activeLots.length;
+}
+
+async function resumeAllPausedLots(ctx: MutationCtx, auctionId: Id<"auctions">, now: number) {
+  const activeLots = await getActiveLots(ctx, auctionId);
+  let resumed = 0;
+  for (const lot of activeLots) {
+    if (lot.pausedRemainingMs !== undefined) {
+      const endsAt = now + lot.pausedRemainingMs;
+      await ctx.db.patch(lot._id, {
+        endsAt,
+        pausedRemainingMs: undefined,
+      });
+      await ctx.scheduler.runAt(endsAt, internal.auctions.closeLotAt, {
+        lotId: lot._id,
+      });
+      resumed += 1;
+    }
+  }
+  return resumed;
 }
 
 /**
@@ -75,32 +331,6 @@ async function maybeEndAuctionIfNoRunnableLots(
   });
 
   return true;
-}
-
-async function activateLot(ctx: MutationCtx, lot: Doc<"auctionLots">, now = Date.now()) {
-  const vehicle = await ctx.db.get(lot.vehicleId);
-  if (!vehicle) {
-    throw new Error("Vehicle not found for auction lot");
-  }
-
-  assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "in_auction");
-
-  const lotDuration = lot.lotDuration ?? 5 * 60 * 1000;
-  const endsAt = now + lotDuration;
-  await ctx.db.patch(lot._id, {
-    status: "active",
-    startsAt: now,
-    endsAt,
-    pausedRemainingMs: undefined,
-  });
-
-  await ctx.db.patch(lot.vehicleId, {
-    status: "in_auction",
-    updatedAt: now,
-  });
-
-  // Precise close — cron remains as fallback
-  await ctx.scheduler.runAt(endsAt, internal.auctions.closeLotAt, { lotId: lot._id });
 }
 
 async function cancelPreBidsAndReleaseReserves(
@@ -282,12 +512,11 @@ export const getAuctionById = query({
       return null;
     }
 
-    // Get all lots for this auction
     const lots = await ctx.db
       .query("auctionLots")
       .withIndex("by_auction", (q) => q.eq("auctionId", targetAuctionId))
-      .order("asc")
       .collect();
+    lots.sort((a, b) => a.lotOrder - b.lotOrder);
 
     // Get vehicle info for each lot (winner first name only — no email/admin PII)
     const lotsWithVehicles = await Promise.all(
@@ -380,6 +609,248 @@ export const getCurrentLot = query({
         ...vehicle,
         images: imagesWithUrls,
       },
+    };
+  },
+});
+
+/**
+ * Public live auction room — privacy-safe projection of all lots for buyer UI.
+ * Live = sequential (one activeLotId). Timed = concurrent (activeLotIds[]).
+ */
+export const getPublicLiveAuctionRoom = query({
+  args: {
+    auctionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const targetAuctionId = ctx.db.normalizeId("auctions", args.auctionId);
+    if (!targetAuctionId) {
+      return null;
+    }
+
+    const auction = await ctx.db.get(targetAuctionId);
+    if (!auction) {
+      return null;
+    }
+
+    const now = Date.now();
+    const lots = await ctx.db
+      .query("auctionLots")
+      .withIndex("by_auction", (q) => q.eq("auctionId", targetAuctionId))
+      .collect();
+    lots.sort((a, b) => a.lotOrder - b.lotOrder);
+
+    const publicLots = await Promise.all(
+      lots.map(async (lot) => {
+        const vehicle = await ctx.db.get(lot.vehicleId);
+        if (!vehicle) return null;
+
+        const images = await ctx.db
+          .query("vehicleImages")
+          .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+          .order("asc")
+          .collect();
+
+        const imagesWithUrls = await Promise.all(
+          images.map(async (img) => {
+            let url = img.imageUrl;
+            if (!url.startsWith("http") && !url.startsWith("/")) {
+              url = (await ctx.storage.getUrl(url as Id<"_storage">)) || "";
+            }
+            return {
+              url,
+              alt: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+              type: img.imageType,
+            };
+          })
+        );
+
+        let winnerFirstName: string | undefined;
+        if (lot.winnerId) {
+          const winner = await ctx.db.get(lot.winnerId);
+          winnerFirstName = winner?.firstName;
+        }
+
+        return {
+          lot: {
+            _id: lot._id,
+            lotOrder: lot.lotOrder,
+            status: lot.status,
+            currentBid: lot.currentBid,
+            startingBid: lot.startingBid,
+            bidIncrement: lot.bidIncrement,
+            bidCount: lot.bidCount,
+            winningBid: lot.winningBid,
+            soldAt: lot.soldAt,
+            startsAt: lot.startsAt,
+            endsAt: lot.endsAt,
+            buyItNowPrice: lot.buyItNowPrice,
+            buyItNowEnabled: lot.buyItNowEnabled,
+            remainingMs:
+              lot.status === "active" && lot.endsAt
+                ? Math.max(0, lot.endsAt - now)
+                : null,
+          },
+          vehicle: {
+            _id: vehicle._id,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            trim: vehicle.trim,
+            condition: vehicle.condition,
+            exteriorColor: vehicle.exteriorColor,
+            interiorColor: vehicle.interiorColor,
+            batteryHealthPercent: vehicle.batteryHealthPercent,
+            batteryCapacity: vehicle.batteryCapacity,
+            estimatedRange: vehicle.estimatedRange,
+            odometer: vehicle.odometer,
+            drivetrain: vehicle.drivetrain,
+            titleType: vehicle.titleType,
+            hasKeys: vehicle.hasKeys,
+            motorPower: vehicle.motorPower,
+            chargingType: vehicle.chargingType,
+            damageDescription: vehicle.damageDescription,
+            currentLocation: vehicle.currentLocation,
+            image: imagesWithUrls[0]?.url,
+            images: imagesWithUrls,
+          },
+          winnerFirstName,
+        };
+      })
+    );
+
+    const validLots = publicLots.filter(
+      (item): item is NonNullable<typeof item> => item !== null
+    );
+
+    const activeLots = validLots.filter((item) => item.lot.status === "active");
+    const pendingLots = validLots.filter((item) => item.lot.status === "pending");
+    const completedLots = validLots.filter((item) =>
+      item.lot.status === "sold" ||
+      item.lot.status === "no_sale" ||
+      item.lot.status === "passed"
+    );
+
+    const isSequential = auction.auctionType === "live";
+    const primaryActive = activeLots[0] ?? null;
+
+    return {
+      auction: {
+        _id: auction._id,
+        name: auction.name,
+        description: auction.description,
+        status: auction.status,
+        auctionType: auction.auctionType,
+        executionMode: isSequential ? "sequential" : "concurrent",
+        autoAdvanceLots: isSequential ? auction.autoAdvanceLots !== false : false,
+        scheduledStart: auction.scheduledStart,
+        actualStart: auction.actualStart,
+        actualEnd: auction.actualEnd,
+        bidIncrement: auction.bidIncrement,
+      },
+      lots: validLots,
+      activeLotIds: activeLots.map((item) => item.lot._id),
+      activeLot: primaryActive,
+      upcomingLots: pendingLots,
+      completedLots: [...completedLots].sort(
+        (a, b) => (b.lot.soldAt ?? b.lot.lotOrder) - (a.lot.soldAt ?? a.lot.lotOrder)
+      ),
+      counts: {
+        total: validLots.length,
+        active: activeLots.length,
+        pending: pendingLots.length,
+        completed: completedLots.length,
+      },
+      timing: {
+        now,
+        activeLotRemainingMs: primaryActive?.lot.remainingMs ?? null,
+      },
+    };
+  },
+});
+
+/**
+ * Admin: Update auction type while still scheduled (locks after start).
+ */
+export const updateAuctionType = mutation({
+  args: {
+    token: v.string(),
+    auctionId: v.id("auctions"),
+    auctionType: v.union(
+      v.literal("live"),
+      v.literal("timed"),
+      v.literal("buy_it_now")
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminUser(ctx, args.token);
+
+    const auction = await ctx.db.get(args.auctionId);
+    if (!auction) {
+      throw new Error("Auction not found");
+    }
+    if (auction.status !== "scheduled") {
+      throw new Error(
+        "Auction format can only be changed while the auction is scheduled"
+      );
+    }
+
+    await ctx.db.patch(args.auctionId, {
+      auctionType: args.auctionType,
+      // Timed auctions never auto-advance; live defaults to on when switching format.
+      autoAdvanceLots:
+        args.auctionType === "live"
+          ? auction.autoAdvanceLots !== false
+          : false,
+    });
+
+    return {
+      success: true,
+      message:
+        args.auctionType === "live"
+          ? "Format set to Live — lots run one at a time"
+          : args.auctionType === "timed"
+            ? "Format set to Timed — all lots run together"
+            : "Format updated",
+    };
+  },
+});
+
+/**
+ * Admin: Toggle auto-advance for sequential (live) auctions while scheduled.
+ */
+export const updateAuctionAutoAdvance = mutation({
+  args: {
+    token: v.string(),
+    auctionId: v.id("auctions"),
+    autoAdvanceLots: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminUser(ctx, args.token);
+
+    const auction = await ctx.db.get(args.auctionId);
+    if (!auction) {
+      throw new Error("Auction not found");
+    }
+    if (auction.status !== "scheduled") {
+      throw new Error(
+        "Auto-advance can only be changed while the auction is scheduled"
+      );
+    }
+    if (auction.auctionType !== "live") {
+      throw new Error(
+        "Auto-advance applies only to live (sequential) auctions"
+      );
+    }
+
+    await ctx.db.patch(args.auctionId, {
+      autoAdvanceLots: args.autoAdvanceLots,
+    });
+
+    return {
+      success: true,
+      message: args.autoAdvanceLots
+        ? "Next lot will open automatically when the current lot ends"
+        : "Lots will wait for an admin to advance after each close",
     };
   },
 });
@@ -604,6 +1075,7 @@ export const createAuction = mutation({
     scheduledStart: v.optional(v.number()),
     scheduledEnd: v.optional(v.number()),
     bidIncrement: v.number(),
+    autoAdvanceLots: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Validate required fields first
@@ -612,6 +1084,11 @@ export const createAuction = mutation({
     }
 
     const user = await requireAdminUser(ctx, args.token);
+
+    const autoAdvanceLots =
+      args.auctionType === "live"
+        ? args.autoAdvanceLots !== false
+        : false;
 
     const auctionId = await ctx.db.insert("auctions", {
       name: args.name,
@@ -622,6 +1099,7 @@ export const createAuction = mutation({
       scheduledEnd: args.scheduledEnd,
       bidIncrement: args.bidIncrement,
       extendOnBid: false,
+      autoAdvanceLots,
       totalLots: 0,
       soldLots: 0,
       totalBids: 0,
@@ -649,6 +1127,7 @@ export const createAuctionWithLots = mutation({
     scheduledStart: v.optional(v.number()),
     scheduledEnd: v.optional(v.number()),
     bidIncrement: v.number(),
+    autoAdvanceLots: v.optional(v.boolean()),
     lots: v.array(
       v.object({
         vehicleId: v.id("vehicles"),
@@ -670,6 +1149,11 @@ export const createAuctionWithLots = mutation({
 
     const user = await requireAdminUser(ctx, args.token);
 
+    const autoAdvanceLots =
+      args.auctionType === "live"
+        ? args.autoAdvanceLots !== false
+        : false;
+
     const auctionId = await ctx.db.insert("auctions", {
       name: args.name,
       description: args.description,
@@ -679,6 +1163,7 @@ export const createAuctionWithLots = mutation({
       scheduledEnd: args.scheduledEnd,
       bidIncrement: args.bidIncrement,
       extendOnBid: false,
+      autoAdvanceLots,
       totalLots: 0,
       soldLots: 0,
       totalBids: 0,
@@ -1033,7 +1518,7 @@ export const addLotsToAuctionBulk = mutation({
 });
 
 /**
- * Admin: Start an auction
+ * Admin: Start an auction (also recovers a live auction stuck with no active lot)
  */
 export const startAuction = mutation({
   args: {
@@ -1047,41 +1532,93 @@ export const startAuction = mutation({
     if (!auction) {
       throw new Error("Auction not found");
     }
-    if (auction.status !== "scheduled" && auction.status !== "paused") {
-      throw new Error(`Auction cannot be started from status: ${auction.status}`);
+
+    const now = Date.now();
+    const activeLots = await getActiveLots(ctx, args.auctionId);
+    const pendingLots = await getPendingLots(ctx, args.auctionId);
+
+    // Recovery: ended with active lots still open (premature end)
+    if (auction.status === "ended" && activeLots.length > 0) {
+      await ctx.db.patch(args.auctionId, {
+        status: "live",
+        actualEnd: undefined,
+      });
+      return {
+        success: true,
+        message: `Reopened auction — ${activeLots.length} active lot(s) still bidding`,
+      };
     }
 
-    const activeLot = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
+    // Recovery: live auction with no active lot (failed advance / bad vehicle skip)
+    if (auction.status === "live") {
+      if (activeLots.length > 0) {
+        return {
+          success: true,
+          message: "Auction is already live with an active lot",
+        };
+      }
+      if (isConcurrentAuction(auction)) {
+        const result = await activateAllPendingLots(ctx, args.auctionId, now);
+        return {
+          success: true,
+          message: `Recovered timed auction — activated ${result.activated} lot(s)`,
+        };
+      }
+      const activated = await activateNextRunnablePendingLot(
+        ctx,
+        args.auctionId,
+        now
+      );
+      if (!activated) {
+        await maybeEndAuctionIfNoRunnableLots(ctx, args.auctionId, now);
+        throw new Error(
+          "No runnable pending lots left to activate. Check vehicle statuses."
+        );
+      }
+      const skippedNote =
+        activated.skipped.length > 0
+          ? ` (skipped ${activated.skipped.length} unrunnable lot(s))`
+          : "";
+      return {
+        success: true,
+        message: `Recovered live auction — next lot activated${skippedNote}`,
+      };
+    }
 
-    const nextLot = activeLot ? null : await getNextPendingLot(ctx, args.auctionId);
-    if (!activeLot && !nextLot) {
+    if (auction.status !== "scheduled" && auction.status !== "paused") {
+      throw new Error(
+        `Auction cannot be started from status: ${auction.status}`
+      );
+    }
+
+    if (activeLots.length === 0 && pendingLots.length === 0) {
       throw new Error("Cannot start auction without pending lots");
     }
 
-    // Update auction status
-    const now = Date.now();
     const wasPaused = auction.status === "paused";
+
+    // Activate first, then mark live — avoids live-with-no-lot if activation fails
+    if (wasPaused && activeLots.length > 0) {
+      await resumeAllPausedLots(ctx, args.auctionId, now);
+    } else if (isConcurrentAuction(auction)) {
+      await activateAllPendingLots(ctx, args.auctionId, now);
+    } else {
+      const activated = await activateNextRunnablePendingLot(
+        ctx,
+        args.auctionId,
+        now
+      );
+      if (!activated && activeLots.length === 0) {
+        throw new Error(
+          "Could not activate any lot. Check that lot vehicles are approved/scheduled/unsold."
+        );
+      }
+    }
+
     await ctx.db.patch(args.auctionId, {
       status: "live",
       actualStart: auction.actualStart ?? now,
     });
-
-    if (activeLot && wasPaused && activeLot.pausedRemainingMs !== undefined) {
-      const endsAt = now + activeLot.pausedRemainingMs;
-      await ctx.db.patch(activeLot._id, {
-        endsAt,
-        pausedRemainingMs: undefined,
-      });
-      await ctx.scheduler.runAt(endsAt, internal.auctions.closeLotAt, {
-        lotId: activeLot._id,
-      });
-    } else if (nextLot) {
-      await activateLot(ctx, nextLot, now);
-    }
 
     return { success: true, message: "Auction started successfully" };
   },
@@ -1107,19 +1644,8 @@ export const pauseAuction = mutation({
     }
 
     const now = Date.now();
-    const activeLot = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
-
-    if (activeLot?.endsAt) {
-      const remaining = Math.max(0, activeLot.endsAt - now);
-      await ctx.db.patch(activeLot._id, {
-        pausedRemainingMs: remaining,
-        endsAt: undefined,
-      });
-    }
+    // Pause every active lot (covers both sequential and concurrent)
+    await pauseAllActiveLots(ctx, args.auctionId, now);
 
     await ctx.db.patch(args.auctionId, {
       status: "paused",
@@ -1130,7 +1656,7 @@ export const pauseAuction = mutation({
 });
 
 /**
- * Admin: Advance to next lot
+ * Admin: Advance to next lot (live/sequential auctions only)
  */
 export const advanceLot = mutation({
   args: {
@@ -1147,60 +1673,151 @@ export const advanceLot = mutation({
     if (auction.status !== "live") {
       throw new Error(`Lots can only be advanced on live auctions. Current status: ${auction.status}`);
     }
+    if (!isSequentialAuction(auction)) {
+      throw new Error(
+        "Advance lot is only available for live (sequential) auctions. Timed auctions close lots independently."
+      );
+    }
 
-    // Get current active lot
-    const currentLot = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
-
-    if (currentLot) {
-      // End current lot
+    const activeLots = await getActiveLots(ctx, args.auctionId);
+    for (const currentLot of activeLots) {
       await endLot(ctx, currentLot._id);
     }
 
-    const nextLot = await getNextPendingLot(ctx, args.auctionId);
+    const activated = await activateNextRunnablePendingLot(
+      ctx,
+      args.auctionId
+    );
 
-    if (nextLot) {
-      await activateLot(ctx, nextLot);
-
-      return { success: true, message: "Advanced to next lot" };
-    } else {
-      // No more lots, end auction
-      await ctx.db.patch(args.auctionId, {
-        status: "ended",
-        actualEnd: Date.now(),
-      });
-
-      return { success: true, message: "Auction completed - no more lots" };
+    if (activated) {
+      const skippedNote =
+        activated.skipped.length > 0
+          ? ` (skipped ${activated.skipped.length} unrunnable)`
+          : "";
+      return {
+        success: true,
+        message: `Advanced to next lot${skippedNote}`,
+      };
     }
+
+    await ctx.db.patch(args.auctionId, {
+      status: "ended",
+      actualEnd: Date.now(),
+    });
+
+    return { success: true, message: "Auction completed - no more lots" };
   },
 });
 
 
 /**
- * Internal: End a lot and create order if sold
+ * Resolve the high bidder for a lot.
+ * Highest amount wins; earliest createdAt breaks ties ("speed").
  */
-async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
+async function resolveLotWinner(
+  ctx: MutationCtx,
+  lot: Doc<"auctionLots">
+): Promise<{
+  userId: Id<"users">;
+  amount: number;
+  bidId?: Id<"bids">;
+} | null> {
+  const bids = await ctx.db
+    .query("bids")
+    .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", lot._id))
+    .collect();
+
+  const eligible = bids.filter(
+    (b) =>
+      b.status === "active" ||
+      b.status === "winning" ||
+      b.status === "outbid" ||
+      b.status === "won"
+  );
+
+  if (eligible.length > 0) {
+    eligible.sort((a, b) => {
+      if (b.bidAmount !== a.bidAmount) return b.bidAmount - a.bidAmount;
+      return a.createdAt - b.createdAt;
+    });
+
+    if (
+      lot.currentBidderId &&
+      lot.currentBid > 0 &&
+      eligible.some(
+        (b) =>
+          b.userId === lot.currentBidderId && b.bidAmount === lot.currentBid
+      )
+    ) {
+      const pointed = eligible.find(
+        (b) =>
+          b.userId === lot.currentBidderId && b.bidAmount === lot.currentBid
+      )!;
+      return {
+        userId: pointed.userId,
+        amount: pointed.bidAmount,
+        bidId: pointed._id,
+      };
+    }
+
+    const top = eligible[0];
+    return {
+      userId: top.userId,
+      amount: top.bidAmount,
+      bidId: top._id,
+    };
+  }
+
+  if (lot.currentBidderId && lot.bidCount > 0 && lot.currentBid > 0) {
+    return {
+      userId: lot.currentBidderId,
+      amount: lot.currentBid,
+    };
+  }
+
+  return null;
+}
+
+type EndLotResult = {
+  outcome: "sold" | "no_sale";
+  winningBid?: number;
+  winnerId?: Id<"users">;
+  reserveMet: boolean;
+};
+
+/**
+ * Internal: End a lot and create order if sold.
+ * When time runs out (or the lot is force-closed), the highest bidder is
+ * automatically awarded if any eligible bids exist.
+ */
+async function endLot(
+  ctx: MutationCtx,
+  lotId: Id<"auctionLots">
+): Promise<EndLotResult | null> {
   const lot = await ctx.db.get(lotId);
-  if (!lot) return;
-  if (lot.status !== "active") return;
+  if (!lot) return null;
+  if (lot.status !== "active") return null;
 
   const vehicle = await ctx.db.get(lot.vehicleId);
-  if (!vehicle) return;
+  if (!vehicle) return null;
 
-  // Check if reserve was met
   const reservePrice = lot.reservePrice ?? vehicle.reservePrice;
-  const reserveMet = !reservePrice || lot.currentBid >= reservePrice;
+  const winner = await resolveLotWinner(ctx, lot);
+  const reserveMet =
+    !reservePrice || (winner !== null && winner.amount >= reservePrice);
   const now = Date.now();
 
-  if (reserveMet && lot.currentBidderId) {
-    // Mark as sold
+  // Award the high bidder whenever there is a winning bid on close.
+  // Reserve status is recorded for reporting; unmet reserve no longer
+  // blocks the automatic hammer award at lot end.
+  if (winner) {
     await ctx.db.patch(lotId, {
       status: "sold",
-      winningBid: lot.currentBid,
-      winnerId: lot.currentBidderId,
+      currentBid: winner.amount,
+      currentBidderId: winner.userId,
+      winningBid: winner.amount,
+      winnerId: winner.userId,
+      reserveMet,
       soldAt: now,
     });
 
@@ -1209,48 +1826,46 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
       .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", lotId))
       .collect();
 
-    let winningBidId: Id<"bids"> | undefined;
-    await Promise.all(
-      bids.map((bid) => {
-        if (bid.userId === lot.currentBidderId && bid.bidAmount === lot.currentBid) {
-          winningBidId = bid._id;
-          return ctx.db.patch(bid._id, { status: "won" });
-        }
-        if (bid.status === "active" || bid.status === "winning") {
-          return ctx.db.patch(bid._id, { status: "outbid" });
-        }
-        return Promise.resolve();
-      })
-    );
+    let winningBidId: Id<"bids"> | undefined = winner.bidId;
+    let markedWinner = false;
+    for (const bid of bids) {
+      const isWinningBid =
+        bid.userId === winner.userId && bid.bidAmount === winner.amount;
+      if (isWinningBid && !markedWinner) {
+        winningBidId = bid._id;
+        markedWinner = true;
+        await ctx.db.patch(bid._id, { status: "won" });
+      } else if (bid.status === "active" || bid.status === "winning") {
+        await ctx.db.patch(bid._id, { status: "outbid" });
+      }
+    }
 
-    // Generate unique order number
     const orderNumber = await generateUniqueOrderNumber(ctx);
-
-    // Calculate fees
-    const serviceFee = calculateServiceFee(lot.currentBid);
-    const documentationFee = 50_000; // Standard documentation fee
-    const subtotal = lot.currentBid;
+    const serviceFee = calculateServiceFee(winner.amount);
+    const documentationFee = 50_000;
+    const subtotal = winner.amount;
     const totalAmount = subtotal + serviceFee + documentationFee;
 
-    const existingOrder = (await ctx.db
-      .query("orders")
-      .withIndex("by_vehicle", (q) => q.eq("vehicleId", lot.vehicleId))
-      .collect()).find(
+    const existingOrder = (
+      await ctx.db
+        .query("orders")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", lot.vehicleId))
+        .collect()
+    ).find(
       (order) =>
         order.auctionLotId === lotId &&
         order.status !== "cancelled" &&
         order.status !== "refunded"
     );
 
-    let orderId = existingOrder?._id;
     if (!existingOrder) {
-      orderId = await ctx.db.insert("orders", {
+      const orderId = await ctx.db.insert("orders", {
         orderNumber,
-        userId: lot.currentBidderId,
+        userId: winner.userId,
         vehicleId: lot.vehicleId,
         auctionLotId: lotId,
         orderType: "auction_win",
-        winningBid: lot.currentBid,
+        winningBid: winner.amount,
         serviceFee,
         documentationFee,
         subtotal,
@@ -1265,14 +1880,14 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
 
       const { depositNaira, order } = await applyBidReserveAsDepositPayment(ctx, {
         orderId,
-        userId: lot.currentBidderId,
-        winningBidNaira: lot.currentBid,
+        userId: winner.userId,
+        winningBidNaira: winner.amount,
         relatedBidId: winningBidId,
       });
 
       const deadlineStr = new Date(order.paymentDeadline).toLocaleString();
       await createInAppNotification(ctx, {
-        userId: lot.currentBidderId,
+        userId: winner.userId,
         type: "auction_won",
         title: "You won the auction!",
         message: `You won lot for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Deposit of ₦${depositNaira.toLocaleString()} applied. Pay remaining ₦${order.balanceDue.toLocaleString()} by ${deadlineStr} or your deposit will be forfeited and the vehicle re-listed.`,
@@ -1281,17 +1896,15 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
         auctionId: lot.auctionId,
       });
 
-      // Send B2: Auction Won Email
-      const winnerUser = await ctx.db.get(lot.currentBidderId);
+      const winnerUser = await ctx.db.get(winner.userId);
       if (winnerUser) {
         await ctx.scheduler.runAfter(0, internal.emails.sendAuctionWonEmail, {
           userId: winnerUser._id,
           email: winnerUser.email,
           firstName: winnerUser.firstName,
           vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          winningBid: lot.currentBid,
-          depositApplied: depositNaira * 100, // convert back to kobo if needed or keep consistent. Wait, depositNaira is in Naira (since we divide or use Naira). Let's see what applyBidReserveAsDepositPayment returns.
-          // Wait, let's verify what depositNaira is.
+          winningBid: winner.amount,
+          depositApplied: depositNaira * 100,
           balanceDue: order.balanceDue,
           paymentDeadline: order.paymentDeadline,
           orderId,
@@ -1301,7 +1914,6 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
         });
       }
 
-      // Send B5: Seller Vehicle Sold Email
       if (vehicle.sellerId) {
         const sellerUser = await ctx.db.get(vehicle.sellerId);
         if (sellerUser) {
@@ -1310,7 +1922,7 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
             email: sellerUser.email,
             firstName: sellerUser.firstName,
             vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-            salePrice: lot.currentBid,
+            salePrice: winner.amount,
             paymentDeadline: order.paymentDeadline,
             orderNumber,
             saleType: "auction",
@@ -1322,10 +1934,9 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "payment_pending");
 
-    // Update vehicle status — tag winner so they can reopen VDP to complete payment
     await ctx.db.patch(lot.vehicleId, {
       status: "payment_pending",
-      buyItNowPurchasedBy: lot.currentBidderId,
+      buyItNowPurchasedBy: winner.userId,
       buyItNowPurchasedAt: now,
       updatedAt: now,
     });
@@ -1336,43 +1947,31 @@ async function endLot(ctx: MutationCtx, lotId: Id<"auctionLots">) {
         soldLots: auction.soldLots + 1,
       });
     }
-  } else {
-    // No sale — release current bidder reserve if any
-    let releasedAmount = 0;
-    if (lot.currentBidderId && lot.currentBid > 0) {
-      await releaseUserBidReserve(ctx, {
-        userId: lot.currentBidderId,
-        bidAmountNaira: lot.currentBid,
-        reason: `No sale on ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      });
-      releasedAmount = calculateBidReserveAmountKobo(lot.currentBid);
-    }
 
-    await ctx.db.patch(lotId, {
-      status: "no_sale",
-    });
-
-    // Send B3: Auction Lost (No Sale) Email to highest bidder
-    if (lot.currentBidderId) {
-      const bidderUser = await ctx.db.get(lot.currentBidderId);
-      if (bidderUser) {
-        await ctx.scheduler.runAfter(0, internal.emails.sendAuctionLostEmail, {
-          userId: bidderUser._id,
-          email: bidderUser.email,
-          firstName: bidderUser.firstName,
-          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          reserveReleased: releasedAmount,
-        });
-      }
-    }
-
-    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");
-
-    await ctx.db.patch(lot.vehicleId, {
-      status: "unsold",
-      updatedAt: now,
-    });
+    return {
+      outcome: "sold",
+      winningBid: winner.amount,
+      winnerId: winner.userId,
+      reserveMet,
+    };
   }
+
+  await ctx.db.patch(lotId, {
+    status: "no_sale",
+    reserveMet: false,
+  });
+
+  assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");
+
+  await ctx.db.patch(lot.vehicleId, {
+    status: "unsold",
+    updatedAt: now,
+  });
+
+  return {
+    outcome: "no_sale",
+    reserveMet: false,
+  };
 }
 
 /**
@@ -1392,16 +1991,18 @@ export const closeLotAt = internalMutation({
 
     await endLot(ctx, args.lotId);
 
-    const nextLot = await getNextPendingLot(ctx, lot.auctionId);
     const now = Date.now();
-    if (nextLot) {
-      await activateLot(ctx, nextLot, now);
-    } else {
-      await ctx.db.patch(lot.auctionId, {
-        status: "ended",
-        actualEnd: now,
-      });
+
+    // Live/sequential: auto-advance to next pending lot (sold or no sale) when enabled.
+    // Timed/concurrent: do not advance.
+    if (auction) {
+      const advanced = await maybeAutoAdvanceSequentialLot(ctx, auction, now);
+      if (advanced) {
+        return;
+      }
     }
+
+    await maybeEndAuctionIfNoRunnableLots(ctx, lot.auctionId, now);
   },
 });
 
@@ -1424,19 +2025,84 @@ export const startScheduledAuctions = internalMutation({
       .collect();
 
     for (const auction of scheduledAuctions) {
-      const firstLot = await getNextPendingLot(ctx, auction._id);
-      if (!firstLot) {
-        // All lots already sold via Buy Now (or none scheduled) — close empty auction
+      const pendingLots = await getPendingLots(ctx, auction._id);
+      if (pendingLots.length === 0) {
         await maybeEndAuctionIfNoRunnableLots(ctx, auction._id, now);
         continue;
       }
 
+      try {
+        if (isConcurrentAuction(auction)) {
+          await activateAllPendingLots(ctx, auction._id, now);
+        } else {
+          const activated = await activateNextRunnablePendingLot(
+            ctx,
+            auction._id,
+            now
+          );
+          if (!activated) {
+            await maybeEndAuctionIfNoRunnableLots(ctx, auction._id, now);
+            continue;
+          }
+        }
+
+        await ctx.db.patch(auction._id, {
+          status: "live",
+          actualStart: now,
+        });
+      } catch {
+        // Leave auction scheduled so the next cron tick can retry
+        continue;
+      }
+    }
+
+    // Heal live auctions stuck with no active lot (failed activation / skip)
+    const liveAuctions = await ctx.db
+      .query("auctions")
+      .withIndex("by_status", (q) => q.eq("status", "live"))
+      .collect();
+
+    for (const auction of liveAuctions) {
+      const activeLots = await getActiveLots(ctx, auction._id);
+      if (activeLots.length > 0) continue;
+
+      try {
+        if (isConcurrentAuction(auction)) {
+          const pending = await getPendingLots(ctx, auction._id);
+          if (pending.length === 0) {
+            await maybeEndAuctionIfNoRunnableLots(ctx, auction._id, now);
+            continue;
+          }
+          await activateAllPendingLots(ctx, auction._id, now);
+        } else {
+          const activated = await activateNextRunnablePendingLot(
+            ctx,
+            auction._id,
+            now
+          );
+          if (!activated) {
+            await maybeEndAuctionIfNoRunnableLots(ctx, auction._id, now);
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    // Heal auctions marked ended while lots are still active (premature end / race)
+    const endedAuctions = await ctx.db
+      .query("auctions")
+      .withIndex("by_status", (q) => q.eq("status", "ended"))
+      .collect();
+
+    for (const auction of endedAuctions) {
+      const activeLots = await getActiveLots(ctx, auction._id);
+      if (activeLots.length === 0) continue;
+
       await ctx.db.patch(auction._id, {
         status: "live",
-        actualStart: now,
+        actualEnd: undefined,
       });
-
-      await activateLot(ctx, firstLot, now);
     }
   },
 });
@@ -1458,26 +2124,32 @@ export const endExpiredLots = internalMutation({
       )
       .collect();
 
+    // Group by auction so concurrent auctions only end once all lots are done
+    const byAuction = new Map<Id<"auctions">, Doc<"auctionLots">[]>();
     for (const lot of expiredLots) {
       const auction = await ctx.db.get(lot.auctionId);
       if (auction?.status === "paused") {
         continue;
       }
+      const list = byAuction.get(lot.auctionId) ?? [];
+      list.push(lot);
+      byAuction.set(lot.auctionId, list);
+    }
 
-      await endLot(ctx, lot._id);
+    for (const [auctionId, lots] of byAuction) {
+      const auction = await ctx.db.get(auctionId);
+      if (!auction) continue;
 
-      // Advance to next lot in the same auction
-      const nextLot = await getNextPendingLot(ctx, lot.auctionId);
-
-      if (nextLot) {
-        await activateLot(ctx, nextLot, now);
-      } else {
-        // No more lots, end auction
-        await ctx.db.patch(lot.auctionId, {
-          status: "ended",
-          actualEnd: now,
-        });
+      for (const lot of lots) {
+        await endLot(ctx, lot._id);
       }
+
+      const advanced = await maybeAutoAdvanceSequentialLot(ctx, auction, now);
+      if (advanced) {
+        continue;
+      }
+
+      await maybeEndAuctionIfNoRunnableLots(ctx, auctionId, now);
     }
   },
 });
@@ -1548,9 +2220,12 @@ export const getVendorAuctions = query({
  */
 export const getLiveControlCenterData = query({
   args: {
+    token: v.string(),
     auctionId: v.optional(v.id("auctions")),
   },
   handler: async (ctx, args) => {
+    await requireAdminUser(ctx, args.token);
+
     const now = Date.now();
     let targetAuction: Doc<"auctions"> | null = null;
 
@@ -1746,9 +2421,9 @@ export const getLiveControlCenterData = query({
       })
     );
 
-    // Combine assigned pending lots and available unassigned vehicles
-    const upcomingLots = [...validPendingLots, ...hydratedUnassignedVehicles];
-
+    // Combine assigned pending lots only for Up Next / queue.
+    // Unassigned inventory stays available for quick-add, not as fake queue slots.
+    const upcomingLots = validPendingLots;
     const nextLot = upcomingLots[0] || null;
     const nextLotAfter = upcomingLots[1] || null;
 
@@ -1897,16 +2572,27 @@ export const getLiveControlCenterData = query({
         item.lot.status === "passed"
     );
 
+    const activeLots = validAllHydratedLots.filter((item) => item.lot.status === "active");
+
     return {
       auction: targetAuction,
       activeLot,
+      activeLots,
       nextLot,
       nextLotAfter,
       upcomingLots,
+      unassignedVehicles: hydratedUnassignedVehicles,
       completedLots,
       allHydratedLots: validAllHydratedLots,
-      pendingLotsCount: upcomingLots.length,
-      allLotsCount: lots.length + hydratedUnassignedVehicles.length,
+      pendingLotsCount: validPendingLots.length,
+      allLotsCount: lots.length,
+      unassignedInventoryCount: hydratedUnassignedVehicles.length,
+      needsLotRecovery:
+        ((targetAuction.status === "live" ||
+          targetAuction.status === "paused") &&
+          !activeLotDoc &&
+          validPendingLots.length > 0) ||
+        (targetAuction.status === "ended" && activeLots.length > 0),
       timing: {
         now,
         auctionElapsedMs,
@@ -1918,7 +2604,7 @@ export const getLiveControlCenterData = query({
 });
 
 /**
- * Admin: Set a specific lot as the active live lot in the auction
+ * Admin: Set a specific lot as the active live lot (live/sequential auctions only)
  */
 export const setCurrentActiveLot = mutation({
   args: {
@@ -1931,36 +2617,42 @@ export const setCurrentActiveLot = mutation({
 
     const auction = await ctx.db.get(args.auctionId);
     if (!auction) throw new Error("Auction not found");
+    if (!isSequentialAuction(auction)) {
+      throw new Error(
+        "Setting the active lot is only available for live (sequential) auctions."
+      );
+    }
 
     const lot = await ctx.db.get(args.lotId);
     if (!lot) throw new Error("Lot not found");
     if (lot.auctionId !== args.auctionId) {
       throw new Error("Lot does not belong to this auction");
     }
+    if (lot.status === "sold" || lot.status === "no_sale" || lot.status === "passed") {
+      throw new Error("Cannot activate a completed lot");
+    }
 
     const now = Date.now();
 
-    // Deactivate current active lot if any
-    const activeLots = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
-
+    // Properly close any other active lots before activating the requested one
+    const activeLots = await getActiveLots(ctx, args.auctionId);
     for (const activeLotItem of activeLots) {
       if (activeLotItem._id !== args.lotId) {
-        await ctx.db.patch(activeLotItem._id, {
-          status: "pending",
-          endsAt: undefined,
-          pausedRemainingMs: undefined,
-        });
+        await endLot(ctx, activeLotItem._id);
       }
     }
 
-    // Activate the requested lot
-    await activateLot(ctx, lot, now);
+    if (lot.status !== "active") {
+      // Pending lots that were passed need to be pending again to activate
+      if (lot.status === "passed") {
+        throw new Error("Cannot activate a completed lot");
+      }
+      const result = await activateLot(ctx, lot, now);
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+    }
 
-    // Ensure auction status is live
     if (auction.status !== "live") {
       await ctx.db.patch(args.auctionId, {
         status: "live",
@@ -2117,22 +2809,35 @@ export const forceCloseLot = mutation({
       throw new Error("Only active lots can be force closed");
     }
 
+    const auction = await ctx.db.get(lot.auctionId);
+    if (!auction) {
+      throw new Error("Auction not found");
+    }
+
     const now = Date.now();
     await ctx.db.patch(args.lotId, { endsAt: now });
 
-    await endLot(ctx, args.lotId);
+    const result = await endLot(ctx, args.lotId);
 
-    const nextLot = await getNextPendingLot(ctx, lot.auctionId);
-    if (nextLot) {
-      await activateLot(ctx, nextLot, now);
-    } else {
-      await ctx.db.patch(lot.auctionId, {
-        status: "ended",
-        actualEnd: now,
-      });
+    // Live/sequential: auto-advance when enabled (sold or no sale). Timed: leave other lots alone.
+    const advanced = await maybeAutoAdvanceSequentialLot(ctx, auction, now);
+    if (!advanced) {
+      await maybeEndAuctionIfNoRunnableLots(ctx, lot.auctionId, now);
     }
 
-    return { success: true, message: `Lot #${lot.lotOrder} force closed.` };
+    if (result?.outcome === "sold") {
+      return {
+        success: true,
+        outcome: "sold" as const,
+        message: `Lot #${lot.lotOrder} sold for ₦${(result.winningBid ?? 0).toLocaleString()} — high bidder awarded${advanced ? "; next lot opened" : ""}.`,
+      };
+    }
+
+    return {
+      success: true,
+      outcome: "no_sale" as const,
+      message: `Lot #${lot.lotOrder} closed with no sale (no bids)${advanced ? "; next lot opened" : ""}.`,
+    };
   },
 });
 

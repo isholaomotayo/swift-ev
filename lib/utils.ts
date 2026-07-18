@@ -109,6 +109,28 @@ export function calculateTimeRemaining(endTime: number): string {
 }
 
 /**
+ * Format a countdown duration as a clock string.
+ * - under 24h: HH:MM:SS
+ * - 24h+: D:HH:MM:SS
+ */
+export function formatCountdownClock(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+
+  const hh = hours.toString().padStart(2, "0");
+  const mm = mins.toString().padStart(2, "0");
+  const ss = secs.toString().padStart(2, "0");
+
+  if (days > 0) {
+    return `${days}:${hh}:${mm}:${ss}`;
+  }
+  return `${hh}:${mm}:${ss}`;
+}
+
+/**
  * Get color class based on time remaining
  * Returns Tailwind color class
  */

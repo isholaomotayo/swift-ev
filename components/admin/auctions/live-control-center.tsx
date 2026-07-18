@@ -54,7 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCountdownClock, formatCurrency, formatDate } from "@/lib/utils";
 
 interface LiveControlCenterProps {
   initialAuctionId?: Id<"auctions">;
@@ -77,9 +77,12 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
 
   // Queries
   const allAuctions = useQuery(api.auctions.listAuctions, {}) ?? [];
-  const controlData = useQuery(api.auctions.getLiveControlCenterData, {
-    auctionId: selectedAuctionId,
-  });
+  const controlData = useQuery(
+    api.auctions.getLiveControlCenterData,
+    token
+      ? { token, auctionId: selectedAuctionId }
+      : "skip"
+  );
 
   // Mutations
   const startAuction = useMutation(api.auctions.startAuction);
@@ -111,11 +114,14 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
 
   const currentAuction = controlData?.auction;
   const activeLot = controlData?.activeLot;
+  const activeLots = controlData?.activeLots ?? [];
   const nextLot = controlData?.nextLot;
   const nextLotAfter = controlData?.nextLotAfter;
   const completedLots = controlData?.completedLots ?? [];
   const allHydratedLots = controlData?.allHydratedLots ?? [];
   const timing = controlData?.timing;
+  const isSequential = currentAuction?.auctionType === "live";
+  const isConcurrent = currentAuction?.auctionType === "timed";
 
   // Selected or active lot for display
   const currentDisplayedLot = useMemo(() => {
@@ -126,8 +132,34 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     return activeLot || allHydratedLots[0] || null;
   }, [inspectedLotId, allHydratedLots, activeLot]);
 
+  // Concurrent: other active lots ending soonest (no sequential "pending" queue)
+  const concurrentPeerLots = useMemo(() => {
+    if (!isConcurrent) return [];
+    const currentId = currentDisplayedLot?.lot._id;
+    return [...activeLots]
+      .filter((item) => item.lot._id !== currentId)
+      .sort((a, b) => (a.lot.endsAt ?? Infinity) - (b.lot.endsAt ?? Infinity));
+  }, [isConcurrent, activeLots, currentDisplayedLot?.lot._id]);
+
+  const queuePreviewA = isConcurrent ? concurrentPeerLots[0] ?? null : nextLot;
+  const queuePreviewB = isConcurrent ? concurrentPeerLots[1] ?? null : nextLotAfter;
+
+  const controlTargetLot = useMemo(() => {
+    if (
+      currentDisplayedLot &&
+      currentDisplayedLot.lot.status === "active" &&
+      (isConcurrent || currentDisplayedLot.lot._id === activeLot?.lot._id)
+    ) {
+      return currentDisplayedLot;
+    }
+    return activeLot;
+  }, [currentDisplayedLot, activeLot, isConcurrent]);
+
   const isInspectingHistorical =
-    currentDisplayedLot && activeLot && currentDisplayedLot.lot._id !== activeLot.lot._id;
+    currentDisplayedLot &&
+    activeLot &&
+    currentDisplayedLot.lot._id !== activeLot.lot._id &&
+    !(isConcurrent && currentDisplayedLot.lot.status === "active");
 
   // Lot Stepper navigation index
   const currentLotIndex = useMemo(() => {
@@ -150,12 +182,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
   };
 
   // Formatting helpers
-  const formatTimerSeconds = (ms: number) => {
-    const totalSec = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
+  const formatTimerSeconds = (ms: number) => formatCountdownClock(ms);
 
   const formatDurationMs = (ms: number) => {
     if (!ms || ms <= 0) return "0m 0s";
@@ -245,12 +272,12 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
   };
 
   const handleExtendLot = async (seconds: number) => {
-    if (!token || !activeLot) return;
+    if (!token || !controlTargetLot) return;
     setIsPerformingAction(`extend_${seconds}`);
     try {
       const res = await extendLotTime({
         token,
-        lotId: activeLot.lot._id,
+        lotId: controlTargetLot.lot._id,
         seconds,
       });
       toast({ title: "Timer Extended", description: res.message });
@@ -266,14 +293,17 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
   };
 
   const handleForceCloseLot = async () => {
-    if (!token || !activeLot) return;
+    if (!token || !controlTargetLot) return;
     setIsPerformingAction("force_close");
     try {
       const res = await forceCloseLot({
         token,
-        lotId: activeLot.lot._id,
+        lotId: controlTargetLot.lot._id,
       });
-      toast({ title: "Lot Closed", description: res.message });
+      toast({
+        title: res.outcome === "sold" ? "High bidder awarded" : "Lot closed — no sale",
+        description: res.message,
+      });
       setInspectedLotId(null);
       setSelectedImageIndex(0);
     } catch (err) {
@@ -317,6 +347,12 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
   const isPaused = currentAuction.status === "paused";
   const isScheduled = currentAuction.status === "scheduled";
   const isEnded = currentAuction.status === "ended" || currentAuction.status === "cancelled";
+  const needsLotRecovery = Boolean(controlData.needsLotRecovery);
+  const canStartOrRecover =
+    isScheduled ||
+    isPaused ||
+    (isLive && needsLotRecovery) ||
+    (isEnded && needsLotRecovery);
 
   // Calculate percentage of timer remaining for active lot
   const totalLotDuration = activeLot?.lot.lotDuration ?? 5 * 60 * 1000;
@@ -351,7 +387,15 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Type: <span className="capitalize text-foreground font-medium">{currentAuction.auctionType}</span> • Total Lots:{" "}
+                Format:{" "}
+                <span className="text-foreground font-medium">
+                  {currentAuction.auctionType === "live"
+                    ? "Live · Sequential"
+                    : currentAuction.auctionType === "timed"
+                      ? "Timed · Concurrent"
+                      : currentAuction.auctionType}
+                </span>{" "}
+                • Total Lots:{" "}
                 <span className="text-foreground font-medium">{controlData.allLotsCount}</span> • Completed:{" "}
                 <span className="text-foreground font-medium">{completedLots.length}</span> • Queue Remaining:{" "}
                 <span className="text-foreground font-medium">{controlData.pendingLotsCount}</span>
@@ -422,11 +466,21 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
             <Button
               size="sm"
               onClick={handleStartAuction}
-              disabled={isPerformingAction !== null || (!isScheduled && !isPaused)}
+              disabled={isPerformingAction !== null || !canStartOrRecover}
               className="bg-volt-green text-black hover:bg-volt-green/90 font-medium"
             >
               <Play className="h-4 w-4 mr-1.5 fill-current" />
-              {isPerformingAction === "start" ? "Starting..." : isPaused ? "Resume Auction" : "Start Auction"}
+              {isPerformingAction === "start"
+                ? needsLotRecovery
+                  ? "Recovering..."
+                  : "Starting..."
+                : needsLotRecovery
+                  ? isEnded
+                    ? "Reopen Auction"
+                    : "Recover Active Lot"
+                  : isPaused
+                    ? "Resume Auction"
+                    : "Start Auction"}
             </Button>
 
             <Button
@@ -439,29 +493,47 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
               {isPerformingAction === "pause" ? "Pausing..." : "Pause Auction"}
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAdvanceLot}
-              disabled={isPerformingAction !== null || !isLive || isEnded}
-            >
-              <SkipForward className="h-4 w-4 mr-1.5 text-electric-blue" />
-              {isPerformingAction === "advance" ? "Advancing..." : "Next Lot"}
-            </Button>
+            {isSequential ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAdvanceLot}
+                disabled={isPerformingAction !== null || !isLive || isEnded}
+              >
+                <SkipForward className="h-4 w-4 mr-1.5 text-electric-blue" />
+                {isPerformingAction === "advance" ? "Advancing..." : "Next Lot"}
+              </Button>
+            ) : isConcurrent ? (
+              <p className="text-xs text-muted-foreground self-center px-2">
+                Timed · Concurrent — lots close independently (use Force Close / timers per lot)
+              </p>
+            ) : null}
+            {isSequential && currentAuction.autoAdvanceLots !== false && (
+              <p className="text-xs text-muted-foreground self-center px-2">
+                Auto-advance on — next lot opens after sold or no sale
+              </p>
+            )}
+            {isSequential && currentAuction.autoAdvanceLots === false && (
+              <p className="text-xs text-muted-foreground self-center px-2">
+                Auto-advance off — use Next Lot after each close
+              </p>
+            )}
 
             <Button
               variant="destructive"
               size="sm"
               onClick={handleForceCloseLot}
-              disabled={isPerformingAction !== null || !activeLot}
+              disabled={isPerformingAction !== null || !controlTargetLot}
             >
               <XCircle className="h-4 w-4 mr-1.5" />
-              {isPerformingAction === "force_close" ? "Closing..." : "Force Close Lot"}
+              {isPerformingAction === "force_close"
+                ? "Closing..."
+                : "Close & Award High Bidder"}
             </Button>
           </div>
 
           {/* Time Extenders for Active Lot */}
-          {activeLot && isLive && (
+          {controlTargetLot && isLive && (
             <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border">
               <span className="text-xs font-semibold px-2 text-muted-foreground flex items-center">
                 <Clock className="h-3.5 w-3.5 mr-1 text-electric-blue" />
@@ -497,6 +569,76 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
             </div>
           )}
         </div>
+
+        {needsLotRecovery && (
+          <div className="rounded-lg border border-warning-amber/40 bg-warning-amber/10 px-4 py-3 text-sm">
+            {isEnded ? (
+              <>
+                <p className="font-semibold text-warning-amber">
+                  Auction marked ended but lots are still active
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Buyers see bidding closed. Click{" "}
+                  <span className="font-medium text-foreground">Reopen Auction</span>{" "}
+                  to set status back to live so concurrent lots can accept bids again.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-warning-amber">
+                  Auction is live but no lot is active
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Click{" "}
+                  <span className="font-medium text-foreground">Recover Active Lot</span>{" "}
+                  (or Next Lot) to open the next runnable pending lot. Unrunnable lots
+                  (bad vehicle status) are skipped automatically.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {isConcurrent && activeLots.length > 0 && (
+          <div className="pt-3 border-t space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <Activity className="h-4 w-4 text-volt-green" />
+              <span className="font-bold uppercase tracking-wider text-muted-foreground">
+                Concurrent Active Lots ({activeLots.length})
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {activeLots.map((item) => {
+                const remaining =
+                  item.lot.endsAt != null ? Math.max(0, item.lot.endsAt - (timing?.now ?? Date.now())) : 0;
+                const selected = currentDisplayedLot?.lot._id === item.lot._id;
+                return (
+                  <button
+                    key={item.lot._id}
+                    type="button"
+                    onClick={() => {
+                      setInspectedLotId(item.lot._id);
+                      setSelectedImageIndex(0);
+                    }}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      selected
+                        ? "border-volt-green bg-volt-green/10"
+                        : "border-border bg-muted/40 hover:bg-muted/70"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold">
+                      Lot {item.lot.lotOrder} · {item.vehicle.year} {item.vehicle.make} {item.vehicle.model}
+                    </p>
+                    <p className="mt-1 text-sm font-bold">{formatCurrency(item.lot.currentBid)}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {item.lot.bidCount} bids · {formatDurationMs(remaining)} left
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* HISTORICAL & FUTURE LOT TIMELINE STEPPER BAR */}
         {allHydratedLots.length > 0 && (
@@ -671,35 +813,57 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
               )}
             </Card>
 
-            {/* Next Lot Quick Card */}
+            {/* Next / peer lot quick card */}
             <Card className="p-4 border bg-card">
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                Up Next (Lot #{nextLot?.lot.lotOrder ?? "-"})
+                {isConcurrent
+                  ? `Also bidding (Lot #${queuePreviewA?.lot.lotOrder ?? "-"})`
+                  : `Up Next (Lot #${nextLot?.lot.lotOrder ?? "-"})`}
               </p>
-              {nextLot ? (
-                <div className="flex gap-3">
+              {queuePreviewA ? (
+                <button
+                  type="button"
+                  className="flex gap-3 w-full text-left"
+                  onClick={() => {
+                    setInspectedLotId(queuePreviewA.lot._id);
+                    setSelectedImageIndex(0);
+                  }}
+                >
                   <div className="relative h-16 w-24 rounded-lg overflow-hidden bg-muted border shrink-0">
                     <Image
-                      src={nextLot.vehicle.image || "/placeholder-car.jpg"}
-                      alt={nextLot.vehicle.make}
+                      src={queuePreviewA.vehicle.image || "/placeholder-car.jpg"}
+                      alt={queuePreviewA.vehicle.make}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-xs truncate">
-                      {nextLot.vehicle.year} {nextLot.vehicle.make} {nextLot.vehicle.model}
+                      {queuePreviewA.vehicle.year} {queuePreviewA.vehicle.make}{" "}
+                      {queuePreviewA.vehicle.model}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Starting: {formatCurrency(nextLot.lot.startingBid || 0)}
+                      {isConcurrent
+                        ? `Bid: ${formatCurrency(queuePreviewA.lot.currentBid || 0)}`
+                        : `Starting: ${formatCurrency(queuePreviewA.lot.startingBid || 0)}`}
                     </p>
                     <Badge variant="outline" className="mt-1 text-[10px]">
-                      Queued
+                      {isConcurrent
+                        ? queuePreviewA.lot.endsAt
+                          ? formatCountdownClock(
+                              Math.max(0, queuePreviewA.lot.endsAt - (timing?.now ?? Date.now()))
+                            )
+                          : "Active"
+                        : "Queued"}
                     </Badge>
                   </div>
-                </div>
+                </button>
               ) : (
-                <p className="text-xs text-muted-foreground py-4 text-center">No more upcoming lots.</p>
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  {isConcurrent
+                    ? "No other lots bidding right now"
+                    : "No more upcoming lots."}
+                </p>
               )}
             </Card>
           </div>
@@ -752,8 +916,8 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                     </div>
                   )}
 
-                  {/* If historical lot, offer Set as Active Lot action */}
-                  {isInspectingHistorical && (
+                  {/* Live/sequential only: jump queue to a pending/upcoming lot */}
+                  {isInspectingHistorical && isSequential && (
                     <Button
                       size="sm"
                       onClick={() => handleSetCurrentActiveLot(currentDisplayedLot.lot._id)}
@@ -909,97 +1073,161 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
               </Card>
             )}
 
-            {/* Upcoming Lots Queue Preview */}
+            {/* Queue preview: sequential pending OR concurrent peers ending soon */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <Layers className="h-4 w-4 text-electric-blue" />
-                  Upcoming Auction Lots Queue & Available Vehicles
+                  {isConcurrent
+                    ? "Other lots bidding now"
+                    : "Upcoming Auction Lots Queue & Available Vehicles"}
                 </h3>
                 <Badge variant="secondary" className="text-xs">
-                  {controlData.pendingLotsCount} vehicles in upcoming queue
+                  {isConcurrent
+                    ? `${concurrentPeerLots.length} other active lot${
+                        concurrentPeerLots.length === 1 ? "" : "s"
+                      }`
+                    : `${controlData.pendingLotsCount} vehicles in upcoming queue`}
                 </Badge>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                {/* Next Lot (N+1) Card */}
                 <Card className="p-4 border bg-card hover:border-electric-blue/40 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="secondary" className="font-mono text-xs">
-                      UP NEXT • LOT #{nextLot?.lot.lotOrder ?? "-"}
+                      {isConcurrent ? "ENDING SOON" : "UP NEXT"} • LOT #
+                      {queuePreviewA?.lot.lotOrder ?? "-"}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground font-mono">Position N+1</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {isConcurrent ? "Also active" : "Position N+1"}
+                    </span>
                   </div>
 
-                  {nextLot ? (
-                    <div className="flex gap-3">
+                  {queuePreviewA ? (
+                    <button
+                      type="button"
+                      className="flex gap-3 w-full text-left"
+                      onClick={() => {
+                        setInspectedLotId(queuePreviewA.lot._id);
+                        setSelectedImageIndex(0);
+                      }}
+                    >
                       <div className="relative h-20 w-28 rounded-lg overflow-hidden bg-muted border shrink-0">
                         <Image
-                          src={nextLot.vehicle.image || "/placeholder-car.jpg"}
-                          alt={nextLot.vehicle.make}
+                          src={queuePreviewA.vehicle.image || "/placeholder-car.jpg"}
+                          alt={queuePreviewA.vehicle.make}
                           fill
                           className="object-cover"
                         />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-sm truncate">
-                          {nextLot.vehicle.year} {nextLot.vehicle.make} {nextLot.vehicle.model}
+                          {queuePreviewA.vehicle.year} {queuePreviewA.vehicle.make}{" "}
+                          {queuePreviewA.vehicle.model}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Lot {nextLot.vehicle.lotNumber}
+                          Lot {queuePreviewA.vehicle.lotNumber}
                         </p>
                         <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Starting:</span>
+                          <span className="text-muted-foreground">
+                            {isConcurrent ? "Current bid:" : "Starting:"}
+                          </span>
                           <span className="font-bold text-foreground">
-                            {formatCurrency(nextLot.lot.startingBid || 0)}
+                            {formatCurrency(
+                              isConcurrent
+                                ? queuePreviewA.lot.currentBid || 0
+                                : queuePreviewA.lot.startingBid || 0
+                            )}
                           </span>
                         </div>
+                        {isConcurrent && queuePreviewA.lot.endsAt && (
+                          <p className="mt-1 text-[11px] font-mono text-volt-green">
+                            {formatCountdownClock(
+                              Math.max(
+                                0,
+                                queuePreviewA.lot.endsAt - (timing?.now ?? Date.now())
+                              )
+                            )}{" "}
+                            left
+                          </p>
+                        )}
                       </div>
-                    </div>
+                    </button>
                   ) : (
                     <div className="py-6 text-center text-xs text-muted-foreground">
-                      No upcoming lot (queue empty)
+                      {isConcurrent
+                        ? "No other lots bidding right now"
+                        : "No upcoming lot (queue empty)"}
                     </div>
                   )}
                 </Card>
 
-                {/* Next Lot After That (N+2) Card */}
                 <Card className="p-4 border bg-card/60 hover:border-electric-blue/40 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline" className="font-mono text-xs">
-                      FOLLOWING • LOT #{nextLotAfter?.lot.lotOrder ?? "-"}
+                      {isConcurrent ? "NEXT ENDING" : "FOLLOWING"} • LOT #
+                      {queuePreviewB?.lot.lotOrder ?? "-"}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground font-mono">Position N+2</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {isConcurrent ? "Also active" : "Position N+2"}
+                    </span>
                   </div>
 
-                  {nextLotAfter ? (
-                    <div className="flex gap-3">
+                  {queuePreviewB ? (
+                    <button
+                      type="button"
+                      className="flex gap-3 w-full text-left"
+                      onClick={() => {
+                        setInspectedLotId(queuePreviewB.lot._id);
+                        setSelectedImageIndex(0);
+                      }}
+                    >
                       <div className="relative h-20 w-28 rounded-lg overflow-hidden bg-muted border shrink-0">
                         <Image
-                          src={nextLotAfter.vehicle.image || "/placeholder-car.jpg"}
-                          alt={nextLotAfter.vehicle.make}
+                          src={queuePreviewB.vehicle.image || "/placeholder-car.jpg"}
+                          alt={queuePreviewB.vehicle.make}
                           fill
                           className="object-cover"
                         />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-sm truncate">
-                          {nextLotAfter.vehicle.year} {nextLotAfter.vehicle.make} {nextLotAfter.vehicle.model}
+                          {queuePreviewB.vehicle.year} {queuePreviewB.vehicle.make}{" "}
+                          {queuePreviewB.vehicle.model}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Lot {nextLotAfter.vehicle.lotNumber}
+                          Lot {queuePreviewB.vehicle.lotNumber}
                         </p>
                         <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Starting:</span>
+                          <span className="text-muted-foreground">
+                            {isConcurrent ? "Current bid:" : "Starting:"}
+                          </span>
                           <span className="font-bold text-foreground">
-                            {formatCurrency(nextLotAfter.lot.startingBid || 0)}
+                            {formatCurrency(
+                              isConcurrent
+                                ? queuePreviewB.lot.currentBid || 0
+                                : queuePreviewB.lot.startingBid || 0
+                            )}
                           </span>
                         </div>
+                        {isConcurrent && queuePreviewB.lot.endsAt && (
+                          <p className="mt-1 text-[11px] font-mono text-volt-green">
+                            {formatCountdownClock(
+                              Math.max(
+                                0,
+                                queuePreviewB.lot.endsAt - (timing?.now ?? Date.now())
+                              )
+                            )}{" "}
+                            left
+                          </p>
+                        )}
                       </div>
-                    </div>
+                    </button>
                   ) : (
                     <div className="py-6 text-center text-xs text-muted-foreground">
-                      No N+2 lot available
+                      {isConcurrent
+                        ? "No additional active lot to show"
+                        : "No N+2 lot available"}
                     </div>
                   )}
                 </Card>
@@ -1038,7 +1266,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                       lotFilter === "active" ? "bg-background shadow-xs text-foreground" : "text-muted-foreground"
                     }`}
                   >
-                    Active ({activeLot ? 1 : 0})
+                    Active ({activeLots.length})
                   </button>
                 </div>
               </div>
