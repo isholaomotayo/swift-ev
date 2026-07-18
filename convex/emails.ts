@@ -81,6 +81,23 @@ async function sendAndLogEmail(
     return;
   }
 
+  // ─── Template Manager Override ───────────────────────────
+  // If the admin has customised this template in the Email Template Manager,
+  // use their saved subject/HTML instead of the code-generated version.
+  let effectiveSubject = args.subject;
+  let effectiveHtml = args.html;
+
+  const storedTemplate: { subject: string; html: string; isCustomized: boolean } | null =
+    await ctx.runQuery(internal.emailTemplates.getOrFallbackTemplate, {
+      emailType: args.emailType,
+    });
+
+  if (storedTemplate?.isCustomized) {
+    effectiveSubject = storedTemplate.subject;
+    effectiveHtml = storedTemplate.html;
+    console.log(`[EMAIL TEMPLATE OVERRIDE] Using customised template for: ${args.emailType}`);
+  }
+
   // Account-critical emails bypass the outgoing email review queue
   const isCriticalEmail =
     args.emailType === "verification" || args.emailType === "password_reset";
@@ -96,15 +113,15 @@ async function sendAndLogEmail(
         emailType: args.emailType,
         recipientEmail: args.to,
         recipientUserId: args.recipientUserId,
-        subject: args.subject,
-        bodyHtml: args.html,
+        subject: effectiveSubject,
+        bodyHtml: effectiveHtml,
         status: "pending_review",
         relatedOrderId: args.relatedOrderId,
         relatedVehicleId: args.relatedVehicleId,
         relatedAuctionId: args.relatedAuctionId,
       });
       console.log(
-        `[EMAIL INTERCEPTED FOR REVIEW] ${args.to}: ${args.subject} (type: ${args.emailType})`
+        `[EMAIL INTERCEPTED FOR REVIEW] ${args.to}: ${effectiveSubject} (type: ${args.emailType})`
       );
       return;
     }
@@ -115,15 +132,15 @@ async function sendAndLogEmail(
     console.log("[EMAIL STUB — set RESEND_API_KEY to enable sending]", {
       to: args.to,
       from,
-      subject: args.subject,
+      subject: effectiveSubject,
       type: args.emailType,
     });
     await ctx.runMutation(internal.userMail.logTransactionalEmail, {
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
-      subject: args.subject,
-      bodyHtml: args.html,
+      subject: effectiveSubject,
+      bodyHtml: effectiveHtml,
       status: "skipped_dev",
       relatedOrderId: args.relatedOrderId,
       relatedVehicleId: args.relatedVehicleId,
@@ -142,8 +159,8 @@ async function sendAndLogEmail(
       body: JSON.stringify({
         from,
         to: args.to,
-        subject: args.subject,
-        html: args.html,
+        subject: effectiveSubject,
+        html: effectiveHtml,
       }),
     });
 
@@ -154,8 +171,8 @@ async function sendAndLogEmail(
         emailType: args.emailType,
         recipientEmail: args.to,
         recipientUserId: args.recipientUserId,
-        subject: args.subject,
-        bodyHtml: args.html,
+        subject: effectiveSubject,
+        bodyHtml: effectiveHtml,
         status: "failed",
         errorMessage: `HTTP ${res.status}: ${body}`,
         relatedOrderId: args.relatedOrderId,
@@ -170,10 +187,10 @@ async function sendAndLogEmail(
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
-      subject: args.subject,
-      bodyHtml: args.html,
+      subject: effectiveSubject,
+      bodyHtml: effectiveHtml,
       status: "sent",
-      resendEmailId: data.id,
+      resendEmailId: (data as any).id,
       relatedOrderId: args.relatedOrderId,
       relatedVehicleId: args.relatedVehicleId,
       relatedAuctionId: args.relatedAuctionId,
@@ -184,8 +201,8 @@ async function sendAndLogEmail(
       emailType: args.emailType,
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
-      subject: args.subject,
-      bodyHtml: args.html,
+      subject: effectiveSubject,
+      bodyHtml: effectiveHtml,
       status: "failed",
       errorMessage: err?.message ?? "Unknown error",
       relatedOrderId: args.relatedOrderId,

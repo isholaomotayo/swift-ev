@@ -19,6 +19,7 @@ import type * as crons from "../crons.js";
 import type * as debug from "../debug.js";
 import type * as disputes from "../disputes.js";
 import type * as emailAdmin from "../emailAdmin.js";
+import type * as emailTemplates from "../emailTemplates.js";
 import type * as emails from "../emails.js";
 import type * as exchangeRates from "../exchangeRates.js";
 import type * as files from "../files.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   debug: typeof debug;
   disputes: typeof disputes;
   emailAdmin: typeof emailAdmin;
+  emailTemplates: typeof emailTemplates;
   emails: typeof emails;
   exchangeRates: typeof exchangeRates;
   files: typeof files;

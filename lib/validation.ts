@@ -9,11 +9,15 @@ type OrderStatus =
   | "pending_payment"
   | "payment_partial"
   | "payment_complete"
+  | "processing"
   | "shipped"
   | "in_transit"
   | "customs_clearance"
+  | "cleared"
+  | "out_for_delivery"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "refunded";
 
 const VALID_ROLES: UserRole[] = ["buyer", "seller", "admin", "superadmin"];
 const VALID_STATUSES: UserStatus[] = ["pending", "active", "suspended", "banned"];
@@ -22,11 +26,15 @@ const VALID_ORDER_STATUSES: OrderStatus[] = [
   "pending_payment",
   "payment_partial",
   "payment_complete",
+  "processing",
   "shipped",
   "in_transit",
   "customs_clearance",
+  "cleared",
+  "out_for_delivery",
   "delivered",
   "cancelled",
+  "refunded",
 ];
 
 /**

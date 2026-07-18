@@ -147,11 +147,25 @@ export const listOrders = query({
     const limit = args.limit || 25;
     const paginatedOrders = orders.slice(offset, offset + limit);
 
-    // Enrich with user and vehicle data
+    // Enrich with user, vehicle, and auction data
     const enrichedOrders = await Promise.all(
       paginatedOrders.map(async (order) => {
         const buyer = await ctx.db.get(order.userId);
         const vehicle = await ctx.db.get(order.vehicleId);
+
+        // Fetch auction context for auction_win / auction BIN orders
+        let auctionInfo: { lotNumber: number; auctionName: string; auctionId: string } | null = null;
+        if (order.auctionLotId) {
+          const lot = await ctx.db.get(order.auctionLotId);
+          if (lot) {
+            const auction = await ctx.db.get(lot.auctionId);
+            auctionInfo = {
+              lotNumber: lot.lotOrder,
+              auctionName: auction?.name ?? "Auction",
+              auctionId: lot.auctionId,
+            };
+          }
+        }
 
         return {
           ...order,
@@ -172,6 +186,7 @@ export const listOrders = query({
               vin: vehicle.vin,
             }
             : null,
+          auctionInfo,
         };
       })
     );
@@ -711,23 +726,63 @@ export const getOrderStats = query({
     // Get all orders
     const allOrders = await ctx.db.query("orders").collect();
 
-    // Calculate stats
+    // Calculate top-line stats
     const total = allOrders.length;
     const pendingPayment = allOrders.filter((o) => o.status === "pending_payment").length;
-    const inTransit = allOrders.filter((o) => o.status === "in_transit" || o.status === "shipped").length;
+    const paymentPartial = allOrders.filter((o) => o.status === "payment_partial").length;
+    const inTransit = allOrders.filter(
+      (o) => o.status === "in_transit" || o.status === "shipped" || o.status === "customs_clearance" || o.status === "cleared" || o.status === "out_for_delivery"
+    ).length;
     const delivered = allOrders.filter((o) => o.status === "delivered").length;
+    const cancelled = allOrders.filter((o) => o.status === "cancelled" || o.status === "refunded").length;
 
-    // Calculate revenue
-    const totalRevenue = allOrders
-      .filter((o) => o.status !== "cancelled")
-      .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    // Revenue from non-cancelled orders
+    const activeOrders = allOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
+    const totalRevenue = activeOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    // Revenue breakdown by order type
+    const revenueByType = {
+      auction_win: activeOrders
+        .filter((o) => o.orderType === "auction_win")
+        .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      buy_it_now: activeOrders
+        .filter((o) => o.orderType === "buy_it_now")
+        .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      make_offer: activeOrders
+        .filter((o) => o.orderType === "make_offer")
+        .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+    };
+
+    // Count by order type
+    const byType = {
+      auction_win: allOrders.filter((o) => o.orderType === "auction_win").length,
+      buy_it_now: allOrders.filter((o) => o.orderType === "buy_it_now").length,
+      make_offer: allOrders.filter((o) => o.orderType === "make_offer").length,
+    };
+
+    // Count by status
+    const byStatus: Record<string, number> = {};
+    for (const order of allOrders) {
+      byStatus[order.status] = (byStatus[order.status] || 0) + 1;
+    }
+
+    // Paid vs unpaid amounts
+    const totalPaidAmount = activeOrders.reduce((sum, o) => sum + (o.paidAmount || 0), 0);
+    const totalBalanceDue = activeOrders.reduce((sum, o) => sum + (o.balanceDue || 0), 0);
 
     return {
       total,
       pendingPayment,
+      paymentPartial,
       inTransit,
       delivered,
+      cancelled,
       totalRevenue,
+      totalPaidAmount,
+      totalBalanceDue,
+      revenueByType,
+      byType,
+      byStatus,
     };
   },
 });

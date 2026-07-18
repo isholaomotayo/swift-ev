@@ -1032,4 +1032,36 @@ export default defineSchema({
     .index("by_recipient", ["recipientEmail"])
     .index("by_status", ["status"])
     .index("by_created", ["createdAt"]),
+
+  // ============================================
+  // EMAIL TEMPLATE MANAGER
+  // ============================================
+
+  emailTemplates: defineTable({
+    // Unique identifier matching the emailType used in transactionalEmails
+    emailType: v.string(),
+    // Grouping category shown in the UI sidebar
+    category: v.string(),
+    // Human-readable name e.g. "Email Verification"
+    displayName: v.string(),
+    // Short description of when this email is triggered
+    description: v.string(),
+    // Code-generated defaults (for revert)
+    defaultSubject: v.string(),
+    defaultBodyHtml: v.string(),
+    // Admin-editable values (what actually gets sent)
+    currentSubject: v.string(),
+    currentBodyHtml: v.string(),
+    // JSON-serialised sample data used to render the default preview
+    sampleDataJson: v.string(),
+    // Whether admin has customised away from defaults
+    isCustomized: v.boolean(),
+    lastEditedBy: v.optional(v.id("users")),
+    lastEditedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_emailType", ["emailType"])
+    .index("by_category", ["category"]),
 });
+

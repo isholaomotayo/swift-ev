@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Mail,
   MailCheck,
+  LayoutTemplate,
   LogOut,
   CheckCircle,
   CreditCard,
@@ -71,6 +72,11 @@ const adminNavItems = [
     label: "Email Review",
     href: "/admin/mail-review",
     icon: MailCheck,
+  },
+  {
+    label: "Email Templates",
+    href: "/admin/email-templates",
+    icon: LayoutTemplate,
   },
   {
     label: "Settings",
