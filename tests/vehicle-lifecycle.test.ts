@@ -5,6 +5,8 @@ import {
   canTransitionVehicleStatus,
   getVehicleStatusForOrderStatus,
   isBuyerVisibleVehicleStatus,
+  restoreStatusAfterSoftHoldRelease,
+  softHoldReleaseKindFromOrder,
 } from "../convex/lib/vehicleLifecycle";
 
 describe("vehicle lifecycle", () => {
@@ -63,18 +65,38 @@ describe("vehicle lifecycle", () => {
     expect(getVehicleStatusForOrderStatus("refunded")).toBe("cancelled");
   });
 
-  test("keeps public buyer visibility narrow", () => {
+  test("keeps soft-held payment_pending vehicles out of public inventory", () => {
     expect(isBuyerVisibleVehicleStatus("approved")).toBe(true);
     expect(isBuyerVisibleVehicleStatus("scheduled")).toBe(true);
     expect(isBuyerVisibleVehicleStatus("in_auction")).toBe(true);
     expect(isBuyerVisibleVehicleStatus("sold")).toBe(true);
+    expect(isBuyerVisibleVehicleStatus("unsold")).toBe(true);
 
+    expect(isBuyerVisibleVehicleStatus("payment_pending")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("pending_approval")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("rejected")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("withdrawn")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("cancelled")).toBe(false);
-    expect(isBuyerVisibleVehicleStatus("payment_pending")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("in_transit")).toBe(false);
     expect(isBuyerVisibleVehicleStatus("delivered")).toBe(false);
+  });
+
+  test("allows releasing a soft-hold back to inventory", () => {
+    expect(canTransitionVehicleStatus("payment_pending", "approved")).toBe(true);
+    expect(canTransitionVehicleStatus("payment_pending", "unsold")).toBe(true);
+    expect(canTransitionVehicleStatus("payment_pending", "scheduled")).toBe(true);
+  });
+
+  test("revoke/forfeit restores the correct inventory status by soft-hold kind", () => {
+    expect(restoreStatusAfterSoftHoldRelease("direct_bin")).toBe("approved");
+    expect(restoreStatusAfterSoftHoldRelease("auction_bin")).toBe("scheduled");
+    expect(restoreStatusAfterSoftHoldRelease("auction_win")).toBe("unsold");
+    expect(softHoldReleaseKindFromOrder({ orderType: "buy_it_now" })).toBe("direct_bin");
+    expect(
+      softHoldReleaseKindFromOrder({ orderType: "buy_it_now", auctionLotId: "lot" })
+    ).toBe("auction_bin");
+    expect(
+      softHoldReleaseKindFromOrder({ orderType: "auction_win", auctionLotId: "lot" })
+    ).toBe("auction_win");
   });
 });

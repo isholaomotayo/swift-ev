@@ -97,15 +97,21 @@ export const listUsers = query({
 export const getUserDetails = query({
   args: {
     token: v.string(),
-    userId: v.id("users"),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
     // Validate authorization
     const currentUser = await requireAuth(ctx, args.token);
     requireAdmin(currentUser);
 
+    // Normalize and validate ID
+    const targetUserId = ctx.db.normalizeId("users", args.userId);
+    if (!targetUserId) {
+      throw new Error("User not found");
+    }
+
     // Get user
-    const user = await ctx.db.get(args.userId);
+    const user = await ctx.db.get(targetUserId);
     if (!user) {
       throw new Error("User not found");
     }
@@ -113,19 +119,19 @@ export const getUserDetails = query({
     // Get user documents
     const documents = await ctx.db
       .query("userDocuments")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .collect();
 
     // Get user orders
     const orders = await ctx.db
       .query("orders")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .collect();
 
     // Get user bids
     const bids = await ctx.db
       .query("bids")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .collect();
 
     // Get audit log
@@ -169,7 +175,7 @@ export const getUserDetails = query({
 export const updateUserRole = mutation({
   args: {
     token: v.string(),
-    userId: v.id("users"),
+    userId: v.string(),
     role: v.union(v.literal("buyer"), v.literal("seller"), v.literal("admin"), v.literal("superadmin")),
   },
   handler: async (ctx, args) => {
@@ -181,14 +187,20 @@ export const updateUserRole = mutation({
       throw new Error("Only superadmin can change user roles");
     }
 
+    // Normalize and validate ID
+    const targetUserId = ctx.db.normalizeId("users", args.userId);
+    if (!targetUserId) {
+      throw new Error("User not found");
+    }
+
     // Get target user
-    const targetUser = await ctx.db.get(args.userId);
+    const targetUser = await ctx.db.get(targetUserId);
     if (!targetUser) {
       throw new Error("User not found");
     }
 
     // Don't allow changing own role
-    if (currentUser._id === args.userId) {
+    if (currentUser._id === targetUserId) {
       throw new Error("Cannot change your own role");
     }
 
@@ -222,7 +234,7 @@ export const updateUserRole = mutation({
 export const updateUserStatus = mutation({
   args: {
     token: v.string(),
-    userId: v.id("users"),
+    userId: v.string(),
     status: v.union(v.literal("pending"), v.literal("active"), v.literal("suspended"), v.literal("banned")),
     reason: v.optional(v.string()),
   },
@@ -231,21 +243,27 @@ export const updateUserStatus = mutation({
     const currentUser = await requireAuth(ctx, args.token);
     requireAdmin(currentUser);
 
+    // Normalize and validate ID
+    const targetUserId = ctx.db.normalizeId("users", args.userId);
+    if (!targetUserId) {
+      throw new Error("User not found");
+    }
+
     // Get target user
-    const targetUser = await ctx.db.get(args.userId);
+    const targetUser = await ctx.db.get(targetUserId);
     if (!targetUser) {
       throw new Error("User not found");
     }
 
     // Don't allow changing own status
-    if (currentUser._id === args.userId) {
+    if (currentUser._id === targetUserId) {
       throw new Error("Cannot change your own status");
     }
 
     const oldStatus = targetUser.status;
 
     // Update status
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch(targetUserId, {
       status: args.status,
       updatedAt: Date.now(),
     });
@@ -283,7 +301,7 @@ export const updateUserStatus = mutation({
 export const updateKYCStatus = mutation({
   args: {
     token: v.string(),
-    userId: v.id("users"),
+    userId: v.string(),
     kycStatus: v.union(v.literal("not_started"), v.literal("pending"), v.literal("approved"), v.literal("rejected")),
     notes: v.optional(v.string()),
   },
@@ -292,8 +310,14 @@ export const updateKYCStatus = mutation({
     const currentUser = await requireAuth(ctx, args.token);
     requireAdmin(currentUser);
 
+    // Normalize and validate ID
+    const targetUserId = ctx.db.normalizeId("users", args.userId);
+    if (!targetUserId) {
+      throw new Error("User not found");
+    }
+
     // Get target user
-    const targetUser = await ctx.db.get(args.userId);
+    const targetUser = await ctx.db.get(targetUserId);
     if (!targetUser) {
       throw new Error("User not found");
     }
@@ -301,7 +325,7 @@ export const updateKYCStatus = mutation({
     const oldStatus = targetUser.kycStatus;
 
     // Update KYC status
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch(targetUserId, {
       kycStatus: args.kycStatus,
       updatedAt: Date.now(),
     });
@@ -309,7 +333,7 @@ export const updateKYCStatus = mutation({
     // Update all user documents to match KYC status
     const documents = await ctx.db
       .query("userDocuments")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .collect();
 
     for (const doc of documents) {
@@ -358,7 +382,7 @@ export const updateKYCStatus = mutation({
 export const updateMembershipTier = mutation({
   args: {
     token: v.string(),
-    userId: v.id("users"),
+    userId: v.string(),
     tier: v.union(v.literal("guest"), v.literal("basic"), v.literal("premier"), v.literal("business")),
   },
   handler: async (ctx, args) => {
@@ -366,8 +390,14 @@ export const updateMembershipTier = mutation({
     const currentUser = await requireAuth(ctx, args.token);
     requireAdmin(currentUser);
 
+    // Normalize and validate ID
+    const targetUserId = ctx.db.normalizeId("users", args.userId);
+    if (!targetUserId) {
+      throw new Error("User not found");
+    }
+
     // Get target user
-    const targetUser = await ctx.db.get(args.userId);
+    const targetUser = await ctx.db.get(targetUserId);
     if (!targetUser) {
       throw new Error("User not found");
     }
@@ -375,7 +405,7 @@ export const updateMembershipTier = mutation({
     const oldTier = targetUser.membershipTier;
 
     // Update membership tier
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch(targetUserId, {
       membershipTier: args.tier,
       dailyBidsUsed: 0, // Reset daily bids on tier change
       lastBidResetAt: Date.now(),

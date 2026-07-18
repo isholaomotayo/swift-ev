@@ -54,6 +54,7 @@ import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import Link from "next/link";
 import { RemoteImage } from "@/components/ui/remote-image";
 import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface Bid {
   _id: string;
@@ -105,8 +106,10 @@ interface Vehicle {
     country: string;
   };
   startingBid?: number;
+  reservePrice?: number;
   buyItNowPrice?: number;
   buyItNowEnabled?: boolean;
+  buyItNowPurchasedBy?: Id<"users">;
   status: string;
   images: Array<{
     url: string;
@@ -138,13 +141,24 @@ export function VehicleDetailClient({
   const router = useRouter();
   const currency = useCurrencyStore((s) => s.currency);
   const exchangeRates = useExchangeRates();
+  const { user, token } = useAuth();
 
-  // Use real-time data if available, otherwise use initial data
-  const realtimeVehicle =
-    (useQuery(api.vehicles.getVehicleById, { vehicleId }) as Vehicle | null) ??
-    initialVehicle;
+  // Use real-time data if available, otherwise use initial data.
+  // undefined = still loading; null = not found / no access.
+  const realtimeVehicle = useQuery(api.vehicles.getVehicleById, {
+    vehicleId,
+    token: token ?? undefined,
+  }) as Vehicle | null | undefined;
 
-  const vehicle = realtimeVehicle;
+  const vehicle =
+    realtimeVehicle === undefined ? initialVehicle : realtimeVehicle;
+
+  const myPendingOrder = useQuery(
+    api.orders.getMyPendingOrderForVehicle,
+    vehicleId && vehicle?.status === "payment_pending"
+      ? { token: token ?? undefined, vehicleId }
+      : "skip"
+  );
 
   if (!vehicle) {
     return (
@@ -170,8 +184,28 @@ export function VehicleDetailClient({
   const isPreBid = auctionLot?.status === "pending";
   const canBid = isLive || isPreBid;
 
-  const isDirectPurchaseAvailable = !auctionLot && vehicle.buyItNowEnabled && vehicle.buyItNowPrice &&
-    vehicle.status === "approved";
+  const resolvedBuyNowPrice =
+    (isLive
+      ? undefined
+      : auctionLot?.buyItNowPrice ?? vehicle.buyItNowPrice ?? vehicle.reservePrice ?? vehicle.startingBid) ||
+    undefined;
+
+  const isReserved = vehicle.status === "payment_pending";
+  const isReservationHolder =
+    isReserved &&
+    !!user?.id &&
+    !!vehicle.buyItNowPurchasedBy &&
+    vehicle.buyItNowPurchasedBy === user.id;
+
+  const canBuyNow =
+    !!resolvedBuyNowPrice &&
+    resolvedBuyNowPrice > 0 &&
+    !isLive &&
+    !isReserved &&
+    (vehicle.status === "approved" ||
+      vehicle.status === "unsold" ||
+      vehicle.status === "scheduled" ||
+      isPreBid);
 
   // Hero Image Handling
   const heroImageUrl =
@@ -743,14 +777,19 @@ export function VehicleDetailClient({
                           • Pre-Bidding Open
                         </Badge>
                       )}
-                      {!canBid && !isDirectPurchaseAvailable && (
+                      {!canBid && !canBuyNow && !isReserved && (
                         <Badge variant="secondary">
                           {vehicle.status.replace(/_/g, " ")}
                         </Badge>
                       )}
-                      {isDirectPurchaseAvailable && (
+                      {canBuyNow && (
                         <Badge variant="outline" className="bg-volt-green/10 text-volt-green border-volt-green/20 px-3 py-1">
                           • Available Now
+                        </Badge>
+                      )}
+                      {isReservationHolder && (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30 px-3 py-1">
+                          Your reservation — payment pending
                         </Badge>
                       )}
                     </div>
@@ -758,18 +797,38 @@ export function VehicleDetailClient({
                 </div>
 
                 <div className="text-center mb-8 border-y border-dashed border-border/50 py-6">
-                  <p className="text-sm text-muted-foreground mb-1 font-medium tracking-wide uppercase">
-                    {isLive
-                      ? "Current Highest Bid"
-                      : isPreBid
-                        ? "Current Pre-Bid"
-                        : "Starting Price"}
-                  </p>
-                  <PriceDisplay
-                    amount={currentBid}
-                    variant="large"
-                    className="text-5xl justify-center font-black tracking-tight text-deep-navy dark:text-white"
-                  />
+                  {canBuyNow && resolvedBuyNowPrice ? (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-1 font-medium tracking-wide uppercase">
+                        Buy Now Price
+                      </p>
+                      <PriceDisplay
+                        amount={resolvedBuyNowPrice}
+                        variant="large"
+                        className="text-5xl justify-center font-black tracking-tight text-volt-green"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {isLive || isPreBid || canBid
+                          ? `Or bid from ${formatCurrency(currentBid)}`
+                          : "Purchase instantly — no auction wait"}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-1 font-medium tracking-wide uppercase">
+                        {isLive
+                          ? "Current Highest Bid"
+                          : isPreBid
+                            ? "Current Pre-Bid"
+                            : "Starting Price"}
+                      </p>
+                      <PriceDisplay
+                        amount={currentBid}
+                        variant="large"
+                        className="text-5xl justify-center font-black tracking-tight text-deep-navy dark:text-white"
+                      />
+                    </>
+                  )}
                   <div className="flex justify-center gap-4 mt-2 text-xs font-mono text-muted-foreground">
                     <span>{bidCount} Bids</span>
                     <span>|</span>
@@ -794,14 +853,62 @@ export function VehicleDetailClient({
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  {canBid ? (
+                <div className="space-y-3">
+                  {/* Buy Now is always the primary CTA when available — no wallet balance required to see it */}
+                  {isReserved ? (
+                    isReservationHolder ? (
+                      myPendingOrder === undefined ? (
+                        <Button disabled className="w-full h-14 text-lg rounded-full">
+                          Loading your order…
+                        </Button>
+                      ) : myPendingOrder?.orderId ? (
+                        <Button
+                          asChild
+                          className="w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full bg-amber-500 hover:bg-amber-500/90 text-slate-950"
+                        >
+                          <Link href={`/orders/${myPendingOrder.orderId}`}>
+                            Complete payment
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild className="w-full h-14 text-lg rounded-full">
+                          <Link href="/orders">View my orders</Link>
+                        </Button>
+                      )
+                    ) : (
+                      <Button disabled className="w-full h-14 text-lg rounded-full">
+                        Not available for purchase
+                      </Button>
+                    )
+                  ) : canBuyNow && resolvedBuyNowPrice && canBid && auctionLot ? (
                     <BidButton
                       lotId={auctionLot._id}
                       currentBid={currentBid}
+                      bidIncrement={auctionLot.bidIncrement || 50000}
+                      buyNowPrice={resolvedBuyNowPrice}
+                      buyNowEnabled
+                      status={auctionLot.status}
+                      className="w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full shadow-volt-green/20 bg-volt-green hover:bg-volt-green/90 text-slate-950"
+                      label={`Buy Now · ${formatCurrency(resolvedBuyNowPrice)}`}
+                    />
+                  ) : canBuyNow && resolvedBuyNowPrice ? (
+                    <BidButton
+                      vehicleId={vehicle._id}
+                      currentBid={currentBid}
                       bidIncrement={auctionLot?.bidIncrement || 50000}
-                      buyNowPrice={auctionLot.buyItNowPrice}
-                      buyNowEnabled={auctionLot.buyItNowEnabled}
+                      buyNowPrice={resolvedBuyNowPrice}
+                      buyNowEnabled
+                      status={vehicle.status}
+                      className="w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full shadow-volt-green/20 bg-volt-green hover:bg-volt-green/90 text-slate-950"
+                      label={`Buy Now · ${formatCurrency(resolvedBuyNowPrice)}`}
+                    />
+                  ) : canBid && auctionLot ? (
+                    <BidButton
+                      lotId={auctionLot._id}
+                      currentBid={currentBid}
+                      bidIncrement={auctionLot.bidIncrement || 50000}
+                      buyNowPrice={undefined}
+                      buyNowEnabled={false}
                       status={auctionLot.status}
                       className={cn(
                         "w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full",
@@ -811,20 +918,9 @@ export function VehicleDetailClient({
                       )}
                       label={isPreBid ? "Place Pre-Bid" : "Place Bid Now"}
                     />
-                  ) : isDirectPurchaseAvailable ? (
-                    <BidButton
-                      vehicleId={vehicle._id}
-                      currentBid={currentBid}
-                      bidIncrement={50000}
-                      buyNowPrice={vehicle.buyItNowPrice}
-                      buyNowEnabled={vehicle.buyItNowEnabled}
-                      status={vehicle.status}
-                      className="w-full h-14 text-lg font-bold shadow-lg transition-all rounded-full shadow-volt-green/20 bg-volt-green hover:bg-volt-green/90 text-slate-950"
-                      label="Purchase Now"
-                    />
                   ) : (
                     <Button disabled className="w-full h-12">
-                      Bidding Closed
+                      Not available for purchase
                     </Button>
                   )}
 

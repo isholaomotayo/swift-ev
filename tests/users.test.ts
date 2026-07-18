@@ -13,31 +13,73 @@ describe("Users", () => {
   let testUserId: Id<"users">;
 
   beforeAll(async () => {
-    // Login as admin
-    const adminLogin = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
-      password: "admin123",
-    });
-    adminToken = adminLogin.token;
-    superadminToken = adminToken; // Admin is also superadmin in seed data
+    // Generate unique email for new admin user
+    const email = `test-admin-${Date.now()}@example.com`;
 
-    // Login as buyer
-    const buyerLogin = await client.action(api.authActions.login, {
-      email: "john.doe@example.com",
-      password: "buyer123",
-    });
+    // Login superadmin and buyer first
+    const [superadminLogin, buyerLogin] = await Promise.all([
+      client.action(api.authActions.login, {
+        email: "admin@voltbid.africa",
+        password: "admin123",
+      }),
+      client.action(api.authActions.login, {
+        email: "john.doe@example.com",
+        password: "buyer123",
+      }),
+    ]);
+    superadminToken = superadminLogin.token;
     buyerToken = buyerLogin.token;
 
-    // Get a test user ID
-    const users = await client.query(api.users.listUsers, {
-      token: adminToken,
-      limit: 1,
+    // Self-healing: if vendor's role was changed to admin in a previous run, restore it to seller
+    const allUsers = await client.query(api.users.listUsers, {
+      token: superadminToken,
+      limit: 50,
+    });
+    const vendorUser = allUsers.users.find((u: any) => u.email === "vendor@bydnigeria.com");
+    if (vendorUser && vendorUser.role !== "seller") {
+      await client.mutation(api.users.updateUserRole, {
+        token: superadminToken,
+        userId: vendorUser._id,
+        role: "seller",
+      });
+    }
+
+    // Register a new user
+    const registerResult = await client.action(api.authActions.register, {
+      email,
+      firstName: "Test",
+      lastName: "Admin",
+      password: "password123",
+      accountType: "individual",
     });
 
-    if (users.users.length > 0) {
-      testUserId = users.users[0]._id;
+    // Update their role to standard admin
+    await client.mutation(api.users.updateUserRole, {
+      token: superadminToken,
+      userId: registerResult.userId,
+      role: "admin",
+    });
+
+    // Log in as the new standard admin
+    const standardAdminLogin = await client.action(api.authActions.login, {
+      email,
+      password: "password123",
+    });
+    adminToken = standardAdminLogin.token;
+
+    // Get a test user ID that is neither superadmin nor standard admin
+    const superUser = await client.query(api.auth.getCurrentUser, { token: superadminToken });
+    const usersList = await client.query(api.users.listUsers, {
+      token: superadminToken,
+      limit: 10,
+    });
+    const otherUser = usersList.users.find(
+      (u: any) => u._id !== superUser?.id && u._id !== registerResult.userId
+    );
+    if (otherUser) {
+      testUserId = otherUser._id;
     }
-  });
+  }, 20000);
 
   describe("listUsers", () => {
     test("admin can list users", async () => {
@@ -176,10 +218,11 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
       await expect(
         client.query(api.users.getUserDetails, {
           token: adminToken,
-          userId: "j1234567890abcdef" as any,
+          userId: fakeUserId,
         })
       ).rejects.toThrow("not found");
     });
@@ -245,10 +288,11 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
       await expect(
         client.mutation(api.users.updateUserRole, {
           token: superadminToken,
-          userId: "j1234567890abcdef" as any,
+          userId: fakeUserId,
           role: "buyer",
         })
       ).rejects.toThrow("not found");
@@ -343,10 +387,11 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
       await expect(
         client.mutation(api.users.updateKYCStatus, {
           token: adminToken,
-          userId: "j1234567890abcdef" as any,
+          userId: fakeUserId,
           kycStatus: "approved",
         })
       ).rejects.toThrow("not found");
@@ -396,10 +441,11 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
       await expect(
         client.mutation(api.users.updateMembershipTier, {
           token: adminToken,
-          userId: "j1234567890abcdef" as any,
+          userId: fakeUserId,
           tier: "premier",
         })
       ).rejects.toThrow("not found");

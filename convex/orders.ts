@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
-import { requireAuth, requireAdmin, hasOwnershipOrAdmin, createAuditLog } from "./lib/auth";
+import { requireAuth, requireAdmin, requireSeller, hasOwnershipOrAdmin, createAuditLog, getAuthUserOrNull } from "./lib/auth";
 import {
   assertVehicleStatusTransition,
   getVehicleStatusForOrderStatus,
@@ -9,6 +9,7 @@ import {
   type OrderStatus,
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
+import { createInAppNotification, releaseUnpaidSoftHold } from "./lib/payments";
 
 const orderStatusValidator = v.union(
   v.literal("pending_payment"),
@@ -56,6 +57,35 @@ async function syncVehicleStatusFromOrder(
 }
 
 /**
+ * Buyer's pending/partial order for a reserved vehicle (Complete payment CTA).
+ * Returns null when unauthenticated or no matching order — safe on public VDPs.
+ */
+export const getMyPendingOrderForVehicle = query({
+  args: {
+    token: v.optional(v.string()),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthUserOrNull(ctx, args.token);
+    if (!user) return null;
+
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+
+    const mine = orders.find(
+      (o) =>
+        o.userId === user._id &&
+        (o.status === "pending_payment" || o.status === "payment_partial")
+    );
+
+    if (!mine) return null;
+    return { orderId: mine._id, orderNumber: mine.orderNumber, status: mine.status };
+  },
+});
+
+/**
  * List all orders with filtering
  * Admin/Superadmin can see all orders, users can see only their own
  */
@@ -75,6 +105,9 @@ export const listOrders = query({
     // Helper function to build orders query
     const buildOrdersQuery = async (): Promise<Doc<"orders">[]> => {
       const isAdmin = user.role === "admin" || user.role === "superadmin";
+      if (args.userId && args.userId !== user._id && !isAdmin) {
+        throw new Error("Unauthorized: Non-admin users cannot query other users' orders");
+      }
       const targetUserId = isAdmin ? args.userId : user._id;
 
       if (targetUserId) {
@@ -158,26 +191,34 @@ export const listOrders = query({
 export const getOrderDetails = query({
   args: {
     token: v.string(),
-    orderId: v.id("orders"),
+    orderId: v.string(),
   },
   handler: async (ctx, args) => {
     // Validate authorization
     const user = await requireAuth(ctx, args.token);
 
+    // Normalize and validate ID
+    const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
+    if (!targetOrderId) {
+      throw new Error("Order not found");
+    }
+
     // Get order
-    const order = await ctx.db.get(args.orderId);
+    const order = await ctx.db.get(targetOrderId);
     if (!order) {
       throw new Error("Order not found");
     }
 
-    // Validate user can view this order
-    if (!hasOwnershipOrAdmin(user, order.userId)) {
+    // Buyer, admin, or listing seller (read-only for seller)
+    const vehicle = await ctx.db.get(order.vehicleId);
+    const isSeller =
+      !!vehicle?.sellerId && vehicle.sellerId === user._id;
+    if (!hasOwnershipOrAdmin(user, order.userId) && !isSeller) {
       throw new Error("You don't have permission to view this order");
     }
 
     // Get related data
     const buyer = await ctx.db.get(order.userId);
-    const vehicle = await ctx.db.get(order.vehicleId);
     const auctionLot = order.auctionLotId ? await ctx.db.get(order.auctionLotId) : null;
 
     // Get payment records
@@ -205,8 +246,8 @@ export const getOrderDetails = query({
           _id: buyer._id,
           firstName: buyer.firstName,
           lastName: buyer.lastName,
-          email: buyer.email,
-          phone: buyer.phone,
+          email: isSeller && !hasOwnershipOrAdmin(user, order.userId) ? undefined : buyer.email,
+          phone: isSeller && !hasOwnershipOrAdmin(user, order.userId) ? undefined : buyer.phone,
         }
         : null,
       vehicle: vehicle
@@ -223,6 +264,11 @@ export const getOrderDetails = query({
       payments,
       shipments,
       additionalServices,
+      viewerRole: hasOwnershipOrAdmin(user, order.userId)
+        ? "buyer_or_admin"
+        : isSeller
+          ? "seller"
+          : "unknown",
     };
   },
 });
@@ -272,13 +318,68 @@ export const getUserOrders = query({
 });
 
 /**
+ * Seller: pending/partial payment orders for their listed vehicles (read-only).
+ */
+export const getVendorPendingOrders = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireSeller(user);
+
+    const vehicles = await ctx.db
+      .query("vehicles")
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+      .collect();
+
+    const results = [];
+
+    for (const vehicle of vehicles) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+        .collect();
+
+      for (const order of orders) {
+        if (order.status !== "pending_payment" && order.status !== "payment_partial") {
+          continue;
+        }
+        results.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          orderType: order.orderType,
+          totalAmount: order.totalAmount,
+          paidAmount: order.paidAmount,
+          balanceDue: order.balanceDue,
+          paymentDeadline: order.paymentDeadline,
+          createdAt: order.createdAt,
+          vehicle: {
+            _id: vehicle._id,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            lotNumber: vehicle.lotNumber,
+            status: vehicle.status,
+          },
+        });
+      }
+    }
+
+    results.sort((a, b) => b.createdAt - a.createdAt);
+    return { orders: results, count: results.length };
+  },
+});
+
+/**
  * Update order status
  * Admin only
  */
 export const updateOrderStatus = mutation({
   args: {
     token: v.string(),
-    orderId: v.id("orders"),
+    orderId: v.string(),
     status: orderStatusValidator,
     notes: v.optional(v.string()),
   },
@@ -287,13 +388,60 @@ export const updateOrderStatus = mutation({
     const user = await requireAuth(ctx, args.token);
     requireAdmin(user);
 
+    // Normalize and validate ID
+    const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
+    if (!targetOrderId) {
+      throw new Error("Order not found");
+    }
+
     // Get order
-    const order = await ctx.db.get(args.orderId);
+    const order = await ctx.db.get(targetOrderId);
     if (!order) {
       throw new Error("Order not found");
     }
 
     const oldStatus = order.status;
+
+    // Unpaid soft-hold cancel must restore inventory (not terminal vehicle cancelled)
+    if (
+      args.status === "cancelled" &&
+      (order.status === "pending_payment" || order.status === "payment_partial")
+    ) {
+      const payments = await ctx.db
+        .query("payments")
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
+        .collect();
+      const hasNonDepositPayment = payments.some(
+        (p) => p.status === "successful" && p.provider !== "deposit"
+      );
+      if (hasNonDepositPayment) {
+        throw new Error(
+          "Cannot cancel via status update: order has successful non-deposit payment. Use refund/manual handling."
+        );
+      }
+
+      const { vehicleStatus } = await releaseUnpaidSoftHold(ctx, {
+        order,
+        reason: args.notes || "Order cancelled by admin",
+        refundDeposits: true,
+      });
+
+      await createAuditLog(ctx, {
+        userId: user._id,
+        action: "update_order_status",
+        entityType: "order",
+        entityId: args.orderId,
+        changes: {
+          oldStatus,
+          newStatus: "cancelled",
+          vehicleStatus,
+          notes: args.notes,
+          via: "soft_hold_release",
+        },
+      });
+
+      return { success: true };
+    }
 
     const nextVehicleStatus = await syncVehicleStatusFromOrder(ctx, order, args.status);
 
@@ -326,13 +474,97 @@ export const updateOrderStatus = mutation({
 });
 
 /**
+ * Admin: revoke a pending/unpaid Buy Now (or auction-win) purchase.
+ * Returns the vehicle to inventory. Blocked if any successful non-deposit payment exists.
+ */
+export const revokePurchase = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    // Normalize and validate ID
+    const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
+    if (!targetOrderId) {
+      throw new Error("Order not found");
+    }
+
+    const order = await ctx.db.get(targetOrderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.status !== "pending_payment" && order.status !== "payment_partial") {
+      throw new Error("Only pending or partially paid orders can be revoked");
+    }
+
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_order", (q) => q.eq("orderId", order._id))
+      .collect();
+
+    const hasNonDepositPayment = payments.some(
+      (p) => p.status === "successful" && p.provider !== "deposit"
+    );
+    if (hasNonDepositPayment) {
+      throw new Error(
+        "Cannot revoke: this order has a successful bank/card/wallet payment. Handle manually."
+      );
+    }
+
+    const now = Date.now();
+    const { vehicleStatus: restoreStatus, refundedDepositNaira } =
+      await releaseUnpaidSoftHold(ctx, {
+        order,
+        reason: args.reason || "Purchase revoked by admin",
+        now,
+        refundDeposits: true,
+      });
+
+    const refundNote =
+      refundedDepositNaira > 0
+        ? ` Your deposit of ₦${refundedDepositNaira.toLocaleString()} has been returned to your wallet.`
+        : "";
+
+    await createInAppNotification(ctx, {
+      userId: order.userId,
+      type: "system",
+      title: "Purchase revoked",
+      message: `Your reservation for order ${order.orderNumber} was revoked. The vehicle is available again.${refundNote}`,
+      orderId: order._id,
+      vehicleId: order.vehicleId,
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "revoke_purchase",
+      entityType: "order",
+      entityId: args.orderId,
+      changes: {
+        oldStatus: order.status,
+        newStatus: "cancelled",
+        vehicleStatus: restoreStatus,
+        reason: args.reason,
+        refundedDepositNaira,
+      },
+    });
+
+    return { success: true, vehicleStatus: restoreStatus, refundedDepositNaira };
+  },
+});
+
+/**
  * Add shipping tracking information
  * Admin only
  */
 export const addShippingTracking = mutation({
   args: {
     token: v.string(),
-    orderId: v.id("orders"),
+    orderId: v.string(),
     carrier: v.string(),
     trackingNumber: v.string(),
     estimatedDelivery: v.optional(v.number()),
@@ -343,8 +575,14 @@ export const addShippingTracking = mutation({
     const user = await requireAuth(ctx, args.token);
     requireAdmin(user);
 
+    // Normalize and validate ID
+    const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
+    if (!targetOrderId) {
+      throw new Error(`Order ${args.orderId} not found`);
+    }
+
     // Get order
-    const order = await ctx.db.get(args.orderId);
+    const order = await ctx.db.get(targetOrderId);
     if (!order) {
       throw new Error(`Order ${args.orderId} not found`);
     }

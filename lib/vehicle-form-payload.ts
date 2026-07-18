@@ -28,7 +28,7 @@ export interface VehicleFormData {
   // Pricing
   startingBid: number;
   reservePrice: number;
-  buyItNowPrice?: number;
+  buyItNowPrice: number;
 
   // Location
   locationCity: string;

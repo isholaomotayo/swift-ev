@@ -68,6 +68,7 @@ export default async function VendorDashboard() {
         inAuction: vendorStats?.inAuction || 0,
         sold: vendorStats?.sold || 0,
         pendingApproval: vendorStats?.pending || 0,
+        paymentPending: vendorStats?.paymentPending || 0,
         totalRevenue: vendorStats?.totalRevenue || 0,
       }}
       recentVehicles={vehicles}

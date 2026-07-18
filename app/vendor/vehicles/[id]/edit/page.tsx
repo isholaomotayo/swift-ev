@@ -66,7 +66,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         damageDescription: vehicle.damageDescription || "",
         startingBid: vehicle.startingBid ?? 0,
         reservePrice: vehicle.reservePrice ?? 0,
-        buyItNowPrice: vehicle.buyItNowPrice,
+        buyItNowPrice: vehicle.buyItNowPrice ?? 0,
         locationCity: vehicle.currentLocation?.city || "",
         locationState: "", // Not stored explicitly, might need to extract or leave blank
         locationCountry: vehicle.currentLocation?.country || "Nigeria",

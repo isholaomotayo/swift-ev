@@ -53,6 +53,31 @@ export async function requireAuth(
 }
 
 /**
+ * Resolve session token to a user, or null if missing/invalid/expired.
+ * Use for optional auth on public pages (avoids console errors from requireAuth).
+ */
+export async function getAuthUserOrNull(
+  ctx: any,
+  token: string | undefined | null
+): Promise<AuthenticatedUser | null> {
+  if (!token) return null;
+
+  const session = await ctx.db
+    .query("sessions")
+    .withIndex("by_token", (q: any) => q.eq("token", token))
+    .first();
+
+  if (!session || session.expiresAt < Date.now()) {
+    return null;
+  }
+
+  const user = await ctx.db.get(session.userId);
+  if (!user) return null;
+
+  return user as AuthenticatedUser;
+}
+
+/**
  * Require user to have one of the specified roles
  * Throws error if user doesn't have required role
  */

@@ -98,9 +98,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "admin@voltbid.africa"))
       .first();
 
+    const adminWalletFields = {
+      walletBalance: 999_999_999 * 100,
+      reservedBalance: 0,
+      buyingPower: 999_999_999,
+      depositAmount: 0,
+    };
+
     if (existingAdmin) {
       adminId = existingAdmin._id;
       console.log("✓ Admin user already exists, skipping creation");
+      await ctx.db.patch(adminId, { ...adminWalletFields, updatedAt: now });
     } else {
       adminId = await ctx.db.insert("users", {
         email: "admin@voltbid.africa",
@@ -111,14 +119,13 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: false,
         membershipTier: "business",
-        depositAmount: 0,
-        buyingPower: 999_999_999,
         dailyBidsUsed: 0,
         lastBidResetAt: now,
         role: "superadmin",
         kycStatus: "approved",
         createdAt: now,
         updatedAt: now,
+        ...adminWalletFields,
       });
     }
 
@@ -129,9 +136,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "vendor@bydnigeria.com"))
       .first();
 
+    const vendor1WalletFields = {
+      walletBalance: 50_000_000 * 100,
+      reservedBalance: 0,
+      buyingPower: 50_000_000,
+      depositAmount: 5_000_000,
+    };
+
     if (existingVendor1) {
       vendor1Id = existingVendor1._id;
       console.log("✓ Vendor 1 already exists, skipping creation");
+      await ctx.db.patch(vendor1Id, { ...vendor1WalletFields, updatedAt: now });
     } else {
       vendor1Id = await ctx.db.insert("users", {
         email: "vendor@bydnigeria.com",
@@ -143,8 +158,6 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: true,
         membershipTier: "business",
-        depositAmount: 5_000_000,
-        buyingPower: 50_000_000,
         dailyBidsUsed: 0,
         lastBidResetAt: now,
         role: "seller",
@@ -153,6 +166,7 @@ export const seedDatabase = mutation({
         kycStatus: "approved",
         createdAt: now - 90 * 24 * 60 * 60 * 1000, // 90 days ago
         updatedAt: now,
+        ...vendor1WalletFields,
       });
     }
 
@@ -163,9 +177,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "sales@xpeng-ng.com"))
       .first();
 
+    const vendor2WalletFields = {
+      walletBalance: 30_000_000 * 100,
+      reservedBalance: 0,
+      buyingPower: 30_000_000,
+      depositAmount: 3_000_000,
+    };
+
     if (existingVendor2) {
       vendor2Id = existingVendor2._id;
       console.log("✓ Vendor 2 already exists, skipping creation");
+      await ctx.db.patch(vendor2Id, { ...vendor2WalletFields, updatedAt: now });
     } else {
       vendor2Id = await ctx.db.insert("users", {
         email: "sales@xpeng-ng.com",
@@ -177,8 +199,6 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: true,
         membershipTier: "business",
-        depositAmount: 3_000_000,
-        buyingPower: 30_000_000,
         dailyBidsUsed: 0,
         lastBidResetAt: now,
         role: "seller",
@@ -187,6 +207,7 @@ export const seedDatabase = mutation({
         kycStatus: "approved",
         createdAt: now - 60 * 24 * 60 * 60 * 1000, // 60 days ago
         updatedAt: now,
+        ...vendor2WalletFields,
       });
     }
 
@@ -197,9 +218,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "john.doe@example.com"))
       .first();
 
+    const buyer1WalletFields = {
+      walletBalance: 5_000_000 * 100,
+      reservedBalance: 0,
+      buyingPower: 50_000_000,
+      depositAmount: 500_000,
+    };
+
     if (existingBuyer1) {
       buyer1Id = existingBuyer1._id;
       console.log("✓ Buyer 1 already exists, skipping creation");
+      await ctx.db.patch(buyer1Id, { ...buyer1WalletFields, updatedAt: now });
     } else {
       buyer1Id = await ctx.db.insert("users", {
         email: "john.doe@example.com",
@@ -211,8 +240,6 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: true,
         membershipTier: "premier",
-        depositAmount: 500_000,
-        buyingPower: 15_000_000,
         dailyBidsUsed: 2,
         lastBidResetAt: now,
         role: "buyer",
@@ -220,6 +247,7 @@ export const seedDatabase = mutation({
         createdAt: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
         updatedAt: now,
         lastLoginAt: now - 2 * 60 * 60 * 1000, // 2 hours ago
+        ...buyer1WalletFields,
       });
     }
 
@@ -230,9 +258,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "jane.smith@example.com"))
       .first();
 
+    const buyer2WalletFields = {
+      walletBalance: 1_000_000 * 100,
+      reservedBalance: 0,
+      buyingPower: 10_000_000,
+      depositAmount: 100_000,
+    };
+
     if (existingBuyer2) {
       buyer2Id = existingBuyer2._id;
       console.log("✓ Buyer 2 already exists, skipping creation");
+      await ctx.db.patch(buyer2Id, { ...buyer2WalletFields, updatedAt: now });
     } else {
       buyer2Id = await ctx.db.insert("users", {
         email: "jane.smith@example.com",
@@ -244,8 +280,6 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: false,
         membershipTier: "basic",
-        depositAmount: 100_000,
-        buyingPower: 5_000_000,
         dailyBidsUsed: 1,
         lastBidResetAt: now,
         role: "buyer",
@@ -253,6 +287,7 @@ export const seedDatabase = mutation({
         createdAt: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
         updatedAt: now,
         lastLoginAt: now - 5 * 60 * 60 * 1000, // 5 hours ago
+        ...buyer2WalletFields,
       });
     }
 
@@ -263,9 +298,17 @@ export const seedDatabase = mutation({
       .withIndex("by_email", (q) => q.eq("email", "fleet@logistics.ng"))
       .first();
 
+    const buyer3WalletFields = {
+      walletBalance: 10_000_000 * 100,
+      reservedBalance: 0,
+      buyingPower: 100_000_000,
+      depositAmount: 2_000_000,
+    };
+
     if (existingBuyer3) {
       buyer3Id = existingBuyer3._id;
       console.log("✓ Buyer 3 already exists, skipping creation");
+      await ctx.db.patch(buyer3Id, { ...buyer3WalletFields, updatedAt: now });
     } else {
       buyer3Id = await ctx.db.insert("users", {
         email: "fleet@logistics.ng",
@@ -277,8 +320,6 @@ export const seedDatabase = mutation({
         emailVerified: true,
         phoneVerified: true,
         membershipTier: "business",
-        depositAmount: 10_000_000,
-        buyingPower: 100_000_000,
         dailyBidsUsed: 5,
         lastBidResetAt: now,
         role: "buyer",
@@ -287,6 +328,7 @@ export const seedDatabase = mutation({
         createdAt: now - 45 * 24 * 60 * 60 * 1000, // 45 days ago
         updatedAt: now,
         lastLoginAt: now - 1 * 60 * 60 * 1000, // 1 hour ago
+        ...buyer3WalletFields,
       });
     }
 
@@ -406,7 +448,8 @@ export const seedDatabase = mutation({
       },
       startingBid: 12_000_000,
       reservePrice: 14_000_000,
-      buyItNowEnabled: false,
+      buyItNowPrice: 16_800_000,
+      buyItNowEnabled: true,
       status: "in_auction",
       createdAt: now - 5 * 24 * 60 * 60 * 1000,
       updatedAt: now - 5 * 24 * 60 * 60 * 1000,
@@ -483,7 +526,8 @@ export const seedDatabase = mutation({
       },
       startingBid: 20_000_000,
       reservePrice: 23_000_000,
-      buyItNowEnabled: false,
+      buyItNowPrice: 27_600_000,
+      buyItNowEnabled: true,
       status: "in_auction",
       createdAt: now - 3 * 24 * 60 * 60 * 1000,
       updatedAt: now - 3 * 24 * 60 * 60 * 1000,
@@ -521,7 +565,8 @@ export const seedDatabase = mutation({
       },
       startingBid: 14_000_000,
       reservePrice: 16_000_000,
-      buyItNowEnabled: false,
+      buyItNowPrice: 19_200_000,
+      buyItNowEnabled: true,
       status: "in_auction",
       createdAt: now - 2 * 24 * 60 * 60 * 1000,
       updatedAt: now - 2 * 24 * 60 * 60 * 1000,
@@ -627,8 +672,8 @@ export const seedDatabase = mutation({
       // New required fields
       startingBid: 20_000_000,
       reservePrice: 23_000_000,
-      buyItNowEnabled: false,
-      buyItNowPrice: undefined,
+      buyItNowEnabled: true,
+      buyItNowPrice: 18_000_000,
       bidIncrement: 100_000,
       lotDuration: 24 * 60 * 60 * 1000, // 24 hours
       estimatedStartTime: now - 2 * 60 * 60 * 1000, // Started 2 hours ago
@@ -687,8 +732,8 @@ export const seedDatabase = mutation({
       reserveMet: false,
       startingBid: 12_000_000,
       reservePrice: 14_000_000,
-      buyItNowPrice: undefined,
-      buyItNowEnabled: false,
+      buyItNowPrice: 18_000_000,
+      buyItNowEnabled: true,
       bidIncrement: 100_000,
       lotDuration: 24 * 60 * 60 * 1000,
       estimatedStartTime: now - 15 * 60 * 1000, // Started 15 mins ago
@@ -727,8 +772,8 @@ export const seedDatabase = mutation({
       reserveMet: false,
       startingBid: 14_000_000,
       reservePrice: 16_000_000,
-      buyItNowPrice: undefined,
-      buyItNowEnabled: false,
+      buyItNowPrice: 18_000_000,
+      buyItNowEnabled: true,
       bidIncrement: 100_000,
       lotDuration: 24 * 60 * 60 * 1000,
       estimatedStartTime: now - 5 * 60 * 1000,
@@ -760,8 +805,8 @@ export const seedDatabase = mutation({
         reserveMet: false,
         startingBid: scheduledStarts[i],
         reservePrice: Math.round(scheduledStarts[i] * 1.15),
-        buyItNowEnabled: i % 2 === 0,
-        buyItNowPrice: i % 2 === 0 ? Math.round(scheduledStarts[i] * 1.35) : undefined,
+        buyItNowEnabled: true,
+        buyItNowPrice: Math.round(scheduledStarts[i] * 1.35),
         bidIncrement: 100_000,
         lotDuration: 24 * 60 * 60 * 1000,
         estimatedStartTime: now + sevenDaysMs + i * 15 * 60 * 1000,

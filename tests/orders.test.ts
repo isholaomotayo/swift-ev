@@ -12,19 +12,36 @@ describe("Orders", () => {
   let testOrderId: Id<"orders">;
 
   beforeAll(async () => {
-    // Login as admin
-    const adminLogin = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
-      password: "admin123",
-    });
+    // Login in parallel to prevent timeouts
+    const [adminLogin, buyerLogin] = await Promise.all([
+      client.action(api.authActions.login, {
+        email: "admin@voltbid.africa",
+        password: "admin123",
+      }),
+      client.action(api.authActions.login, {
+        email: "john.doe@example.com",
+        password: "buyer123",
+      }),
+    ]);
     adminToken = adminLogin.token;
-
-    // Login as buyer
-    const buyerLogin = await client.action(api.authActions.login, {
-      email: "john.doe@example.com",
-      password: "buyer123",
-    });
     buyerToken = buyerLogin.token;
+
+    // Create a test order
+    const vehiclesList = await client.query(api.vehicles.listVehicles, {
+      page: 0,
+      limit: 10,
+    });
+    const vehicleToBuy = vehiclesList.vehicles.find(
+      (v: any) => v.status === "approved" || v.status === "unsold"
+    );
+    if (vehicleToBuy) {
+      const purchaseResult = await client.mutation(api.vehicles.purchaseVehicleDirectly, {
+        token: buyerToken,
+        vehicleId: vehicleToBuy._id,
+        destination: "lagos",
+      });
+      testOrderId = purchaseResult.orderId;
+    }
   });
 
   describe("getUserOrders", () => {
@@ -253,10 +270,11 @@ describe("Orders", () => {
     });
 
     test("returns error for non-existent order", async () => {
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
       await expect(
         client.query(api.orders.getOrderDetails, {
           token: adminToken,
-          orderId: "j1234567890abcdef" as any,
+          orderId: fakeOrderId,
         })
       ).rejects.toThrow("not found");
     });
@@ -290,10 +308,11 @@ describe("Orders", () => {
     });
 
     test("requires valid order ID", async () => {
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
       await expect(
         client.mutation(api.orders.updateOrderStatus, {
           token: adminToken,
-          orderId: "j1234567890abcdef" as any,
+          orderId: fakeOrderId,
           status: "payment_complete",
         })
       ).rejects.toThrow("not found");
@@ -303,11 +322,18 @@ describe("Orders", () => {
   describe("addShippingTracking", () => {
     test("admin can add shipping tracking", async () => {
       if (testOrderId) {
+        // Set order to processing status first so it can be shipped
+        await client.mutation(api.orders.updateOrderStatus, {
+          token: adminToken,
+          orderId: testOrderId,
+          status: "processing",
+        });
+
         const result = await client.mutation(api.orders.addShippingTracking, {
           token: adminToken,
           orderId: testOrderId,
           carrier: "DHL",
-          trackingNumber: "TEST123456789",
+          trackingNumber: `TEST-${Date.now()}`,
           estimatedDelivery: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
           notes: "Test shipping tracking",
         });
@@ -331,10 +357,11 @@ describe("Orders", () => {
     });
 
     test("requires valid order ID", async () => {
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
       await expect(
         client.mutation(api.orders.addShippingTracking, {
           token: adminToken,
-          orderId: "j1234567890abcdef" as any,
+          orderId: fakeOrderId,
           carrier: "DHL",
           trackingNumber: "TEST123456789",
         })

@@ -13,25 +13,23 @@ describe("Vehicles", () => {
   let testVehicleId: Id<"vehicles"> | undefined;
 
   beforeAll(async () => {
-    // Login as admin
-    const adminLogin = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
-      password: "admin123",
-    });
+    // Login in parallel to prevent timeouts
+    const [adminLogin, vendorLogin, buyerLogin] = await Promise.all([
+      client.action(api.authActions.login, {
+        email: "admin@voltbid.africa",
+        password: "admin123",
+      }),
+      client.action(api.authActions.login, {
+        email: "vendor@bydnigeria.com",
+        password: "vendor123",
+      }),
+      client.action(api.authActions.login, {
+        email: "john.doe@example.com",
+        password: "buyer123",
+      }),
+    ]);
     adminToken = adminLogin.token;
-
-    // Login as vendor
-    const vendorLogin = await client.action(api.authActions.login, {
-      email: "vendor@bydnigeria.com",
-      password: "vendor123",
-    });
     vendorToken = vendorLogin.token;
-
-    // Login as buyer
-    const buyerLogin = await client.action(api.authActions.login, {
-      email: "john.doe@example.com",
-      password: "buyer123",
-    });
     buyerToken = buyerLogin.token;
   });
 
@@ -221,10 +219,20 @@ describe("Vehicles", () => {
     });
 
     test("returns null for non-existent vehicle", async () => {
-      // Use a fake ID format - this will fail validation but tests error handling
-      // In practice, we'd need a valid ID format
+      // First get a vehicle ID from list to get a valid ID structure
+      const listResult = await client.query(api.vehicles.listVehicles, {
+        page: 0,
+        limit: 1,
+      });
+
+      let fakeVehicleId = "j1234567890abcdef" as Id<"vehicles">;
+      if (listResult.vehicles.length > 0) {
+        const validId = listResult.vehicles[0]._id;
+        fakeVehicleId = (validId.substring(0, 15) + (validId[15] === "a" ? "b" : "a") + validId.substring(16)) as Id<"vehicles">;
+      }
+
       const result = await client.query(api.vehicles.getVehicleById, {
-        vehicleId: "j1234567890abcdef" as Id<"vehicles">,
+        vehicleId: fakeVehicleId,
       });
 
       // Should return null or throw error
@@ -253,7 +261,7 @@ describe("Vehicles", () => {
         make: "Tesla",
         model: "Model 3",
         year: 2023,
-        vin: "TEST123456789",
+        vin: `T12345${Date.now().toString().slice(-10)}1`.slice(0, 17),
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -295,7 +303,7 @@ describe("Vehicles", () => {
         make: "Tesla",
         model: "Model 3",
         year: 2023,
-        vin: "TEST123456790",
+        vin: `T12345${Date.now().toString().slice(-10)}2`.slice(0, 17),
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -312,6 +320,7 @@ describe("Vehicles", () => {
         locationCountry: "Nigeria",
         startingBid: 5000000,
         reservePrice: 6000000,
+        buyItNowPrice: 7000000,
         mediaUploads: [
           { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
           { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
@@ -335,7 +344,7 @@ describe("Vehicles", () => {
         make: "Tesla",
         model: "Model 3",
         year: 2023,
-        vin: "TEST123456791",
+        vin: `T12345${Date.now().toString().slice(-10)}3`.slice(0, 17),
         odometer: 15000,
         exteriorColor: "Red",
         interiorColor: "Black",
@@ -352,6 +361,7 @@ describe("Vehicles", () => {
         locationCountry: "Nigeria",
         startingBid: 5000000,
         reservePrice: 6000000,
+        buyItNowPrice: 7000000,
         mediaUploads: [
           { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
           { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
@@ -376,7 +386,7 @@ describe("Vehicles", () => {
       make: "Tesla",
       model: "Model 3",
       year: 2023,
-      vin: `APPROVE${suffix}`.slice(0, 17),
+      vin: `APPROVE${suffix}`.slice(-17),
       odometer: 15000,
       exteriorColor: "Red",
       interiorColor: "Black",
@@ -393,6 +403,7 @@ describe("Vehicles", () => {
       locationCountry: "Nigeria",
       startingBid: 5000000,
       reservePrice: 6000000,
+      buyItNowPrice: 7000000,
       mediaUploads: [
         { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
         { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
@@ -435,7 +446,7 @@ describe("Vehicles", () => {
           token: vendorToken,
           vehicleId: created.vehicleId,
         })
-      ).rejects.toThrow("Only admins can approve vehicles");
+      ).rejects.toThrow("Access denied");
     });
 
     test("admin cannot approve a vehicle that is not pending approval", async () => {
@@ -482,6 +493,7 @@ describe("Vehicles", () => {
       expect(result).toEqual({ success: true });
 
       const vehicle = await client.query(api.vehicles.getVehicleById, {
+        token: vendorToken,
         vehicleId: testVehicleId,
       });
       expect(vehicle?.exteriorColor).toBe("Blue");

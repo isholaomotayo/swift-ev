@@ -9,7 +9,7 @@ describe("Database Check", () => {
   test("check what password hashes are actually stored", async () => {
     // Login via action (bcrypt runs in Node.js runtime)
     const loginResult = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
+      email: "admin@voltbid.africa",
       password: "admin123",
     });
 
@@ -21,6 +21,6 @@ describe("Database Check", () => {
 
     expect(loginResult.token).toBeDefined();
     expect(typeof loginResult.token).toBe("string");
-    expect(loginResult.user.email).toBe("admin@autoexports.live");
+    expect(loginResult.user.email).toBe("admin@voltbid.africa");
   });
 });

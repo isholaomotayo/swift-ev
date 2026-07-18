@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuickLogin } from "@/components/auth/quick-login";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { getRoleHomePath, getSafeRedirectPath } from "@/lib/safe-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,20 +29,16 @@ export default function LoginPage() {
 
   const resendVerification = useMutation(api.auth.resendVerificationEmail);
   const isAccountInactive = searchParams.get("error") === "account_inactive";
+  const redirectParam = searchParams.get("redirect");
 
-  // Redirect based on user role when authenticated
+  // Prefer safe return URL (e.g. after Buy Now), else role home
   useEffect(() => {
     if (authLoading) return;
     if (isAuthenticated && user) {
-      if (user.role === "superadmin" || user.role === "admin") {
-        router.push("/admin");
-      } else if (user.role === "seller") {
-        router.push("/vendor");
-      } else {
-        router.push("/");
-      }
+      const target = getSafeRedirectPath(redirectParam, getRoleHomePath(user.role));
+      router.replace(target);
     }
-  }, [isAuthenticated, user, authLoading, router]);
+  }, [isAuthenticated, user, authLoading, router, redirectParam]);
 
   // Only show full-screen loading when redirecting after success, not during login attempt.
   // During login attempt (actionLoading), keep form visible with button in loading state.

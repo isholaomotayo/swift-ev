@@ -18,6 +18,7 @@ interface VendorDashboardClientProps {
     inAuction: number;
     sold: number;
     pendingApproval: number;
+    paymentPending?: number;
     totalRevenue: number;
   };
   recentVehicles: any[];
@@ -113,6 +114,27 @@ export function VendorDashboardClient({ user, stats, recentVehicles }: VendorDas
               You have <span className="font-bold text-foreground">{stats.pendingApproval}</span> vehicles awaiting admin review. You will be notified once they are live.
             </p>
           </div>
+        </div>
+      )}
+
+      {(stats.paymentPending ?? 0) > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-4">
+          <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <Clock className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-amber-800 dark:text-amber-300">
+              Awaiting buyer payment
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              <span className="font-bold text-foreground">{stats.paymentPending}</span>{" "}
+              vehicle{stats.paymentPending === 1 ? "" : "s"} reserved — buyer must complete
+              payment within 72 hours.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <Link href="/vendor/orders">View</Link>
+          </Button>
         </div>
       )}
 

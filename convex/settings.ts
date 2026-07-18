@@ -75,6 +75,7 @@ export const getPublicSetting = query({
     const publicKeys = [
       "dev.enableQuickLogin",
       "platform.companyName",
+      "platform.escrowBank",
       "registration.verificationFeeEnabled",
       "registration.verificationFeeAmount",
     ];
@@ -244,6 +245,16 @@ export const initializeDefaultSettings = mutation({
       { key: "platform.documentationFee", value: "500", description: "Documentation fee" },
       { key: "platform.companyName", value: "autoexports.live", description: "Company name" },
       { key: "platform.supportEmail", value: "support@autoexports.live", description: "Support email" },
+      {
+        key: "platform.escrowBank",
+        value: JSON.stringify({
+          bankName: "Platform Escrow Bank",
+          accountName: "autoexports.live Escrow",
+          accountNumber: "0000000000",
+          currency: "NGN",
+        }),
+        description: "Platform escrow bank account for buyer transfers",
+      },
 
       // Membership settings
       { key: "membership.basic.price", value: "0", description: "Basic membership price" },

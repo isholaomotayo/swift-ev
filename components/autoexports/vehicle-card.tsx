@@ -26,6 +26,7 @@ interface VehicleCardProps {
     fuelType?: string;
     odometer?: number;
     condition?: string;
+    status?: string;
     currentLocation?: {
       city: string;
       country: string;
@@ -34,12 +35,16 @@ interface VehicleCardProps {
     estimatedRange?: number;
     batteryHealthPercent?: number;
     heroImage?: string;
+    buyItNowPrice?: number;
+    buyItNowEnabled?: boolean;
   };
   auctionLot?: {
     currentBid: number;
     bidCount: number;
     endsAt?: number;
     status: string;
+    buyItNowPrice?: number;
+    buyItNowEnabled?: boolean;
   };
   onBidClick?: () => void;
   onWatchlistToggle?: () => void;
@@ -74,6 +79,15 @@ export function VehicleCard({
   const isInAuction = auctionLot?.status === "active";
   const isPreBidding = auctionLot?.status === "pending";
   const canBid = isInAuction || isPreBidding;
+  const buyNowPrice =
+    auctionLot?.buyItNowPrice ??
+    vehicle.buyItNowPrice ??
+    undefined;
+  const showBuyNow =
+    !!buyNowPrice &&
+    !isInAuction &&
+    vehicle.status !== "payment_pending" &&
+    (vehicle.buyItNowEnabled !== false || !!buyNowPrice);
 
   return (
     <Card
@@ -102,13 +116,18 @@ export function VehicleCard({
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* Lot Number Badge */}
-        <div className="absolute top-3 left-3 z-10">
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
           <Badge
             variant="secondary"
             className="font-mono bg-black/60 text-white border-white/10 backdrop-blur-md shadow-sm"
           >
             LOT #{lotNumber}
           </Badge>
+          {showBuyNow && buyNowPrice && (
+            <Badge className="bg-volt-green text-slate-950 border-none font-semibold shadow-sm">
+              Buy Now · <PriceDisplay amount={buyNowPrice} variant="compact" className="inline" />
+            </Badge>
+          )}
         </div>
 
         {/* Watchlist Button */}

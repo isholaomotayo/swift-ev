@@ -39,6 +39,7 @@ export const BUYER_VISIBLE_VEHICLE_STATUSES = [
   "approved",
   "scheduled",
   "in_auction",
+  "unsold",
   "sold",
 ] as const satisfies readonly VehicleStatus[];
 
@@ -56,7 +57,7 @@ export const TERMINAL_VEHICLE_STATUSES = [
   "delivered",
 ] as const satisfies readonly VehicleStatus[];
 
-const ALLOWED_TRANSITIONS: Record<VehicleStatus, readonly VehicleStatus[]> = {
+export const ALLOWED_TRANSITIONS: Record<VehicleStatus, readonly VehicleStatus[]> = {
   draft: ["pending_approval", "withdrawn"],
   pending_inspection: ["pending_approval", "rejected", "withdrawn"],
   pending_approval: ["approved", "rejected", "withdrawn"],
@@ -64,9 +65,9 @@ const ALLOWED_TRANSITIONS: Record<VehicleStatus, readonly VehicleStatus[]> = {
   ready_for_auction: ["scheduled", "in_auction", "withdrawn"],
   scheduled: ["in_auction", "payment_pending", "withdrawn"],
   in_auction: ["payment_pending", "unsold", "withdrawn"],
-  payment_pending: ["sold", "cancelled"],
+  payment_pending: ["sold", "cancelled", "unsold", "approved", "scheduled"],
   sold: ["in_transit", "delivered", "cancelled"],
-  unsold: ["approved", "withdrawn"],
+  unsold: ["approved", "withdrawn", "payment_pending", "scheduled"],
   withdrawn: [],
   rejected: [],
   in_transit: ["delivered", "cancelled"],
@@ -123,4 +124,35 @@ export function getVehicleStatusForOrderStatus(status: OrderStatus): VehicleStat
     case "refunded":
       return "cancelled";
   }
+}
+
+/** Kind of unpaid soft-hold being released (revoke or deadline forfeit). */
+export type SoftHoldReleaseKind = "direct_bin" | "auction_bin" | "auction_win";
+
+/**
+ * After revoke/forfeit of an unpaid soft-hold, return vehicle to buyable inventory.
+ * - direct_bin → approved (back on open market)
+ * - auction_bin → scheduled (lot restored to pending; auction can still run)
+ * - auction_win → unsold (sale failed after auction; lot marked no_sale)
+ */
+export function restoreStatusAfterSoftHoldRelease(
+  kind: SoftHoldReleaseKind
+): VehicleStatus {
+  switch (kind) {
+    case "direct_bin":
+      return "approved";
+    case "auction_bin":
+      return "scheduled";
+    case "auction_win":
+      return "unsold";
+  }
+}
+
+export function softHoldReleaseKindFromOrder(order: {
+  orderType: string;
+  auctionLotId?: unknown;
+}): SoftHoldReleaseKind {
+  if (!order.auctionLotId) return "direct_bin";
+  if (order.orderType === "auction_win") return "auction_win";
+  return "auction_bin";
 }

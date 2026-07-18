@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
+import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
+import { internal } from "./_generated/api";
 
 // Query limits - imported from constants would require client-side import
 // Keeping local constants for server-side code
@@ -95,9 +96,12 @@ export const placeBid = mutation({
       );
     }
 
-    // Check user's buying power (Enforce for ALL tiers to ensure deposit coverage)
-    if (args.amount > user.buyingPower) {
-      throw new Error(`Bid exceeds your buying power of ${user.buyingPower.toLocaleString()}`);
+    // Check user's buying power derived from available wallet (Naira)
+    const buyingPower = buyingPowerFromWalletKobo(walletBalance);
+    if (args.amount > buyingPower) {
+      throw new Error(
+        `Bid exceeds your buying power of ₦${buyingPower.toLocaleString()}. Fund your wallet to increase buying power.`
+      );
     }
 
     // Check daily bid limit
@@ -150,6 +154,7 @@ export const placeBid = mutation({
     await ctx.db.patch(session.userId, {
       walletBalance: newBalance,
       reservedBalance: newReserved,
+      buyingPower: buyingPowerFromWalletKobo(newBalance),
       updatedAt: Date.now(),
     });
 
@@ -195,9 +200,11 @@ export const placeBid = mutation({
 
         if (releaseAmount > 0) {
           // Return reserved funds to active wallet balance
+          const restoredWallet = (outbidUser.walletBalance ?? 0) + releaseAmount;
           await ctx.db.patch(bid.userId, {
-            walletBalance: (outbidUser.walletBalance ?? 0) + releaseAmount,
+            walletBalance: restoredWallet,
             reservedBalance: userReserved - releaseAmount,
+            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
             updatedAt: Date.now(),
           });
 
@@ -229,8 +236,12 @@ export const placeBid = mutation({
     if (lot.status === "active" && lot.endsAt) {
       const timeLeft = lot.endsAt - Date.now();
       if (timeLeft < 60 * 1000) {
+        const newEndsAt = Date.now() + 60 * 1000;
         await ctx.db.patch(lot._id, {
-          endsAt: Date.now() + 60 * 1000,
+          endsAt: newEndsAt,
+        });
+        await ctx.scheduler.runAt(newEndsAt, internal.auctions.closeLotAt, {
+          lotId: lot._id,
         });
       }
     } else if (lot.status === "pending") {

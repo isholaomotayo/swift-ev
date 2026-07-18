@@ -15,25 +15,23 @@ describe("Auctions", () => {
   let testAuctionId: Id<"auctions">;
 
   beforeAll(async () => {
-    // Login as admin
-    const adminLogin = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
-      password: "admin123",
-    });
+    // Login in parallel to prevent timeouts
+    const [adminLogin, vendorLogin, buyerLogin] = await Promise.all([
+      client.action(api.authActions.login, {
+        email: "admin@voltbid.africa",
+        password: "admin123",
+      }),
+      client.action(api.authActions.login, {
+        email: "vendor@bydnigeria.com",
+        password: "vendor123",
+      }),
+      client.action(api.authActions.login, {
+        email: "john.doe@example.com",
+        password: "buyer123",
+      }),
+    ]);
     adminToken = adminLogin.token;
-
-    // Login as vendor
-    const vendorLogin = await client.action(api.authActions.login, {
-      email: "vendor@bydnigeria.com",
-      password: "vendor123",
-    });
     vendorToken = vendorLogin.token;
-
-    // Login as buyer
-    const buyerLogin = await client.action(api.authActions.login, {
-      email: "john.doe@example.com",
-      password: "buyer123",
-    });
     buyerToken = buyerLogin.token;
   });
 
@@ -88,8 +86,14 @@ describe("Auctions", () => {
     });
 
     test("returns null for non-existent auction", async () => {
+      const auctions = await client.query(api.auctions.listAuctions, {});
+      let fakeAuctionId = "j1234567890abcdef" as Id<"auctions">;
+      if (auctions.length > 0) {
+        const validId = auctions[0]._id;
+        fakeAuctionId = (validId.substring(0, 15) + (validId[15] === "0" ? "1" : "0") + validId.substring(16)) as Id<"auctions">;
+      }
       const result = await client.query(api.auctions.getAuctionById, {
-        auctionId: "j1234567890abcdef" as Id<"auctions">,
+        auctionId: fakeAuctionId,
       });
 
       expect(result).toBeNull();
@@ -163,7 +167,7 @@ describe("Auctions", () => {
           scheduledStart,
           bidIncrement: 10000,
         })
-      ).rejects.toThrow("Admin access required");
+      ).rejects.toThrow("Access denied");
     });
 
     test("requires valid session token", async () => {
@@ -183,14 +187,50 @@ describe("Auctions", () => {
 
   describe("addLotToAuction", () => {
     test("admin can add lot to auction", async () => {
-      // First get a vehicle
-      const vehicles = await client.query(api.vehicles.listVehicles, {
-        page: 0,
-        limit: 1,
-      });
+      if (testAuctionId) {
+        // Create and approve a new vehicle specifically for this auction test
+        const suffix = `${Date.now()}-AUC`.slice(-17);
+        const created = await client.mutation(api.vehicles.createVehicle, {
+          token: vendorToken,
+          vehicleData: {
+            make: "Tesla",
+            model: "Model 3",
+            year: 2023,
+            vin: suffix,
+            odometer: 15000,
+            exteriorColor: "Red",
+            interiorColor: "Black",
+            batteryCapacity: 75,
+            batteryHealthPercent: 95,
+            range: 400,
+            batteryType: "Lithium-ion",
+            chargingTypes: ["AC", "DC"],
+            motorPower: 283,
+            condition: "excellent",
+            damageDescription: "No damage",
+            locationCity: "Lagos",
+            locationState: "Lagos",
+            locationCountry: "Nigeria",
+            startingBid: 5000000,
+            reservePrice: 6000000,
+            buyItNowPrice: 7000000,
+            mediaUploads: [
+              { storageId: "https://example.com/front.jpg", category: "Front View", isRequired: true },
+              { storageId: "https://example.com/rear.jpg", category: "Rear View", isRequired: true },
+              { storageId: "https://example.com/driver.jpg", category: "Driver Side", isRequired: true },
+              { storageId: "https://example.com/interior.jpg", category: "Interior (Dashboard)", isRequired: true },
+              { storageId: "https://example.com/engine.jpg", category: "Engine Bay", isRequired: true },
+            ],
+            videoWalkthroughStorageId: "https://example.com/walkthrough.mp4",
+          },
+        });
 
-      if (vehicles.vehicles.length > 0 && testAuctionId) {
-        const vehicleId = vehicles.vehicles[0]._id;
+        await client.mutation(api.vehicles.approveVehicle, {
+          token: adminToken,
+          vehicleId: created.vehicleId,
+        });
+
+        const vehicleId = created.vehicleId;
 
         const result = await client.mutation(api.auctions.addLotToAuction, {
           token: adminToken,
@@ -205,6 +245,7 @@ describe("Auctions", () => {
         expect(result).toHaveProperty("lotId");
 
         const vehicle = await client.query(api.vehicles.getVehicleById, {
+          token: adminToken,
           vehicleId,
         });
         expect(vehicle?.status).toBe("scheduled");
@@ -228,7 +269,7 @@ describe("Auctions", () => {
             lotOrder: 1,
             lotDuration: 300000,
           })
-        ).rejects.toThrow("Admin access required");
+        ).rejects.toThrow("Access denied");
       }
     });
   });
@@ -254,7 +295,7 @@ describe("Auctions", () => {
             token: buyerToken,
             auctionId: testAuctionId,
           })
-        ).rejects.toThrow("Admin access required");
+        ).rejects.toThrow("Access denied");
       }
     });
   });
@@ -280,7 +321,7 @@ describe("Auctions", () => {
             token: buyerToken,
             auctionId: testAuctionId,
           })
-        ).rejects.toThrow("Admin access required");
+        ).rejects.toThrow("Access denied");
       }
     });
   });
@@ -316,7 +357,7 @@ describe("Auctions", () => {
             token: buyerToken,
             auctionId: testAuctionId,
           })
-        ).rejects.toThrow("Admin access required");
+        ).rejects.toThrow("Access denied");
       }
     });
   });

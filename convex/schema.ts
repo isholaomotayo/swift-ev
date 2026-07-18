@@ -365,6 +365,8 @@ export default defineSchema({
     lotDuration: v.optional(v.number()),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
+    /** Remaining ms when auction is paused; restored on resume */
+    pausedRemainingMs: v.optional(v.number()),
     winningBid: v.optional(v.number()),
     winnerId: v.optional(v.id("users")),
     soldAt: v.optional(v.number()),
@@ -481,6 +483,12 @@ export default defineSchema({
       })
     ),
     deliveryFee: v.optional(v.number()),
+    /** Buy Now destination for landed-cost fees */
+    destinationPort: v.optional(
+      v.union(v.literal("lagos"), v.literal("port_harcourt"))
+    ),
+    /** Registration fee line (Buy Now all-in) */
+    registrationFee: v.optional(v.number()),
     subtotal: v.number(),
     totalAmount: v.number(),
     paidAmount: v.number(),
@@ -519,7 +527,8 @@ export default defineSchema({
       v.literal("paystack"),
       v.literal("flutterwave"),
       v.literal("bank_transfer"),
-      v.literal("deposit")
+      v.literal("deposit"),
+      v.literal("wallet")
     ),
     providerReference: v.optional(v.string()),
     paymentType: v.union(
@@ -534,15 +543,22 @@ export default defineSchema({
       v.literal("processing"),
       v.literal("successful"),
       v.literal("failed"),
-      v.literal("refunded")
+      v.literal("refunded"),
+      v.literal("rejected")
     ),
     failureReason: v.optional(v.string()),
+    buyerNote: v.optional(v.string()),
+    receiptStorageId: v.optional(v.id("_storage")),
+    verifiedBy: v.optional(v.id("users")),
+    verifiedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
   })
     .index("by_order", ["orderId"])
     .index("by_user", ["userId"])
-    .index("by_provider_reference", ["providerReference"]),
+    .index("by_provider_reference", ["providerReference"])
+    .index("by_status", ["status"]),
 
   // ============================================
   // SHIPPING & LOGISTICS TABLES

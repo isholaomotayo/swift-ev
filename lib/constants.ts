@@ -352,8 +352,11 @@ export const ORDER_STATUSES = [
   { value: "refunded", label: "Refunded" },
 ] as const;
 
-// Payment Deadlines
-export const PAYMENT_DEADLINE_DAYS = 3; // 3 business days
+// Payment Deadlines — hard cancel / deposit forfeiture window after order creation
+export const PAYMENT_DEADLINE_HOURS = 72;
+export const PAYMENT_DEADLINE_MS = PAYMENT_DEADLINE_HOURS * 60 * 60 * 1000;
+/** @deprecated Use PAYMENT_DEADLINE_HOURS — kept for any remaining day-based copy */
+export const PAYMENT_DEADLINE_DAYS = 3;
 
 // Pagination
 export const DEFAULT_PAGE_SIZE = 20;

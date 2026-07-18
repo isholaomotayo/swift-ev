@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
-import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
+import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 
 /**
  * Get wallet balance and details for the current user
@@ -240,6 +240,7 @@ async function processWalletFunding(ctx: any, txRef: string, transactionId: numb
 
     await ctx.db.patch(transaction.userId, {
         walletBalance: newBalance,
+        buyingPower: buyingPowerFromWalletKobo(newBalance),
         updatedAt: Date.now(),
     });
 
@@ -289,6 +290,7 @@ export const reserveFundsForBid = mutation({
         await ctx.db.patch(session.userId, {
             walletBalance: newBalance,
             reservedBalance: newReserved,
+            buyingPower: buyingPowerFromWalletKobo(newBalance),
             updatedAt: Date.now(),
         });
 
@@ -344,9 +346,11 @@ export const releaseReservedFunds = mutation({
         const releaseAmount = Math.min(args.amount, reserved);
 
         // Move funds from reserved back to available
+        const restoredWallet = (user.walletBalance ?? 0) + releaseAmount;
         await ctx.db.patch(session.userId, {
-            walletBalance: (user.walletBalance ?? 0) + releaseAmount,
+            walletBalance: restoredWallet,
             reservedBalance: reserved - releaseAmount,
+            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
             updatedAt: Date.now(),
         });
 

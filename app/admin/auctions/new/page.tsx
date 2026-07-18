@@ -151,13 +151,15 @@ export default function CreateAuctionPage() {
       config.startingBid < 0 ||
       config.reservePrice < config.startingBid ||
       config.bidIncrement <= 0 ||
-      (config.buyItNowPrice !== undefined && config.buyItNowPrice < config.reservePrice)
+      config.buyItNowPrice === undefined ||
+      config.buyItNowPrice <= 0 ||
+      config.buyItNowPrice < config.reservePrice
     );
 
     if (invalidConfig) {
       toast({
         title: "Error",
-        description: "Review lot pricing: reserve must cover starting bid, buy-now must cover reserve, and increments must be positive.",
+        description: "Review lot pricing: Buy It Now is required, reserve must cover starting bid, and Buy Now must cover reserve.",
         variant: "destructive",
       });
       return;
@@ -191,7 +193,7 @@ export default function CreateAuctionPage() {
             reservePrice: config.reservePrice,
             buyItNowPrice: config.buyItNowPrice,
             bidIncrement: config.bidIncrement,
-            buyItNowEnabled: config.buyItNowPrice !== undefined,
+            buyItNowEnabled: true,
             estimatedStartTime: undefined,
           });
         }
@@ -420,7 +422,7 @@ export default function CreateAuctionPage() {
                         />
                       </div>
                       <div>
-                        <Label>Buy It Now (Optional)</Label>
+                        <Label>Buy It Now *</Label>
                         <Input
                           type="number"
                           value={config.buyItNowPrice || ""}
@@ -431,6 +433,7 @@ export default function CreateAuctionPage() {
                               e.target.value ? parseInt(e.target.value) : undefined
                             )
                           }
+                          required
                         />
                       </div>
                       <div>

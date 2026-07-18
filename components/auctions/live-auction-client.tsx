@@ -155,8 +155,12 @@ export function LiveAuctionClient({
         <div className="container mx-auto px-4 py-12">
           <Card className="p-12 text-center border-dashed border-2 bg-muted/20">
             <Gavel className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <h2 className="text-xl font-semibold mb-2">{isAuctionLive ? "Waiting for next lot..." : "Auction has not started"}</h2>
-            <p className="text-muted-foreground">Please wait for the auctioneer to open the next lot.</p>
+            <h2 className="text-xl font-semibold mb-2">{isAuctionLive ? "Next lot starting automatically…" : "Auction has not started"}</h2>
+            <p className="text-muted-foreground">
+              {isAuctionLive
+                ? "Lots advance automatically when the timer ends. Hang tight."
+                : "This auction will go live at the scheduled start time."}
+            </p>
           </Card>
         </div>
       ) : (
@@ -299,7 +303,23 @@ export function LiveAuctionClient({
                       </span>
                     </div>
                     {isLotActive && currentLot.endsAt && (
-                      <AuctionTimer endsAt={currentLot.endsAt} variant="default" onExpire={() => { }} className="font-mono text-lg font-bold" />
+                      <AuctionTimer
+                        endsAt={currentLot.endsAt}
+                        variant="default"
+                        onExpire={() => {
+                          // Server closes via scheduler; Convex reactivity will refresh.
+                          // Show closing state via status badge once lot is no longer active.
+                        }}
+                        className="font-mono text-lg font-bold"
+                      />
+                    )}
+                    {isLotActive && !currentLot.endsAt && (
+                      <Badge variant="secondary">Paused</Badge>
+                    )}
+                    {!isLotActive && (
+                      <span className="text-sm font-medium text-muted-foreground animate-pulse">
+                        Closing lot…
+                      </span>
                     )}
                   </div>
 

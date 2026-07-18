@@ -47,6 +47,10 @@ export function SettingsClient({
     documentationFee: "",
     companyName: "",
     supportEmail: "",
+    escrowBankName: "",
+    escrowAccountName: "",
+    escrowAccountNumber: "",
+    escrowBankCode: "",
   });
 
   // Membership settings state
@@ -79,11 +83,16 @@ export function SettingsClient({
         autoExtendMinutes: settings["auction.autoExtendMinutes"] || "",
       });
 
+      const escrow = settings["platform.escrowBank"] || {};
       setPlatformSettings({
         serviceFeePercent: settings["platform.serviceFeePercent"] || "",
         documentationFee: settings["platform.documentationFee"] || "",
         companyName: settings["platform.companyName"] || "",
         supportEmail: settings["platform.supportEmail"] || "",
+        escrowBankName: escrow.bankName || "",
+        escrowAccountName: escrow.accountName || "",
+        escrowAccountNumber: escrow.accountNumber || "",
+        escrowBankCode: escrow.bankCode || "",
       });
 
       setMembershipSettings({
@@ -178,6 +187,17 @@ export function SettingsClient({
             key: "platform.supportEmail",
             value: platformSettings.supportEmail,
             description: "Support email",
+          },
+          {
+            key: "platform.escrowBank",
+            value: JSON.stringify({
+              bankName: platformSettings.escrowBankName,
+              accountName: platformSettings.escrowAccountName,
+              accountNumber: platformSettings.escrowAccountNumber,
+              bankCode: platformSettings.escrowBankCode || undefined,
+              currency: "NGN",
+            }),
+            description: "Platform escrow bank account for buyer transfers",
           },
         ],
       });
@@ -506,6 +526,71 @@ export function SettingsClient({
                     }
                     placeholder="support@autoexports.live"
                   />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t space-y-4">
+                <h3 className="font-semibold">Escrow Bank Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Shown to buyers when they pay by bank transfer. Use your platform escrow account.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="escrowBankName">Bank Name</Label>
+                    <Input
+                      id="escrowBankName"
+                      value={platformSettings.escrowBankName}
+                      onChange={(e) =>
+                        setPlatformSettings((s) => ({
+                          ...s,
+                          escrowBankName: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. GTBank"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="escrowAccountName">Account Name</Label>
+                    <Input
+                      id="escrowAccountName"
+                      value={platformSettings.escrowAccountName}
+                      onChange={(e) =>
+                        setPlatformSettings((s) => ({
+                          ...s,
+                          escrowAccountName: e.target.value,
+                        }))
+                      }
+                      placeholder="autoexports.live Escrow"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="escrowAccountNumber">Account Number</Label>
+                    <Input
+                      id="escrowAccountNumber"
+                      value={platformSettings.escrowAccountNumber}
+                      onChange={(e) =>
+                        setPlatformSettings((s) => ({
+                          ...s,
+                          escrowAccountNumber: e.target.value,
+                        }))
+                      }
+                      placeholder="0123456789"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="escrowBankCode">Bank Code (optional)</Label>
+                    <Input
+                      id="escrowBankCode"
+                      value={platformSettings.escrowBankCode}
+                      onChange={(e) =>
+                        setPlatformSettings((s) => ({
+                          ...s,
+                          escrowBankCode: e.target.value,
+                        }))
+                      }
+                      placeholder="058"
+                    />
+                  </div>
                 </div>
               </div>
 

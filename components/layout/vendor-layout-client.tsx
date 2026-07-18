@@ -11,6 +11,8 @@ import {
   Settings,
   Package,
   CreditCard,
+  ShoppingBag,
+  Clock,
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -37,6 +39,16 @@ const vendorNavItems = [
     label: "My Auctions",
     href: "/vendor/auctions",
     icon: Package,
+  },
+  {
+    label: "Pending payments",
+    href: "/vendor/orders",
+    icon: Clock,
+  },
+  {
+    label: "My purchases",
+    href: "/orders",
+    icon: ShoppingBag,
   },
   {
     label: "Analytics",
@@ -142,7 +154,9 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
             <nav className="space-y-1">
               {vendorNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/vendor" && pathname.startsWith(item.href));
 
                 return (
                   <Link

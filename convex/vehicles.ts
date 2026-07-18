@@ -4,20 +4,26 @@ import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   createAuditLog,
+  getAuthUserOrNull,
   isAdmin as authIsAdmin,
   requireAdmin,
   requireAuth,
   requireSeller,
 } from "./lib/auth";
-import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
+import { generateUniqueOrderNumber } from "./lib/orders";
 import {
   assertVehicleStatusTransition,
   isBuyerVisibleVehicleStatus,
   isVehicleStatus,
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
-import { isAuctionLotHoldingVehicleForPurchase } from "./lib/purchaseFlow";
+import { isAuctionLotHoldingVehicleForPurchase, resolveBuyNowPrice } from "./lib/purchaseFlow";
 import { assertValidVehicleMakeModel } from "./lib/vehicleCatalog";
+import {
+  createInAppNotification,
+  paymentDeadlineFrom,
+} from "./lib/payments";
+import { calculateBuyNowPricing } from "./lib/buyNowPricing";
 
 const vehicleStatusValidator = v.union(
   v.literal("draft"),
@@ -44,9 +50,22 @@ function vehicleStatusOf(status: string): VehicleStatus {
   return status;
 }
 
-function canViewPrivateVehicle(user: Awaited<ReturnType<typeof requireAuth>> | null, vehicle: Doc<"vehicles">) {
+function canViewPrivateVehicle(
+  user: Awaited<ReturnType<typeof requireAuth>> | null,
+  vehicle: Doc<"vehicles">
+) {
   if (!user) return false;
-  return authIsAdmin(user) || (vehicle.sellerId !== undefined && vehicle.sellerId === user._id);
+  if (authIsAdmin(user)) return true;
+  if (vehicle.sellerId !== undefined && vehicle.sellerId === user._id) return true;
+  // Soft-hold buyer may view their reserved vehicle to complete payment
+  if (
+    vehicle.status === "payment_pending" &&
+    vehicle.buyItNowPurchasedBy !== undefined &&
+    vehicle.buyItNowPurchasedBy === user._id
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function getHoldingAuctionLot(ctx: any, vehicleId: Id<"vehicles">) {
@@ -91,17 +110,37 @@ async function hydrateVehicleForList(ctx: any, vehicle: Doc<"vehicles">, auction
     })
   );
 
+  const resolvedLot =
+    auctionLot === undefined
+      ? await getHoldingAuctionLot(ctx, vehicle._id)
+      : auctionLot;
+
+  const buyItNowPrice = resolveBuyNowPrice(vehicle);
+
   return {
     ...vehicle,
+    buyItNowPrice,
+    buyItNowEnabled: !!buyItNowPrice,
     images: imagesWithUrls,
     heroImage: imagesWithUrls[0]?.url,
-    auctionLot: auctionLot ?? await getHoldingAuctionLot(ctx, vehicle._id),
+    auctionLot: resolvedLot
+      ? {
+          ...resolvedLot,
+          buyItNowPrice: resolveBuyNowPrice({
+            buyItNowPrice: resolvedLot.buyItNowPrice,
+            reservePrice: resolvedLot.reservePrice ?? vehicle.reservePrice,
+            startingBid: resolvedLot.startingBid ?? vehicle.startingBid,
+          }),
+          buyItNowEnabled: true,
+        }
+      : null,
   };
 }
 
 /**
  * Get featured vehicles for homepage
- * Returns the 3 latest buyer-visible vehicles (approved, scheduled, in_auction, sold)
+ * Returns the 3 latest buyer-visible vehicles (approved, scheduled, in_auction, unsold, sold).
+ * Soft-held payment_pending listings are excluded from public inventory.
  */
 export const getFeaturedVehicles = query({
   args: {},
@@ -440,17 +479,22 @@ export const searchVehicles = query({
  */
 export const getVehicleById = query({
   args: {
-    vehicleId: v.id("vehicles"),
+    vehicleId: v.string(),
     token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const vehicle = await ctx.db.get(args.vehicleId);
+    const targetVehicleId = ctx.db.normalizeId("vehicles", args.vehicleId);
+    if (!targetVehicleId) {
+      return null;
+    }
+
+    const vehicle = await ctx.db.get(targetVehicleId);
 
     if (!vehicle) {
       return null;
     }
 
-    const user = args.token ? await requireAuth(ctx, args.token) : null;
+    const user = await getAuthUserOrNull(ctx, args.token);
     const isPubliclyVisible = isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status));
     if (!isPubliclyVisible && !canViewPrivateVehicle(user, vehicle)) {
       return null;
@@ -524,11 +568,26 @@ export const getVehicleById = query({
       })
     );
 
+    const buyItNowPrice = resolveBuyNowPrice(vehicle);
+    const normalizedLot = auctionLot
+      ? {
+          ...auctionLot,
+          buyItNowPrice: resolveBuyNowPrice({
+            buyItNowPrice: auctionLot.buyItNowPrice,
+            reservePrice: auctionLot.reservePrice ?? vehicle.reservePrice,
+            startingBid: auctionLot.startingBid ?? vehicle.startingBid,
+          }),
+          buyItNowEnabled: true,
+        }
+      : null;
+
     return {
       ...vehicle,
+      buyItNowPrice,
+      buyItNowEnabled: !!buyItNowPrice,
       images: imagesWithUrls,
       heroImage: imagesWithUrls[0]?.url,
-      auctionLot,
+      auctionLot: normalizedLot,
       bids: bids.map((bid) => ({
         _id: bid._id,
         amount: bid.bidAmount,
@@ -680,7 +739,7 @@ export const createVehicle = mutation({
       // Pricing
       startingBid: v.number(),
       reservePrice: v.number(),
-      buyItNowPrice: v.optional(v.number()),
+      buyItNowPrice: v.number(),
       buyItNowEnabled: v.optional(v.boolean()),
       initialStatus: v.optional(
         v.union(v.literal("pending_approval"), v.literal("approved"))
@@ -761,7 +820,16 @@ export const createVehicle = mutation({
       throw new Error("Reserve price must be greater than or equal to the starting bid.");
     }
 
-    if (vehicleData.buyItNowPrice !== undefined && vehicleData.buyItNowPrice < vehicleData.reservePrice) {
+    if (
+      vehicleData.buyItNowPrice === undefined ||
+      vehicleData.buyItNowPrice === null ||
+      !Number.isFinite(vehicleData.buyItNowPrice) ||
+      vehicleData.buyItNowPrice <= 0
+    ) {
+      throw new Error("Buy It Now price is required for all listings.");
+    }
+
+    if (vehicleData.buyItNowPrice < vehicleData.reservePrice) {
       throw new Error("Buy it now price must be greater than or equal to the reserve price.");
     }
 
@@ -852,7 +920,7 @@ export const createVehicle = mutation({
       startingBid: vehicleData.startingBid,
       reservePrice: vehicleData.reservePrice,
       buyItNowPrice: vehicleData.buyItNowPrice,
-      buyItNowEnabled: vehicleData.buyItNowEnabled ?? !!vehicleData.buyItNowPrice,
+      buyItNowEnabled: true,
       status: initialStatus,
       createdAt: now,
       updatedAt: now,
@@ -1115,6 +1183,34 @@ export const updateVehicle = mutation({
       assertValidVehicleMakeModel(make, model);
     }
 
+    const nextStartingBid =
+      (vehicleUpdates.startingBid as number | undefined) ?? vehicle.startingBid;
+    const nextReserve =
+      (vehicleUpdates.reservePrice as number | undefined) ?? vehicle.reservePrice ?? 0;
+    const nextBuyItNow =
+      (vehicleUpdates.buyItNowPrice as number | undefined) ?? vehicle.buyItNowPrice;
+
+    if (vehicleUpdates.buyItNowPrice !== undefined) {
+      if (
+        typeof vehicleUpdates.buyItNowPrice !== "number" ||
+        vehicleUpdates.buyItNowPrice <= 0
+      ) {
+        throw new Error("Buy It Now price is required and must be greater than zero.");
+      }
+    }
+    if (nextBuyItNow === undefined || nextBuyItNow <= 0) {
+      throw new Error("Buy It Now price is required for all listings.");
+    }
+    if (nextBuyItNow < nextReserve) {
+      throw new Error("Buy It Now price must be greater than or equal to the reserve price.");
+    }
+    if (nextReserve < nextStartingBid) {
+      throw new Error("Reserve price must be greater than or equal to the starting bid.");
+    }
+
+    // Always keep Buy Now enabled when a valid price is set
+    vehicleUpdates.buyItNowEnabled = true;
+
     const searchableText = [make, model, vin, lotNumber, year.toString()].join(" ").toLowerCase();
 
     await ctx.db.patch(vehicleId, {
@@ -1169,6 +1265,10 @@ export const approveVehicle = mutation({
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
       throw new Error("Vehicle not found");
+    }
+
+    if (vehicle.status !== "pending_approval") {
+      throw new Error("Only pending approval vehicles can be approved");
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
@@ -1382,89 +1482,149 @@ export const overrideVehicleStatus = mutation({
 });
 
 /**
- * Direct purchase of a vehicle without an auction lot
+ * Direct purchase of a vehicle without an auction lot.
+ * Soft-holds the vehicle (payment_pending) — hidden from public inventory until paid or released.
  */
 export const purchaseVehicleDirectly = mutation({
   args: {
     token: v.string(),
     vehicleId: v.id("vehicles"),
+    destination: v.union(v.literal("lagos"), v.literal("port_harcourt")),
   },
   handler: async (ctx, args) => {
-    // 1. Authenticate user
     const user = await requireAuth(ctx, args.token);
 
-    // 2. Get vehicle and verify it can be purchased
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
       throw new Error("Vehicle not found");
     }
 
-    if (!vehicle.buyItNowPrice || !vehicle.buyItNowEnabled) {
+    if (vehicle.sellerId && vehicle.sellerId === user._id) {
+      throw new Error("You cannot purchase your own listing");
+    }
+
+    if (vehicle.status === "payment_pending") {
+      if (vehicle.buyItNowPurchasedBy === user._id) {
+        const mine = (
+          await ctx.db
+            .query("orders")
+            .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+            .collect()
+        ).find(
+          (order) =>
+            order.userId === user._id &&
+            (order.status === "pending_payment" || order.status === "payment_partial")
+        );
+        if (mine) {
+          return {
+            success: true,
+            orderId: mine._id,
+            orderNumber: mine.orderNumber,
+            resumed: true,
+          };
+        }
+      }
+      throw new Error("This vehicle is reserved pending payment by another buyer");
+    }
+
+    if (vehicle.status !== "approved" && vehicle.status !== "unsold") {
+      throw new Error(
+        `Vehicle cannot be purchased directly because it is in status: ${vehicle.status}`
+      );
+    }
+
+    const buyItNowPrice = resolveBuyNowPrice(vehicle);
+    if (!buyItNowPrice) {
       throw new Error("Direct purchase is not available for this vehicle");
     }
 
-    if (vehicle.status !== "approved") {
-      throw new Error(`Vehicle cannot be purchased directly because it is in status: ${vehicle.status}`);
-    }
-
-    // 3. Ensure no auction lot is currently holding the vehicle
     const activeOrPendingLot = await ctx.db
       .query("auctionLots")
       .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-      .filter((q) => q.or(
-        q.eq(q.field("status"), "active"),
-        q.eq(q.field("status"), "pending")
-      ))
+      .filter((q) =>
+        q.or(q.eq(q.field("status"), "active"), q.eq(q.field("status"), "pending"))
+      )
       .first();
 
-    if (activeOrPendingLot && isAuctionLotHoldingVehicleForPurchase(activeOrPendingLot.status)) {
-      throw new Error("Vehicle is assigned to an auction lot. Please purchase through the auction lot.");
+    if (
+      activeOrPendingLot &&
+      isAuctionLotHoldingVehicleForPurchase(activeOrPendingLot.status)
+    ) {
+      throw new Error(
+        "Vehicle is assigned to an auction lot. Please purchase through the auction lot."
+      );
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "payment_pending");
 
-    const existingOrder = (await ctx.db
-      .query("orders")
-      .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-      .collect()).find((order) => order.status !== "cancelled" && order.status !== "refunded");
+    const existingOrder = (
+      await ctx.db
+        .query("orders")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+        .collect()
+    ).find((order) => order.status !== "cancelled" && order.status !== "refunded");
 
     if (existingOrder) {
       throw new Error("Vehicle already has an active purchase order");
     }
 
+    const pricing = calculateBuyNowPricing(buyItNowPrice, args.destination);
     const now = Date.now();
 
-    // 4. Hold vehicle while payment is pending
     await ctx.db.patch(vehicle._id, {
       status: "payment_pending",
+      buyItNowPrice,
+      buyItNowEnabled: true,
       buyItNowPurchasedAt: now,
       buyItNowPurchasedBy: user._id,
       updatedAt: now,
     });
 
-    // 5. Create Order
     const orderNumber = await generateUniqueOrderNumber(ctx);
-    const serviceFee = calculateServiceFee(vehicle.buyItNowPrice);
-    const documentationFee = 50_000;
-    const totalAmount = vehicle.buyItNowPrice + serviceFee + documentationFee;
-
     const orderId = await ctx.db.insert("orders", {
       orderNumber,
       userId: user._id,
       vehicleId: vehicle._id,
       orderType: "buy_it_now",
-      winningBid: vehicle.buyItNowPrice,
-      serviceFee,
-      documentationFee,
-      subtotal: vehicle.buyItNowPrice,
-      totalAmount,
+      winningBid: pricing.vehiclePrice,
+      serviceFee: pricing.serviceFee,
+      documentationFee: pricing.documentationFee,
+      inspectionFee: pricing.inspectionFee,
+      shippingCost: pricing.shippingCost,
+      estimatedDuties: pricing.customsClearingFee,
+      clearanceFee: pricing.customsClearingFee,
+      registrationFee: pricing.registrationFee,
+      destinationPort: pricing.destination,
+      subtotal: pricing.vehiclePrice,
+      totalAmount: pricing.totalAmount,
       paidAmount: 0,
-      balanceDue: totalAmount,
+      balanceDue: pricing.totalAmount,
       status: "pending_payment",
-      paymentDeadline: now + 7 * 24 * 60 * 60 * 1000,
+      paymentDeadline: paymentDeadlineFrom(now),
       createdAt: now,
       updatedAt: now,
     });
+
+    const deadlineStr = new Date(paymentDeadlineFrom(now)).toLocaleString();
+    await createInAppNotification(ctx, {
+      userId: user._id,
+      type: "payment_reminder",
+      title: "Complete payment to secure this vehicle",
+      message: `Order ${orderNumber} created. Pay ₦${pricing.totalAmount.toLocaleString()} by ${deadlineStr} to secure the vehicle. The listing remains reserved until payment is complete.`,
+      orderId,
+      vehicleId: vehicle._id,
+    });
+
+    if (vehicle.sellerId) {
+      await createInAppNotification(ctx, {
+        userId: vehicle.sellerId,
+        type: "system",
+        title: "Buyer reserved your vehicle",
+        message: `A buyer created order ${orderNumber} for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Payment is due by ${deadlineStr}.`,
+        orderId,
+        vehicleId: vehicle._id,
+      });
+    }
 
     return { success: true, orderId, orderNumber };
   },
@@ -1496,6 +1656,7 @@ export const getVendorStats = query({
       ["sold", "in_transit", "delivered"].includes(v.status)
     ).length;
     const pending = vehicles.filter((v) => v.status === "pending_approval").length;
+    const paymentPending = vehicles.filter((v) => v.status === "payment_pending").length;
 
     // Calculate revenue from sold vehicles
     const soldVehicles = vehicles.filter((v) =>
@@ -1523,6 +1684,7 @@ export const getVendorStats = query({
       inAuction,
       sold,
       pending,
+      paymentPending,
       totalRevenue,
       averageSalePrice,
     };

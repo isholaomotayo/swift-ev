@@ -71,6 +71,7 @@ export const initialFormData: VehicleFormData = {
   damageDescription: "",
   startingBid: 0,
   reservePrice: 0,
+  buyItNowPrice: 0,
   locationCity: "",
   locationState: "",
   locationCountry: "Nigeria",
@@ -246,6 +247,26 @@ export function VehicleForm({
         title: "Required Images Missing",
         description: "Please upload all required vehicle photos before submitting.",
         variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.buyItNowPrice || formData.buyItNowPrice <= 0) {
+      setCurrentStep("pricing");
+      toast({
+        title: "Buy It Now Required",
+        description: "Please enter a Buy It Now price. All vehicles must be purchasable immediately.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.buyItNowPrice < formData.reservePrice) {
+      setCurrentStep("pricing");
+      toast({
+        title: "Invalid Buy It Now Price",
+        description: "Buy It Now must be greater than or equal to the reserve price.",
+        variant: "destructive",
       });
       return;
     }
@@ -656,19 +677,20 @@ export function VehicleForm({
               </div>
 
               <div>
-                <Label htmlFor="buyItNowPrice">Buy It Now Price (₦) - Optional</Label>
+                <Label htmlFor="buyItNowPrice">Buy It Now Price (₦) *</Label>
                 <Input
                   id="buyItNowPrice"
                   type="number"
                   value={formData.buyItNowPrice || ""}
                   onChange={(e) =>
-                    updateFormData("buyItNowPrice", e.target.value ? Number(e.target.value) : undefined)
+                    updateFormData("buyItNowPrice", e.target.value ? Number(e.target.value) : 0)
                   }
                   min="0"
                   step="100000"
+                  required
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Price to purchase immediately without bidding
+                  Required. Price for immediate purchase — shown as the primary buy option
                 </p>
               </div>
 

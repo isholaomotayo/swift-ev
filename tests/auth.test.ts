@@ -9,13 +9,13 @@ describe("Authentication", () => {
   describe("Login", () => {
     test("admin can login with correct credentials", async () => {
       const result = await client.action(api.authActions.login, {
-        email: "admin@autoexports.live",
+        email: "admin@voltbid.africa",
         password: "admin123",
       });
 
       expect(result.token).toBeDefined();
       expect(typeof result.token).toBe("string");
-      expect(result.user.email).toBe("admin@autoexports.live");
+      expect(result.user.email).toBe("admin@voltbid.africa");
       expect(result.user.role).toBe("superadmin");
       expect(result.user.firstName).toBe("System");
       expect(result.user.lastName).toBe("Administrator");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { validateOrderStatus } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/table";
 import { Search, Download, PackageSearch } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface OrdersListClientProps {
   initialOrdersData: any;
@@ -37,10 +40,14 @@ export function OrdersListClient({
   initialStats,
   token,
 }: OrdersListClientProps) {
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("pending_payment");
   const [page, setPage] = useState(0);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const pageSize = 25;
+
+  const revokePurchase = useMutation(api.orders.revokePurchase);
 
   // Use useQuery for real-time updates
   const ordersData = useQuery(
@@ -68,9 +75,39 @@ export function OrdersListClient({
       case "shipped":
         return "secondary";
       case "pending_payment":
+      case "payment_partial":
         return "destructive";
       default:
         return "outline";
+    }
+  };
+
+  const handleRevoke = async (orderId: Id<"orders">, orderNumber: string) => {
+    const confirmed = window.confirm(
+      `Revoke purchase for order #${orderNumber}? The vehicle will return to inventory. Any applied deposit will be refunded to the buyer.`
+    );
+    if (!confirmed) return;
+
+    setRevokingId(orderId);
+    try {
+      const result = await revokePurchase({ token, orderId });
+      toast({
+        title: "Purchase revoked",
+        description:
+          `Order #${orderNumber} cancelled. Vehicle is available again.` +
+          (typeof result?.refundedDepositNaira === "number" &&
+          result.refundedDepositNaira > 0
+            ? ` Deposit ₦${result.refundedDepositNaira.toLocaleString()} refunded.`
+            : ""),
+      });
+    } catch (error) {
+      toast({
+        title: "Revoke failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -139,13 +176,20 @@ export function OrdersListClient({
           </div>
 
           {/* Status Filter */}
-          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
+          <Select
+            value={statusFilter || "all"}
+            onValueChange={(v) => {
+              setStatusFilter(v === "all" ? "" : v);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="pending_payment">Pending Payment</SelectItem>
+              <SelectItem value="payment_partial">Payment Partial</SelectItem>
               <SelectItem value="payment_complete">Payment Complete</SelectItem>
               <SelectItem value="shipped">Shipped</SelectItem>
               <SelectItem value="in_transit">In Transit</SelectItem>
@@ -186,53 +230,74 @@ export function OrdersListClient({
                 </TableCell>
               </TableRow>
             ) : (
-              ordersData.orders.map((order: any) => (
-                <TableRow key={order._id}>
-                  <TableCell className="font-medium font-mono">
-                    #{order.orderNumber}
-                  </TableCell>
-                  <TableCell>
-                    {order.buyer ? (
-                      <div>
-                        <div className="font-medium">
-                          {order.buyer.firstName} {order.buyer.lastName}
+              ordersData.orders.map((order: any) => {
+                const canRevoke =
+                  order.status === "pending_payment" ||
+                  order.status === "payment_partial";
+                return (
+                  <TableRow key={order._id}>
+                    <TableCell className="font-medium font-mono">
+                      #{order.orderNumber}
+                    </TableCell>
+                    <TableCell>
+                      {order.buyer ? (
+                        <div>
+                          <div className="font-medium">
+                            {order.buyer.firstName} {order.buyer.lastName}
+                          </div>
+                          <div className="text-xs text-gray-500">{order.buyer.email}</div>
                         </div>
-                        <div className="text-xs text-gray-500">{order.buyer.email}</div>
+                      ) : (
+                        <span className="text-gray-400">Unknown</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {order.vehicle ? (
+                        <div>
+                          <div className="font-medium">
+                            {order.vehicle.year} {order.vehicle.make}{" "}
+                            {order.vehicle.model}
+                          </div>
+                          <div className="text-xs text-gray-500 font-mono">
+                            VIN: {order.vehicle.vin}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Unknown</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(order.totalAmount)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(order.status)}>
+                        {order.status.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(order._creationTime)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/orders/${order._id}`}>View</Link>
+                        </Button>
+                        {canRevoke && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive border-destructive/30"
+                            disabled={revokingId === order._id}
+                            onClick={() =>
+                              handleRevoke(order._id, order.orderNumber)
+                            }
+                          >
+                            {revokingId === order._id ? "Revoking…" : "Revoke"}
+                          </Button>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-gray-400">Unknown</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {order.vehicle ? (
-                      <div>
-                        <div className="font-medium">
-                          {order.vehicle.year} {order.vehicle.make} {order.vehicle.model}
-                        </div>
-                        <div className="text-xs text-gray-500 font-mono">
-                          VIN: {order.vehicle.vin}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">Unknown</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatCurrency(order.totalAmount)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(order.status)}>
-                      {order.status.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(order._creationTime)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -242,7 +307,8 @@ export function OrdersListClient({
           <div className="flex items-center justify-between p-4 border-t">
             <div className="text-sm text-gray-500">
               Showing {page * pageSize + 1} to{" "}
-              {Math.min((page + 1) * pageSize, ordersData.total)} of {ordersData.total} orders
+              {Math.min((page + 1) * pageSize, ordersData.total)} of{" "}
+              {ordersData.total} orders
             </div>
             <div className="flex gap-2">
               <Button
@@ -268,4 +334,3 @@ export function OrdersListClient({
     </div>
   );
 }
-

@@ -193,4 +193,64 @@ http.route({
   }),
 });
 
+/**
+ * Flutterwave webhook — wallet funding and order card payments.
+ * Configure URL: https://<CONVEX_SITE_URL>/webhooks/flutterwave
+ */
+http.route({
+  path: "/webhooks/flutterwave",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const secretHash = process.env.FLUTTERWAVE_SECRET_HASH;
+      if (secretHash) {
+        const signature = request.headers.get("verif-hash");
+        if (signature !== secretHash) {
+          return new Response(JSON.stringify({ error: "Invalid signature" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const body = await request.json();
+      const data = body?.data ?? body;
+      const status = data?.status ?? body?.status;
+      const txRef = data?.tx_ref ?? data?.txRef;
+      const transactionId = data?.id ?? data?.transaction_id;
+
+      if (status !== "successful" || !txRef || !transactionId) {
+        return new Response(JSON.stringify({ received: true, ignored: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Try order payment first (ORD- prefix), else wallet funding (WF_)
+      if (typeof txRef === "string" && txRef.startsWith("ORD-")) {
+        await ctx.runMutation(internal.payments.processOrderCardPaymentWebhook, {
+          txRef,
+          transactionId,
+        });
+      } else {
+        await ctx.runMutation(internal.wallet.processWalletFundingWebhook, {
+          txRef,
+          transactionId,
+        });
+      }
+
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Flutterwave webhook error:", error);
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
 export default http;

@@ -14,6 +14,7 @@ import {
   Mail,
   LogOut,
   CheckCircle,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,11 @@ const adminNavItems = [
     label: "Orders",
     href: "/admin/orders",
     icon: Package,
+  },
+  {
+    label: "Payments",
+    href: "/admin/payments",
+    icon: CreditCard,
   },
   {
     label: "Analytics",

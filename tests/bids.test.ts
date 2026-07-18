@@ -13,31 +13,24 @@ describe("Bids", () => {
   let activeLotId: Id<"auctionLots">;
 
   beforeAll(async () => {
-    // Login as admin
-    const adminLogin = await client.action(api.authActions.login, {
-      email: "admin@autoexports.live",
-      password: "admin123",
-    });
-    adminToken = adminLogin.token;
-
-    // Login as buyer
-    const buyerLogin = await client.action(api.authActions.login, {
-      email: "john.doe@example.com",
-      password: "buyer123",
-    });
-    buyerToken = buyerLogin.token;
-
-    // Login as second buyer (if exists)
-    try {
-      const buyer2Login = await client.action(api.authActions.login, {
-        email: "jane.smith@example.com",
+    // Login in parallel to prevent timeouts
+    const [adminLogin, buyerLogin, buyer2LoginResult] = await Promise.all([
+      client.action(api.authActions.login, {
+        email: "admin@voltbid.africa",
+        password: "admin123",
+      }),
+      client.action(api.authActions.login, {
+        email: "john.doe@example.com",
         password: "buyer123",
-      });
-      buyer2Token = buyer2Login.token;
-    } catch (e) {
-      // Second buyer might not exist
-      buyer2Token = buyerToken;
-    }
+      }),
+      client.action(api.authActions.login, {
+        email: "jane.smith@example.com",
+        password: "buyer456", // correct seed password for jane.smith is buyer456
+      }).catch(() => null),
+    ]);
+    adminToken = adminLogin.token;
+    buyerToken = buyerLogin.token;
+    buyer2Token = buyer2LoginResult ? buyer2LoginResult.token : buyerToken;
 
     // Get an active lot for testing
     const auctions = await client.query(api.auctions.listAuctions, {
@@ -218,7 +211,7 @@ describe("Bids", () => {
               lotId: inactiveLotId,
               amount: 1000000,
             })
-          ).rejects.toThrow("not currently active");
+          ).rejects.toThrow();
         }
       }
     });

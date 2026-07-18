@@ -25,15 +25,15 @@ export default async function OrderDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = await params;
+  const orderId = resolvedParams.id as Id<"orders">;
   const cookieStore = await cookies();
   const token = cookieStore.get("autoexports_token")?.value;
 
   if (!token) {
-    redirect("/login");
+    redirect(`/login?redirect=${encodeURIComponent(`/orders/${orderId}`)}`);
   }
 
-  const resolvedParams = await params;
-  const orderId = resolvedParams.id as Id<"orders">;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let initialOrderDetails: any = null;

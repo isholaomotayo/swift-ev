@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
 import { ServiceSelector } from "@/components/services/service-selector";
+import { OrderPaymentPanel } from "@/components/orders/order-payment-panel";
 
 interface OrderDetailClientProps {
   initialOrderDetails: any;
@@ -105,24 +106,64 @@ export function OrderDetailClient({
             </div>
 
             <div className="space-y-3">
+              {(order.status === "pending_payment" ||
+                order.status === "payment_partial") && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-3 mb-2">
+                  <p className="font-semibold text-amber-900 dark:text-amber-200">
+                    Payment required
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                    Complete payment to secure this vehicle. Ownership is only
+                    granted after payment is complete.
+                  </p>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span className="text-gray-600">Winning Bid</span>
+                <span className="text-gray-600">Vehicle price</span>
                 <span className="font-medium">{formatCurrency(order.winningBid || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Service Fee</span>
+                <span className="text-gray-600">Service fee</span>
                 <span className="font-medium">{formatCurrency(order.serviceFee || 0)}</span>
               </div>
-              {order.documentationFee && (
+              {!!order.documentationFee && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Documentation Fee</span>
+                  <span className="text-gray-600">Documentation</span>
                   <span className="font-medium">{formatCurrency(order.documentationFee)}</span>
                 </div>
               )}
-              {order.shippingCost && (
+              {!!order.inspectionFee && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping Cost</span>
+                  <span className="text-gray-600">Inspection</span>
+                  <span className="font-medium">{formatCurrency(order.inspectionFee)}</span>
+                </div>
+              )}
+              {!!order.shippingCost && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">{formatCurrency(order.shippingCost)}</span>
+                </div>
+              )}
+              {!!(order.estimatedDuties || order.clearanceFee) && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Customs &amp; clearing</span>
+                  <span className="font-medium">
+                    {formatCurrency(order.estimatedDuties || order.clearanceFee || 0)}
+                  </span>
+                </div>
+              )}
+              {!!order.registrationFee && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Registration</span>
+                  <span className="font-medium">{formatCurrency(order.registrationFee)}</span>
+                </div>
+              )}
+              {order.destinationPort && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Destination</span>
+                  <span className="font-medium capitalize">
+                    {String(order.destinationPort).replace(/_/g, " ")}
+                  </span>
                 </div>
               )}
 
@@ -143,6 +184,20 @@ export function OrderDetailClient({
                 <span className="font-semibold">Total</span>
                 <span className="text-xl font-bold">{formatCurrency(totalWithServices)}</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Paid</span>
+                <span className="font-medium">{formatCurrency(order.paidAmount || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Balance due</span>
+                <span className="font-bold">{formatCurrency(order.balanceDue || 0)}</span>
+              </div>
+              {order.paymentDeadline && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Payment deadline</span>
+                  <span className="font-medium">{formatDate(order.paymentDeadline)}</span>
+                </div>
+              )}
             </div>
 
             {payments && payments.length > 0 && (
@@ -153,13 +208,13 @@ export function OrderDetailClient({
                     <div key={payment._id} className="flex items-center justify-between text-sm">
                       <div>
                         <p className="font-medium">{payment.provider}</p>
-                        <p className="text-gray-500">{formatDate(payment._creationTime)}</p>
+                        <p className="text-gray-500">{formatDate(payment.createdAt || payment._creationTime)}</p>
                       </div>
                       <Badge
                         variant={
                           payment.status === "successful"
                             ? "default"
-                            : payment.status === "failed"
+                            : payment.status === "failed" || payment.status === "rejected"
                               ? "destructive"
                               : "secondary"
                         }
@@ -172,6 +227,9 @@ export function OrderDetailClient({
               </div>
             )}
           </Card>
+
+          {/* Checkout */}
+          <OrderPaymentPanel token={token} orderId={orderId} />
 
           {/* Shipping Information */}
           {shipments && shipments.length > 0 && (

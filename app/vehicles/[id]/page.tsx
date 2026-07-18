@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { Header } from "@/components/layout/header";
@@ -14,10 +15,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const resolvedParams = await params;
   const vehicleId = resolvedParams.id as Id<"vehicles">;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("autoexports_token")?.value;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   try {
-    const vehicle = await convex.query(api.vehicles.getVehicleById, { vehicleId });
+    const vehicle = await convex.query(api.vehicles.getVehicleById, {
+      vehicleId,
+      token,
+    });
     if (!vehicle) {
       return {
         title: "Vehicle Not Found | autoexports.live",
@@ -33,7 +39,7 @@ export async function generateMetadata({
         images: vehicle.images && vehicle.images.length > 0 ? [vehicle.images[0]] : [],
       },
     };
-  } catch (error) {
+  } catch {
     return {
       title: "Vehicle | autoexports.live",
     };
@@ -47,12 +53,17 @@ export default async function VehicleDetailPage({
 }) {
   const resolvedParams = await params;
   const vehicleId = resolvedParams.id as Id<"vehicles">;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("autoexports_token")?.value;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let initialVehicle: any = null;
 
   try {
-    initialVehicle = await convex.query(api.vehicles.getVehicleById, { vehicleId });
+    initialVehicle = await convex.query(api.vehicles.getVehicleById, {
+      vehicleId,
+      token,
+    });
   } catch (error) {
     console.error("Failed to fetch vehicle:", error);
     notFound();

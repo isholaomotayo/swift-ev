@@ -7,6 +7,7 @@ type UserStatus = "pending" | "active" | "suspended" | "banned";
 type KYCStatus = "not_started" | "pending" | "approved" | "rejected";
 type OrderStatus =
   | "pending_payment"
+  | "payment_partial"
   | "payment_complete"
   | "shipped"
   | "in_transit"
@@ -19,6 +20,7 @@ const VALID_STATUSES: UserStatus[] = ["pending", "active", "suspended", "banned"
 const VALID_KYC_STATUSES: KYCStatus[] = ["not_started", "pending", "approved", "rejected"];
 const VALID_ORDER_STATUSES: OrderStatus[] = [
   "pending_payment",
+  "payment_partial",
   "payment_complete",
   "shipped",
   "in_transit",
