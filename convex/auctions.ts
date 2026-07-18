@@ -2643,10 +2643,6 @@ export const setCurrentActiveLot = mutation({
     }
 
     if (lot.status !== "active") {
-      // Pending lots that were passed need to be pending again to activate
-      if (lot.status === "passed") {
-        throw new Error("Cannot activate a completed lot");
-      }
       const result = await activateLot(ctx, lot, now);
       if (!result.ok) {
         throw new Error(result.reason);

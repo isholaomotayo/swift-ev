@@ -59,9 +59,9 @@ function blockWrite(kind: "mutation" | "action" | "fetch", detail: string): neve
   throw new Error(`${WRITE_BLOCKED_MESSAGE} Blocked ${kind}: ${detail}`);
 }
 
-ConvexHttpClient.prototype.mutation = async function (mutationFn: unknown) {
+ConvexHttpClient.prototype.mutation = async function (mutationFn: any, ...args: any[]) {
   return blockWrite("mutation", functionName(mutationFn));
-};
+} as any;
 
 const originalAction = ConvexHttpClient.prototype.action;
 ConvexHttpClient.prototype.action = async function (
