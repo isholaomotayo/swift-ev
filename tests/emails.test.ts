@@ -21,7 +21,31 @@ import {
   purchaseRevokedEmailTemplate,
   disputeResolvedEmailTemplate,
   walletFundedEmailTemplate,
+  wrapInEmailLayout,
+  emailButton,
 } from "../convex/lib/emailTemplates";
+
+describe("Email brand layout (light Industrial Chic)", () => {
+  test("wrapInEmailLayout uses light brand tokens, logo, and color-scheme", () => {
+    const html = wrapInEmailLayout("<p>Hello</p>", "preheader");
+    expect(html).toContain("color-scheme");
+    expect(html).toContain("light only");
+    expect(html).toContain("#F1F5F9");
+    expect(html).toContain("#0F172A");
+    expect(html).toContain("#F59E0B");
+    expect(html).toContain("https://autoexports.live/images/email-logo.png");
+    expect(html).toContain("autoexports");
+    expect(html).toContain(".live");
+    expect(html).not.toContain("background:#000");
+    expect(html).not.toContain("#0066FF");
+  });
+
+  test("emailButton uses gold CTA with navy text", () => {
+    const btn = emailButton("Continue", "https://autoexports.live");
+    expect(btn).toContain("background:#F59E0B");
+    expect(btn).toContain("color:#0F172A");
+  });
+});
 
 describe("Email Templates Engine", () => {
   test("verificationEmailTemplate contains name and verify link", () => {

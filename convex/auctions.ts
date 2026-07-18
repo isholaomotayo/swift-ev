@@ -289,7 +289,7 @@ export const getAuctionById = query({
       .order("asc")
       .collect();
 
-    // Get vehicle info for each lot
+    // Get vehicle info for each lot (winner first name only — no email/admin PII)
     const lotsWithVehicles = await Promise.all(
       lots.map(async (lot) => {
         const vehicle = await ctx.db.get(lot.vehicleId);
@@ -307,12 +307,19 @@ export const getAuctionById = query({
           imageUrl = (await ctx.storage.getUrl(imageUrl as Id<"_storage">)) || imageUrl;
         }
 
+        let winnerFirstName: string | undefined;
+        if (lot.winnerId) {
+          const winner = await ctx.db.get(lot.winnerId);
+          winnerFirstName = winner?.firstName;
+        }
+
         return {
           lot,
           vehicle: {
             ...vehicle,
             image: imageUrl,
           },
+          winnerFirstName,
         };
       })
     );

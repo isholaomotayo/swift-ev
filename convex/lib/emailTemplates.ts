@@ -1,14 +1,25 @@
 /**
- * Shared email template engine for AutoExports transactional emails.
+ * Shared email template engine for autoexports.live transactional emails.
  *
- * All templates return { subject, html, preheader } and use the branded
- * dark-mode layout with consistent styling.
+ * All templates return { subject, html } and use the branded light-mode
+ * Industrial Chic layout (Deep Slate + Amber Gold).
  */
 
 const APP_URL = "https://autoexports.live";
-const BRAND_NAME = "AutoExports";
-const BRAND_COLOR = "#0066FF";
-const BRAND_COLOR_DARK = "#0052CC";
+const BRAND_NAME = "autoexports.live";
+const BRAND_PRIMARY = "#0F172A"; // Deep Slate
+const BRAND_GOLD = "#F59E0B"; // Amber Gold
+const BRAND_SUCCESS = "#10B981";
+const BRAND_ERROR = "#E11D48";
+const TEXT_BODY = "#475569";
+const TEXT_MUTED = "#64748B";
+const TEXT_HEADING = "#0F172A";
+const TEXT_STRONG = "#0F172A";
+const SURFACE_PAGE = "#F1F5F9";
+const SURFACE_CARD = "#FFFFFF";
+const SURFACE_TABLE = "#F8FAFC";
+const BORDER_SUBTLE = "#E2E8F0";
+const LOGO_URL = `${APP_URL}/images/email-logo.png`;
 
 // =============================================
 // LAYOUT HELPERS
@@ -16,18 +27,18 @@ const BRAND_COLOR_DARK = "#0052CC";
 
 export function emailButton(label: string, url: string): string {
   return `<a href="${url}"
-    style="display:inline-block;margin:24px 0 16px;padding:14px 32px;background:${BRAND_COLOR};color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;text-align:center;"
+    style="display:inline-block;margin:24px 0 16px;padding:14px 32px;background:${BRAND_GOLD};color:${BRAND_PRIMARY};border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;text-align:center;"
   >${label}</a>`;
 }
 
 export function emailDivider(): string {
-  return `<hr style="border:none;border-top:1px solid #222;margin:24px 0;" />`;
+  return `<hr style="border:none;border-top:1px solid ${BORDER_SUBTLE};margin:24px 0;" />`;
 }
 
 export function emailKeyValue(label: string, value: string): string {
   return `<tr>
-    <td style="padding:6px 12px 6px 0;color:#888;font-size:14px;white-space:nowrap;vertical-align:top;">${label}</td>
-    <td style="padding:6px 0;color:#eee;font-size:14px;font-weight:600;">${value}</td>
+    <td style="padding:6px 12px 6px 0;color:${TEXT_MUTED};font-size:14px;white-space:nowrap;vertical-align:top;">${label}</td>
+    <td style="padding:6px 0;color:${TEXT_STRONG};font-size:14px;font-weight:600;">${value}</td>
   </tr>`;
 }
 
@@ -38,51 +49,74 @@ export function emailOrderSummaryTable(
     .map(
       (item) =>
         `<tr>
-      <td style="padding:8px 12px;color:${item.bold ? "#fff" : "#ccc"};font-size:14px;border-bottom:1px solid #1a1a1a;font-weight:${item.bold ? "bold" : "normal"};">${item.label}</td>
-      <td style="padding:8px 12px;color:${item.bold ? "#fff" : "#ccc"};font-size:14px;border-bottom:1px solid #1a1a1a;text-align:right;font-weight:${item.bold ? "bold" : "normal"};">${item.value}</td>
+      <td style="padding:8px 12px;color:${item.bold ? TEXT_STRONG : TEXT_BODY};font-size:14px;border-bottom:1px solid ${BORDER_SUBTLE};font-weight:${item.bold ? "bold" : "normal"};">${item.label}</td>
+      <td style="padding:8px 12px;color:${item.bold ? TEXT_STRONG : TEXT_BODY};font-size:14px;border-bottom:1px solid ${BORDER_SUBTLE};text-align:right;font-weight:${item.bold ? "bold" : "normal"};">${item.value}</td>
     </tr>`
     )
     .join("");
 
-  return `<table cellpadding="0" cellspacing="0" style="width:100%;background:#111;border-radius:8px;overflow:hidden;margin:16px 0;">
+  return `<table cellpadding="0" cellspacing="0" style="width:100%;background:${SURFACE_TABLE};border:1px solid ${BORDER_SUBTLE};border-radius:8px;overflow:hidden;margin:16px 0;">
     ${rows}
   </table>`;
 }
 
 function emailWarning(text: string): string {
-  return `<div style="background:#1a1000;border:1px solid #665500;border-radius:8px;padding:12px 16px;margin:16px 0;">
-    <p style="color:#ffcc00;font-size:13px;margin:0;">⚠️ ${text}</p>
+  return `<div style="background:#FFFBEB;border:1px solid ${BRAND_GOLD};border-radius:8px;padding:12px 16px;margin:16px 0;">
+    <p style="color:#92400E;font-size:13px;margin:0;">⚠️ ${text}</p>
   </div>`;
 }
 
 /**
- * Wraps email body content in the branded layout.
+ * Wraps email body content in the branded light layout.
  */
 export function wrapInEmailLayout(bodyHtml: string, preheader?: string): string {
   const preheaderHtml = preheader
-    ? `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#0a0a0a;">${preheader}</div>`
+    ? `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${SURFACE_PAGE};">${preheader}</div>`
     : "";
 
   return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#000;font-family:Arial,Helvetica,sans-serif;">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
+  <title>${BRAND_NAME}</title>
+  <style type="text/css">
+    :root { color-scheme: light only; }
+    body, table, td { color-scheme: light only; }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:${SURFACE_PAGE};font-family:Arial,Helvetica,sans-serif;">
 ${preheaderHtml}
-<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background:#000;">
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background:${SURFACE_PAGE};">
   <tr><td align="center" style="padding:24px 16px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0a0a0a;border-radius:12px;overflow:hidden;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${SURFACE_CARD};border:1px solid ${BORDER_SUBTLE};border-radius:12px;overflow:hidden;">
       <!-- Header -->
-      <tr><td style="padding:28px 32px 20px;border-bottom:1px solid #1a1a1a;">
-        <h1 style="margin:0;font-size:22px;font-weight:bold;color:${BRAND_COLOR};letter-spacing:-0.5px;">${BRAND_NAME}</h1>
+      <tr><td style="padding:28px 32px 20px;border-bottom:1px solid ${BORDER_SUBTLE};background:${SURFACE_CARD};">
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="vertical-align:middle;padding-right:12px;">
+              <a href="${APP_URL}" style="text-decoration:none;">
+                <img src="${LOGO_URL}" width="36" height="36" alt="${BRAND_NAME}" style="display:block;border:0;border-radius:8px;" />
+              </a>
+            </td>
+            <td style="vertical-align:middle;">
+              <a href="${APP_URL}" style="text-decoration:none;">
+                <span style="font-size:20px;font-weight:900;letter-spacing:-0.5px;line-height:1;color:${BRAND_PRIMARY};">autoexports</span><span style="font-size:20px;font-weight:900;letter-spacing:-0.5px;line-height:1;color:${BRAND_GOLD};">.live</span>
+              </a>
+            </td>
+          </tr>
+        </table>
       </td></tr>
       <!-- Body -->
-      <tr><td style="padding:28px 32px;">
+      <tr><td style="padding:28px 32px;background:${SURFACE_CARD};">
         ${bodyHtml}
       </td></tr>
       <!-- Footer -->
-      <tr><td style="padding:20px 32px 28px;border-top:1px solid #1a1a1a;">
-        <p style="color:#555;font-size:11px;margin:0 0 8px;">This email was sent by ${BRAND_NAME}. You are receiving this because you have an account at <a href="${APP_URL}" style="color:${BRAND_COLOR};text-decoration:none;">autoexports.live</a>.</p>
-        <p style="color:#444;font-size:11px;margin:0;">© ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
+      <tr><td style="padding:24px 32px 28px;background:${BRAND_PRIMARY};">
+        <p style="color:#94A3B8;font-size:11px;margin:0 0 8px;line-height:1.5;">This email was sent by ${BRAND_NAME}. You are receiving this because you have an account at <a href="${APP_URL}" style="color:${BRAND_GOLD};text-decoration:none;">autoexports.live</a>.</p>
+        <p style="color:#64748B;font-size:11px;margin:0;">© ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
       </td></tr>
     </table>
   </td></tr>
@@ -116,11 +150,11 @@ export function verificationEmailTemplate(args: {
 }) {
   const subject = `Verify your ${BRAND_NAME} email address`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Welcome to ${BRAND_NAME}!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Hi ${args.firstName}, thanks for registering. Please verify your email address to activate your account.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Welcome to ${BRAND_NAME}!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Hi ${args.firstName}, thanks for registering. Please verify your email address to activate your account.</p>
     ${emailButton("Verify Email Address", args.verifyUrl)}
-    <p style="color:#888;font-size:13px;">This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
-    <p style="color:#555;font-size:11px;word-break:break-all;">Or paste this link into your browser: ${args.verifyUrl}</p>`,
+    <p style="color:${TEXT_MUTED};font-size:13px;">This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.</p>
+    <p style="color:${TEXT_MUTED};font-size:11px;word-break:break-all;">Or paste this link into your browser: ${args.verifyUrl}</p>`,
     `Verify your email to get started with ${BRAND_NAME}`
   );
   return { subject, html };
@@ -132,11 +166,11 @@ export function passwordResetEmailTemplate(args: {
 }) {
   const subject = `Reset your ${BRAND_NAME} password`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Password Reset Request</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Hi ${args.firstName}, we received a request to reset your password. Click the button below to choose a new one.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Password Reset Request</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Hi ${args.firstName}, we received a request to reset your password. Click the button below to choose a new one.</p>
     ${emailButton("Reset Password", args.resetUrl)}
-    <p style="color:#888;font-size:13px;">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password will not change.</p>
-    <p style="color:#555;font-size:11px;word-break:break-all;">Or paste this link into your browser: ${args.resetUrl}</p>`,
+    <p style="color:${TEXT_MUTED};font-size:13px;">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password will not change.</p>
+    <p style="color:${TEXT_MUTED};font-size:11px;word-break:break-all;">Or paste this link into your browser: ${args.resetUrl}</p>`,
     "Reset your password"
   );
   return { subject, html };
@@ -145,10 +179,10 @@ export function passwordResetEmailTemplate(args: {
 export function kycApprovedEmailTemplate(args: { firstName: string }) {
   const subject = `Your ${BRAND_NAME} account is verified ✅`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Account Verified!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Congratulations ${args.firstName}! Your identity has been verified and your account is now fully active.</p>
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">You can now:</p>
-    <ul style="color:#ccc;font-size:14px;line-height:1.8;padding-left:20px;">
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Account Verified!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Congratulations ${args.firstName}! Your identity has been verified and your account is now fully active.</p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">You can now:</p>
+    <ul style="color:${TEXT_BODY};font-size:14px;line-height:1.8;padding-left:20px;">
       <li>Bid on live auctions</li>
       <li>Purchase vehicles via Buy Now</li>
       <li>Access all platform features</li>
@@ -165,10 +199,10 @@ export function kycRejectedEmailTemplate(args: {
 }) {
   const subject = "Action required: Verification issue";
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Verification Issue</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Hi ${args.firstName}, we were unable to verify your identity.</p>
-    <p style="color:#ccc;font-size:14px;">Reason: <strong style="color:#ff6b6b;">${args.reason}</strong></p>
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">Please resubmit your documents to complete verification.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Verification Issue</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Hi ${args.firstName}, we were unable to verify your identity.</p>
+    <p style="color:${TEXT_BODY};font-size:14px;">Reason: <strong style="color:${BRAND_ERROR};">${args.reason}</strong></p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">Please resubmit your documents to complete verification.</p>
     ${emailButton("Resubmit Documents", `${APP_URL}/profile`)}`,
     "We need additional information for verification"
   );
@@ -189,13 +223,13 @@ export function outbidEmailTemplate(args: {
 }) {
   const subject = `You've been outbid on ${args.vehicleTitle}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">You've Been Outbid</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Another bidder placed a higher bid on <strong style="color:#fff;">${args.vehicleTitle}</strong>.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">You've Been Outbid</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Another bidder placed a higher bid on <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong>.</p>
     <table cellpadding="0" cellspacing="0" style="margin:16px 0;">
       ${emailKeyValue("Your bid", naira(args.yourBid))}
       ${emailKeyValue("Current bid", naira(args.newBid))}
     </table>
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">Your bid reserve has been released back to your wallet. Place a new bid before the lot closes!</p>
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">Your bid reserve has been released back to your wallet. Place a new bid before the lot closes!</p>
     ${emailButton("Place New Bid", `${APP_URL}/auctions`)}`,
     `Outbid on ${args.vehicleTitle} — place a new bid`
   );
@@ -215,15 +249,15 @@ export function auctionWonEmailTemplate(args: {
   const deadlineStr = formatDate(args.paymentDeadline);
   const subject = `🎉 You won the auction — ${args.vehicleTitle}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Congratulations — You Won!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">You've won the auction for <strong style="color:#fff;">${args.vehicleTitle}</strong>.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Congratulations — You Won!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">You've won the auction for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong>.</p>
     ${emailOrderSummaryTable([
       { label: "Winning Bid", value: naira(args.winningBid) },
       { label: "Deposit Applied", value: `- ${naira(args.depositApplied)}` },
       { label: "Balance Due", value: naira(args.balanceDue), bold: true },
     ])}
-    <p style="color:#ccc;font-size:14px;">Order: <strong style="color:#fff;">#${args.orderNumber}</strong></p>
-    <p style="color:#ccc;font-size:14px;">Payment deadline: <strong style="color:#fff;">${deadlineStr}</strong></p>
+    <p style="color:${TEXT_BODY};font-size:14px;">Order: <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong></p>
+    <p style="color:${TEXT_BODY};font-size:14px;">Payment deadline: <strong style="color:${TEXT_STRONG};">${deadlineStr}</strong></p>
     ${emailButton("Complete Payment", `${APP_URL}/orders/${args.orderId}`)}
     ${emailWarning(`If payment is not completed by ${deadlineStr}, your deposit will be forfeited and the vehicle will be re-listed.`)}`,
     `You won! Complete payment for ${args.vehicleTitle}`
@@ -238,13 +272,13 @@ export function auctionLostEmailTemplate(args: {
 }) {
   const subject = `Auction ended — ${args.vehicleTitle}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Auction Ended</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">The auction for <strong style="color:#fff;">${args.vehicleTitle}</strong> has ended without meeting the reserve price.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Auction Ended</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">The auction for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> has ended without meeting the reserve price.</p>
     ${args.reserveReleased > 0
-      ? `<p style="color:#ccc;font-size:14px;">Your bid reserve of <strong style="color:#fff;">${naira(args.reserveReleased)}</strong> has been released back to your wallet.</p>`
+      ? `<p style="color:${TEXT_BODY};font-size:14px;">Your bid reserve of <strong style="color:${TEXT_STRONG};">${naira(args.reserveReleased)}</strong> has been released back to your wallet.</p>`
       : ""
     }
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">Browse more vehicles and join upcoming auctions.</p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">Browse more vehicles and join upcoming auctions.</p>
     ${emailButton("Browse Vehicles", `${APP_URL}/vehicles`)}`,
     `Auction ended for ${args.vehicleTitle}`
   );
@@ -263,14 +297,14 @@ export function sellerVehicleSoldEmailTemplate(args: {
   const saleLabel = args.saleType === "auction" ? "at auction" : "via Buy Now";
   const subject = `Your vehicle sold ${saleLabel} — ${args.vehicleTitle}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Vehicle Sold!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Great news, ${args.firstName}! Your <strong style="color:#fff;">${args.vehicleTitle}</strong> sold ${saleLabel}.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Vehicle Sold!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Great news, ${args.firstName}! Your <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> sold ${saleLabel}.</p>
     <table cellpadding="0" cellspacing="0" style="margin:16px 0;">
       ${emailKeyValue("Sale Price", naira(args.salePrice))}
       ${emailKeyValue("Order", `#${args.orderNumber}`)}
       ${emailKeyValue("Buyer Deadline", deadlineStr)}
     </table>
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">The buyer has until ${deadlineStr} to complete payment. We'll notify you when payment is confirmed.</p>`,
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">The buyer has until ${deadlineStr} to complete payment. We'll notify you when payment is confirmed.</p>`,
     `Your ${args.vehicleTitle} has been sold`
   );
   return { subject, html };
@@ -303,8 +337,8 @@ export function buyNowOrderCreatedEmailTemplate(args: {
   summaryItems.push({ label: "Total", value: naira(args.totalAmount), bold: true });
 
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Order Confirmed</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Hi ${args.firstName}, your order <strong style="color:#fff;">#${args.orderNumber}</strong> has been created for <strong style="color:#fff;">${args.vehicleTitle}</strong>.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Order Confirmed</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Hi ${args.firstName}, your order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong> has been created for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong>.</p>
     ${emailOrderSummaryTable(summaryItems)}
     ${emailButton(`Complete Payment — ${naira(args.totalAmount)}`, `${APP_URL}/orders/${args.orderId}`)}
     ${emailWarning(`Payment deadline: ${deadlineStr}. The vehicle is reserved for you until then.`)}`,
@@ -327,15 +361,15 @@ export function paymentReceivedEmailTemplate(args: {
 }) {
   const subject = `Payment received — ${naira(args.amount)} | Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Payment Received</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">We've received your ${args.paymentMethod} payment of <strong style="color:#fff;">${naira(args.amount)}</strong> for order <strong style="color:#fff;">#${args.orderNumber}</strong>.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Payment Received</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">We've received your ${args.paymentMethod} payment of <strong style="color:${TEXT_STRONG};">${naira(args.amount)}</strong> for order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong>.</p>
     ${emailOrderSummaryTable([
       { label: "Amount Paid", value: naira(args.amount) },
       { label: "Remaining Balance", value: naira(args.balanceDue), bold: true },
     ])}
     ${args.balanceDue > 0
       ? emailButton("Pay Remaining Balance", `${APP_URL}/orders/${args.orderId}`)
-      : `<p style="color:#4ade80;font-size:15px;font-weight:bold;">✅ Your order is fully paid!</p>`
+      : `<p style="color:${BRAND_SUCCESS};font-size:15px;font-weight:bold;">✅ Your order is fully paid!</p>`
     }`,
     `${naira(args.amount)} received for Order #${args.orderNumber}`
   );
@@ -353,8 +387,8 @@ export function bankTransferPendingEmailTemplate(args: {
 }) {
   const subject = `Bank transfer instructions — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Bank Transfer Instructions</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Hi ${args.firstName}, please transfer the amount below to complete your payment.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Bank Transfer Instructions</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Hi ${args.firstName}, please transfer the amount below to complete your payment.</p>
     ${emailOrderSummaryTable([
       { label: "Amount", value: naira(args.amount), bold: true },
       { label: "Bank", value: args.bankName },
@@ -363,7 +397,7 @@ export function bankTransferPendingEmailTemplate(args: {
       { label: "Reference/Narration", value: args.reference, bold: true },
     ])}
     ${emailWarning("Use the reference above as your transfer narration. Without it we cannot match your payment.")}
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">Your order is reserved while we await confirmation. Verification typically takes 1–4 hours.</p>`,
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">Your order is reserved while we await confirmation. Verification typically takes 1–4 hours.</p>`,
     `Transfer ${naira(args.amount)} to complete Order #${args.orderNumber}`
   );
   return { subject, html };
@@ -378,15 +412,15 @@ export function bankTransferVerifiedEmailTemplate(args: {
 }) {
   const subject = `Bank transfer verified ✅ — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Transfer Verified</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your bank transfer of <strong style="color:#fff;">${naira(args.amount)}</strong> for order <strong style="color:#fff;">#${args.orderNumber}</strong> has been verified and applied.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Transfer Verified</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your bank transfer of <strong style="color:${TEXT_STRONG};">${naira(args.amount)}</strong> for order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong> has been verified and applied.</p>
     ${emailOrderSummaryTable([
       { label: "Amount Verified", value: naira(args.amount) },
       { label: "Remaining Balance", value: naira(args.balanceDue), bold: true },
     ])}
     ${args.balanceDue > 0
       ? emailButton("Pay Remaining Balance", `${APP_URL}/orders/${args.orderId}`)
-      : `<p style="color:#4ade80;font-size:15px;font-weight:bold;">✅ Your order is fully paid!</p>`
+      : `<p style="color:${BRAND_SUCCESS};font-size:15px;font-weight:bold;">✅ Your order is fully paid!</p>`
     }`,
     `Transfer verified for Order #${args.orderNumber}`
   );
@@ -402,10 +436,10 @@ export function bankTransferRejectedEmailTemplate(args: {
 }) {
   const subject = `Payment rejected — Action required | Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Payment Rejected</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your bank transfer of <strong style="color:#fff;">${naira(args.amount)}</strong> for order <strong style="color:#fff;">#${args.orderNumber}</strong> was rejected.</p>
-    <p style="color:#ccc;font-size:14px;">Reason: <strong style="color:#ff6b6b;">${args.reason}</strong></p>
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">Please submit a new payment to secure your vehicle.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Payment Rejected</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your bank transfer of <strong style="color:${TEXT_STRONG};">${naira(args.amount)}</strong> for order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong> was rejected.</p>
+    <p style="color:${TEXT_BODY};font-size:14px;">Reason: <strong style="color:${BRAND_ERROR};">${args.reason}</strong></p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">Please submit a new payment to secure your vehicle.</p>
     ${emailButton("Submit New Payment", `${APP_URL}/orders/${args.orderId}`)}`,
     `Payment rejected for Order #${args.orderNumber}`
   );
@@ -421,13 +455,13 @@ export function paymentCompleteEmailTemplate(args: {
 }) {
   const subject = `🎉 Payment complete — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Payment Complete!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your payment for <strong style="color:#fff;">${args.vehicleTitle}</strong> is complete!</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Payment Complete!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your payment for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> is complete!</p>
     ${emailOrderSummaryTable([
       { label: "Total Paid", value: naira(args.totalAmount), bold: true },
       { label: "Order", value: `#${args.orderNumber}` },
     ])}
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">Your vehicle is now being prepared for delivery. You can generate your Gate Pass to collect it.</p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">Your vehicle is now being prepared for delivery. You can generate your Gate Pass to collect it.</p>
     ${emailButton("View Order & Generate Gate Pass", `${APP_URL}/orders/${args.orderId}`)}`,
     `Payment complete for ${args.vehicleTitle}`
   );
@@ -448,12 +482,12 @@ export function orderShippedEmailTemplate(args: {
   orderId: string;
 }) {
   const estDelivery = args.estimatedDelivery
-    ? `<p style="color:#ccc;font-size:14px;">Estimated delivery: <strong style="color:#fff;">${formatDate(args.estimatedDelivery)}</strong></p>`
+    ? `<p style="color:${TEXT_BODY};font-size:14px;">Estimated delivery: <strong style="color:${TEXT_STRONG};">${formatDate(args.estimatedDelivery)}</strong></p>`
     : "";
   const subject = `Your vehicle is on its way — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Vehicle Shipped!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your <strong style="color:#fff;">${args.vehicleTitle}</strong> has been shipped!</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Vehicle Shipped!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> has been shipped!</p>
     <table cellpadding="0" cellspacing="0" style="margin:16px 0;">
       ${emailKeyValue("Carrier", args.carrier)}
       ${emailKeyValue("Tracking #", args.trackingNumber)}
@@ -473,9 +507,9 @@ export function orderDeliveredEmailTemplate(args: {
 }) {
   const subject = `Delivery confirmed ✅ — ${args.vehicleTitle}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Vehicle Delivered!</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your <strong style="color:#fff;">${args.vehicleTitle}</strong> has been successfully delivered and released.</p>
-    <p style="color:#ccc;font-size:15px;line-height:1.6;">Thank you for choosing ${BRAND_NAME}! If you notice any issues with the vehicle, you can file a dispute within 7 days.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Vehicle Delivered!</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> has been successfully delivered and released.</p>
+    <p style="color:${TEXT_BODY};font-size:15px;line-height:1.6;">Thank you for choosing ${BRAND_NAME}! If you notice any issues with the vehicle, you can file a dispute within 7 days.</p>
     ${emailButton("View Order", `${APP_URL}/orders/${args.orderId}`)}`,
     `Your ${args.vehicleTitle} has been delivered`
   );
@@ -493,14 +527,14 @@ export function gatePassIssuedEmailTemplate(args: {
   const expiryStr = formatDate(args.expiresAt);
   const subject = `Your Gate Pass is ready — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Gate Pass Issued</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your Gate Pass has been issued for <strong style="color:#fff;">${args.vehicleTitle}</strong>.</p>
-    <div style="background:#111;border:2px solid ${BRAND_COLOR};border-radius:12px;padding:24px;text-align:center;margin:20px 0;">
-      <p style="color:#888;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">Gate Pass Code</p>
-      <p style="color:#fff;font-size:28px;font-weight:bold;margin:0;letter-spacing:2px;font-family:monospace;">${args.code}</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Gate Pass Issued</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your Gate Pass has been issued for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong>.</p>
+    <div style="background:${SURFACE_TABLE};border:2px solid ${BRAND_GOLD};border-radius:12px;padding:24px;text-align:center;margin:20px 0;">
+      <p style="color:${TEXT_MUTED};font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px;">Gate Pass Code</p>
+      <p style="color:${BRAND_PRIMARY};font-size:28px;font-weight:bold;margin:0;letter-spacing:2px;font-family:monospace;">${args.code}</p>
     </div>
-    <p style="color:#ccc;font-size:14px;">This pass is valid for 7 days — expires <strong style="color:#fff;">${expiryStr}</strong>.</p>
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">Present this code or the QR from your dashboard at the gate to release your vehicle.</p>
+    <p style="color:${TEXT_BODY};font-size:14px;">This pass is valid for 7 days — expires <strong style="color:${TEXT_STRONG};">${expiryStr}</strong>.</p>
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">Present this code or the QR from your dashboard at the gate to release your vehicle.</p>
     ${emailButton("View Gate Pass", `${APP_URL}/gate-pass/${args.gatePassId}`)}`,
     `Gate Pass ${args.code} ready for ${args.vehicleTitle}`
   );
@@ -521,13 +555,13 @@ export function orderForfeitedEmailTemplate(args: {
   const deadlineStr = formatDate(args.deadline);
   const subject = `Order cancelled — deposit forfeited | #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Order Cancelled</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your order <strong style="color:#fff;">#${args.orderNumber}</strong> for <strong style="color:#fff;">${args.vehicleTitle}</strong> has been cancelled because payment was not completed by the deadline (${deadlineStr}).</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Order Cancelled</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong> for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> has been cancelled because payment was not completed by the deadline (${deadlineStr}).</p>
     ${args.forfeitedAmount > 0
-      ? `<p style="color:#ff6b6b;font-size:14px;font-weight:bold;">Your deposit of ${naira(args.forfeitedAmount)} has been forfeited.</p>`
-      : `<p style="color:#ccc;font-size:14px;">The reservation has been released.</p>`
+      ? `<p style="color:${BRAND_ERROR};font-size:14px;font-weight:bold;">Your deposit of ${naira(args.forfeitedAmount)} has been forfeited.</p>`
+      : `<p style="color:${TEXT_BODY};font-size:14px;">The reservation has been released.</p>`
     }
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">The vehicle has been re-listed and is available again.</p>
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">The vehicle has been re-listed and is available again.</p>
     ${emailButton("Browse Vehicles", `${APP_URL}/vehicles`)}`,
     `Order #${args.orderNumber} cancelled — deposit forfeited`
   );
@@ -542,12 +576,12 @@ export function purchaseRevokedEmailTemplate(args: {
 }) {
   const subject = `Order #${args.orderNumber} has been cancelled`;
   const refundText = args.refundedAmount && args.refundedAmount > 0
-    ? ` Your deposit of <strong style="color:#4ade80;">${naira(args.refundedAmount)}</strong> has been returned to your wallet.`
+    ? ` Your deposit of <strong style="color:${BRAND_SUCCESS};">${naira(args.refundedAmount)}</strong> has been returned to your wallet.`
     : "";
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Purchase Revoked</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your reservation for <strong style="color:#fff;">${args.vehicleTitle}</strong> (order <strong style="color:#fff;">#${args.orderNumber}</strong>) has been revoked.${refundText}</p>
-    <p style="color:#ccc;font-size:14px;line-height:1.6;">The vehicle is available again for purchase.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Purchase Revoked</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your reservation for <strong style="color:${TEXT_STRONG};">${args.vehicleTitle}</strong> (order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong>) has been revoked.${refundText}</p>
+    <p style="color:${TEXT_BODY};font-size:14px;line-height:1.6;">The vehicle is available again for purchase.</p>
     ${emailButton("Browse Vehicles", `${APP_URL}/vehicles`)}`,
     `Order #${args.orderNumber} has been cancelled`
   );
@@ -567,12 +601,12 @@ export function disputeResolvedEmailTemplate(args: {
   orderId: string;
 }) {
   const refundText = args.refundAmount && args.refundAmount > 0
-    ? `<p style="color:#4ade80;font-size:14px;font-weight:bold;">A refund of ${naira(args.refundAmount)} has been issued.</p>`
+    ? `<p style="color:${BRAND_SUCCESS};font-size:14px;font-weight:bold;">A refund of ${naira(args.refundAmount)} has been issued.</p>`
     : "";
   const subject = `Dispute resolved — Order #${args.orderNumber}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Dispute Resolved</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">Your dispute for order <strong style="color:#fff;">#${args.orderNumber}</strong> has been resolved.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Dispute Resolved</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">Your dispute for order <strong style="color:${TEXT_STRONG};">#${args.orderNumber}</strong> has been resolved.</p>
     <table cellpadding="0" cellspacing="0" style="margin:16px 0;">
       ${emailKeyValue("Resolution", args.resolution.replace(/_/g, " "))}
       ${emailKeyValue("Notes", args.resolutionNotes)}
@@ -596,8 +630,8 @@ export function walletFundedEmailTemplate(args: {
 }) {
   const subject = `Wallet funded — ${naira(args.amount)}`;
   const html = wrapInEmailLayout(
-    `<h2 style="color:#fff;font-size:20px;margin:0 0 12px;">Wallet Funded</h2>
-    <p style="color:#ccc;font-size:16px;line-height:1.6;">${naira(args.amount)} has been added to your ${BRAND_NAME} wallet.</p>
+    `<h2 style="color:${TEXT_HEADING};font-size:20px;margin:0 0 12px;">Wallet Funded</h2>
+    <p style="color:${TEXT_BODY};font-size:16px;line-height:1.6;">${naira(args.amount)} has been added to your ${BRAND_NAME} wallet.</p>
     ${emailOrderSummaryTable([
       { label: "Amount Added", value: naira(args.amount) },
       { label: "New Balance", value: naira(args.newBalance), bold: true },

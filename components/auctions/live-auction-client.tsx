@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ImageGallery } from "@/components/autoexports/image-gallery";
 import { AuctionTimer } from "@/components/autoexports/auction-timer";
 import { BidButton } from "@/components/autoexports/bid-button";
 import { PriceDisplay } from "@/components/autoexports/price-display";
-import { BatteryHealthBadge } from "@/components/autoexports/battery-health-badge";
 import { api } from "@/convex/_generated/api";
 import {
   ArrowLeft,
@@ -23,17 +20,67 @@ import {
   Zap,
   Battery,
   MapPin,
-  Timer,
-  Car,
   Gauge,
   Key,
   FileText,
   Plug,
 } from "lucide-react";
-import { formatCurrency, formatLotNumber, formatVIN, cn } from "@/lib/utils";
+import { formatCurrency, formatLotNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { RemoteImage } from "@/components/ui/remote-image";
 import { ImageCarousel } from "@/components/ui/image-carousel";
+
+const UPCOMING_LOTS_COUNT = 10;
+const COMPLETED_LOTS_COUNT = 10;
+const COMPLETED_STATUSES = new Set(["sold", "no_sale", "passed"]);
+
+type LotVehicle = {
+  _id: string;
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+  image?: string;
+  images?: Array<string | { url?: string }>;
+};
+
+type LotBoardItem = {
+  lot: {
+    _id: string;
+    lotOrder: number;
+    status: string;
+    startingBid?: number;
+    currentBid?: number;
+    winningBid?: number;
+    soldAt?: number;
+  };
+  vehicle: LotVehicle;
+  winnerFirstName?: string;
+};
+
+function getLotThumbnail(vehicle: LotVehicle): string | undefined {
+  if (vehicle.image) return vehicle.image;
+  const first = vehicle.images?.[0];
+  if (!first) return undefined;
+  return typeof first === "string" ? first : first.url;
+}
+
+function completedLotResultLabel(item: LotBoardItem): string {
+  const { lot, winnerFirstName } = item;
+  if (lot.status === "sold") {
+    const price = formatCurrency(lot.winningBid ?? lot.currentBid ?? 0);
+    return winnerFirstName ? `${price} · ${winnerFirstName}` : price;
+  }
+  if (lot.status === "no_sale") return "Reserve not met";
+  return "Passed";
+}
+
+function completedStatusBadgeClass(status: string): string {
+  if (status === "sold") {
+    return "bg-electric-blue/15 text-electric-blue border-electric-blue/30";
+  }
+  return "bg-muted text-muted-foreground border-border";
+}
 
 interface LiveAuctionClientProps {
   initialAuctionData: any;
@@ -47,7 +94,6 @@ export function LiveAuctionClient({
   auctionId,
 }: LiveAuctionClientProps) {
   const router = useRouter();
-  const [selectedLotIndex, setSelectedLotIndex] = useState(0);
 
   // Real-time subscriptions
   const auctionData = useQuery(
@@ -63,17 +109,24 @@ export function LiveAuctionClient({
     currentLotData?.lot?._id ? { lotId: currentLotData.lot._id } : "skip"
   );
 
-  // Find current lot index in the lots array
-  useEffect(() => {
-    if (auctionData && currentLotData?.lot) {
-      const index = auctionData.lots.findIndex(
-        (l: any) => l?.lot?._id === currentLotData.lot._id
-      );
-      if (index !== -1) {
-        setSelectedLotIndex(index);
-      }
-    }
-  }, [auctionData, currentLotData]);
+  const upcomingLots = useMemo(() => {
+    const allLots = (auctionData?.lots ?? []) as LotBoardItem[];
+    return allLots
+      .filter((item) => item?.lot?.status === "pending")
+      .slice(0, UPCOMING_LOTS_COUNT);
+  }, [auctionData?.lots]);
+
+  const completedLots = useMemo(() => {
+    const allLots = (auctionData?.lots ?? []) as LotBoardItem[];
+    return allLots
+      .filter((item) => item?.lot && COMPLETED_STATUSES.has(item.lot.status))
+      .sort((a, b) => {
+        const aKey = a.lot.soldAt ?? a.lot.lotOrder;
+        const bKey = b.lot.soldAt ?? b.lot.lotOrder;
+        return bKey - aKey;
+      })
+      .slice(0, COMPLETED_LOTS_COUNT);
+  }, [auctionData?.lots]);
 
   if (!auctionData) {
     return (
@@ -95,16 +148,9 @@ export function LiveAuctionClient({
   const currentLot = currentLotData?.lot;
   const currentVehicle = currentLotData?.vehicle;
 
-  // Get upcoming lots
-  const UPCOMING_LOTS_COUNT = 10;
-  const upcomingLots = lots
-    .slice(selectedLotIndex + 1, selectedLotIndex + 1 + UPCOMING_LOTS_COUNT)
-    .filter((l: any) => l !== null);
-
   // Get bid history for current lot
   const bidHistory = bids || [];
   const currentBid = currentLot?.currentBid || currentLot?.startingBid || 0;
-  const bidCount = currentLot?.bidCount || 0;
 
   const isAuctionLive = auction.status === "live";
   const isAuctionPaused = auction.status === "paused";
@@ -125,6 +171,128 @@ export function LiveAuctionClient({
       }
       return { url, type };
     }
+  );
+
+  const lotBoard = (
+    <>
+      {/* Now Bidding — compact strip when active lot is present */}
+      {currentLot && currentVehicle && (
+        <div className="mt-8">
+          <h3 className="text-lg font-bold mb-4 px-1">Now Bidding</h3>
+          <Card className="p-3 bg-card/40 border-volt-green/30 flex items-center gap-3 max-w-xl">
+            <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
+              {getLotThumbnail(currentVehicle) && (
+                <RemoteImage
+                  src={getLotThumbnail(currentVehicle)!}
+                  alt="Current lot"
+                  fill
+                  className="object-cover"
+                />
+              )}
+              <div className="absolute top-1 left-1 bg-volt-green text-slate-950 text-[10px] font-bold px-1.5 rounded">
+                Lot {currentLot.lotOrder}
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", canAcceptBids ? "bg-volt-green" : "bg-warning-amber")} />
+                  <span className={cn("relative inline-flex rounded-full h-2 w-2", canAcceptBids ? "bg-volt-green" : "bg-warning-amber")} />
+                </span>
+                <span className={cn("text-[10px] font-bold uppercase tracking-wider", canAcceptBids ? "text-volt-green" : "text-warning-amber")}>
+                  {canAcceptBids ? "Live" : isAuctionPaused ? "Paused" : "Closing"}
+                </span>
+              </div>
+              <p className="font-semibold text-sm truncate">
+                {currentVehicle.year} {currentVehicle.make} {currentVehicle.model}
+              </p>
+              <p className="font-mono text-xs font-bold mt-1">
+                Current: {formatCurrency(currentBid)}
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Upcoming Lots Queue */}
+      {upcomingLots.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-bold mb-4 px-1">Up Next Queue</h3>
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+            {upcomingLots.map((lotData) => {
+              const { lot, vehicle } = lotData;
+              const thumb = getLotThumbnail(vehicle);
+              return (
+                <Link key={lot._id} href={`/vehicles/${vehicle._id}`} className="min-w-[280px] group">
+                  <Card className="p-3 bg-card/40 border-border/50 hover:bg-card hover:border-electric-blue/30 transition-all flex items-center gap-3">
+                    <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
+                      {thumb && (
+                        <RemoteImage src={thumb} alt="Thumbnail" fill className="object-cover" />
+                      )}
+                      <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded backdrop-blur-sm">
+                        Lot {lot.lotOrder}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate group-hover:text-electric-blue transition-colors">
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{vehicle.trim || "Base Model"}</p>
+                      <p className="font-mono text-xs font-bold mt-1">Start: {formatCurrency(lot.startingBid || 0)}</p>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recently Closed */}
+      {completedLots.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-bold mb-4 px-1">Recently Closed</h3>
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+            {completedLots.map((lotData) => {
+              const { lot, vehicle } = lotData;
+              const thumb = getLotThumbnail(vehicle);
+              const statusLabel =
+                lot.status === "sold" ? "Sold" : lot.status === "no_sale" ? "No sale" : "Passed";
+              return (
+                <Link key={lot._id} href={`/vehicles/${vehicle._id}`} className="min-w-[280px] group">
+                  <Card className="p-3 bg-card/40 border-border/50 hover:bg-card hover:border-border transition-all flex items-center gap-3">
+                    <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
+                      {thumb && (
+                        <RemoteImage src={thumb} alt="Thumbnail" fill className="object-cover" />
+                      )}
+                      <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded backdrop-blur-sm">
+                        Lot {lot.lotOrder}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] px-1.5 py-0 h-5 capitalize", completedStatusBadgeClass(lot.status))}
+                        >
+                          {statusLabel}
+                        </Badge>
+                      </div>
+                      <p className="font-semibold text-sm truncate group-hover:text-electric-blue transition-colors">
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </p>
+                      <p className="font-mono text-xs font-bold mt-1 text-muted-foreground">
+                        {completedLotResultLabel(lotData)}
+                      </p>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -169,6 +337,7 @@ export function LiveAuctionClient({
                 : "This auction will go live at the scheduled start time."}
             </p>
           </Card>
+          {lotBoard}
         </div>
       ) : (
         <>
@@ -398,37 +567,7 @@ export function LiveAuctionClient({
               </div>
             </div>
 
-            {/* Upcoming Lots Queue (Horizontal Scroll) */}
-            {upcomingLots.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-lg font-bold mb-4 px-1">Up Next Queue</h3>
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                  {upcomingLots.map((lotData: any, i: number) => {
-                    if (!lotData) return null;
-                    const { lot, vehicle } = lotData;
-                    return (
-                      <Link key={lot._id} href={`/vehicles/${vehicle._id}`} className="min-w-[280px] group">
-                        <Card className="p-3 bg-card/40 border-border/50 hover:bg-card hover:border-electric-blue/30 transition-all flex items-center gap-3">
-                          <div className="h-16 w-16 rounded-lg bg-muted relative overflow-hidden flex-shrink-0">
-                            {vehicle.images?.[0] && (
-                              <RemoteImage src={vehicle.images[0]} alt="Thumbnail" fill className="object-cover" />
-                            )}
-                            <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded backdrop-blur-sm">Lot {lot.lotOrder}</div>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate group-hover:text-electric-blue transition-colors">
-                              {vehicle.year} {vehicle.make} {vehicle.model}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">{vehicle.trim || "Base Model"}</p>
-                            <p className="font-mono text-xs font-bold mt-1">Start: {formatCurrency(lot.startingBid)}</p>
-                          </div>
-                        </Card>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+            {lotBoard}
           </div>
         </>
       )}

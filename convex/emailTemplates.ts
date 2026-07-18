@@ -523,7 +523,7 @@ export const seedEmailTemplates = mutation({
         .first();
 
       if (existing) {
-        // Only update default values; don't overwrite admin customisations
+        // Always refresh defaults; also sync current HTML when not admin-customised
         await ctx.db.patch(existing._id, {
           category: tpl.category,
           displayName: tpl.displayName,
@@ -532,6 +532,9 @@ export const seedEmailTemplates = mutation({
           defaultBodyHtml: html,
           sampleDataJson: JSON.stringify(tpl.sampleData),
           updatedAt: now,
+          ...(!existing.isCustomized
+            ? { currentSubject: subject, currentBodyHtml: html }
+            : {}),
         });
         updated++;
       } else {
