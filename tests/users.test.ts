@@ -1,7 +1,9 @@
+import "./setup-test-guard";
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { Doc, Id } from "../convex/_generated/dataModel";
+import { Id } from "../convex/_generated/dataModel";
+
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -35,7 +37,7 @@ describe("Users", () => {
       token: superadminToken,
       limit: 50,
     });
-    const vendorUser = allUsers.users.find((u: any) => u.email === "vendor@bydnigeria.com");
+    const vendorUser = allUsers.users.find((u: { email?: string; role?: string; _id: Id<"users"> }) => u.email === "vendor@bydnigeria.com");
     if (vendorUser && vendorUser.role !== "seller") {
       await client.mutation(api.users.updateUserRole, {
         token: superadminToken,
@@ -74,12 +76,12 @@ describe("Users", () => {
       limit: 10,
     });
     const otherUser = usersList.users.find(
-      (u: any) => u._id !== superUser?.id && u._id !== registerResult.userId
+      (u: { _id?: string }) => u._id !== superUser?.id && u._id !== registerResult.userId
     );
     if (otherUser) {
       testUserId = otherUser._id;
     }
-  }, 20000);
+  });
 
   describe("listUsers", () => {
     test("admin can list users", async () => {
@@ -218,7 +220,7 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
-      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as Id<"users">);
       await expect(
         client.query(api.users.getUserDetails, {
           token: adminToken,
@@ -288,7 +290,7 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
-      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as Id<"users">);
       await expect(
         client.mutation(api.users.updateUserRole, {
           token: superadminToken,
@@ -387,7 +389,7 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
-      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as Id<"users">);
       await expect(
         client.mutation(api.users.updateKYCStatus, {
           token: adminToken,
@@ -441,7 +443,7 @@ describe("Users", () => {
     });
 
     test("returns error for non-existent user", async () => {
-      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as any);
+      const fakeUserId = testUserId ? (testUserId.substring(0, 15) + (testUserId[15] === "a" ? "b" : "a") + testUserId.substring(16) as Id<"users">) : ("j1234567890abcdef" as Id<"users">);
       await expect(
         client.mutation(api.users.updateMembershipTier, {
           token: adminToken,

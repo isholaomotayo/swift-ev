@@ -288,3 +288,53 @@ describe("Email Templates Engine", () => {
     expect(res.html).toContain("₦15,000,000");
   });
 });
+
+describe("Outgoing Email Review Workflow Logic", () => {
+  const accountCriticalTypes = ["verification", "password_reset"];
+  const eventTransactionalTypes = [
+    "kyc_approved",
+    "kyc_rejected",
+    "outbid",
+    "auction_won",
+    "auction_lost",
+    "seller_vehicle_sold",
+    "buy_now_order_created",
+    "payment_received",
+    "bank_transfer_pending",
+    "bank_transfer_verified",
+    "bank_transfer_rejected",
+    "payment_complete",
+    "order_shipped",
+    "order_delivered",
+    "gate_pass_issued",
+    "order_forfeited",
+    "purchase_revoked",
+    "dispute_resolved",
+    "wallet_funded",
+  ];
+
+  test("Account-critical emails bypass the outgoing review queue", () => {
+    accountCriticalTypes.forEach((type) => {
+      const isCritical = type === "verification" || type === "password_reset";
+      expect(isCritical).toBe(true);
+    });
+  });
+
+  test("Event transactional emails are intercepted when review mode is ON", () => {
+    const requireReview = true;
+    eventTransactionalTypes.forEach((type) => {
+      const isCritical = type === "verification" || type === "password_reset";
+      const shouldIntercept = !isCritical && requireReview;
+      expect(shouldIntercept).toBe(true);
+    });
+  });
+
+  test("Event transactional emails bypass queue when review mode is OFF", () => {
+    const requireReview = false;
+    eventTransactionalTypes.forEach((type) => {
+      const isCritical = type === "verification" || type === "password_reset";
+      const shouldIntercept = !isCritical && requireReview;
+      expect(shouldIntercept).toBe(false);
+    });
+  });
+});

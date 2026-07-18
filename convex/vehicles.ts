@@ -1829,3 +1829,80 @@ export const getVendorRevenueHistory = query({
     return revenueData;
   },
 });
+
+/**
+ * Admin: Safely delete a vehicle and its associated media/documents
+ */
+export const deleteVehicle = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const vehicle = await ctx.db.get(args.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    // Check if vehicle is attached to active orders
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+
+    const activeOrders = orders.filter((o) => o.status !== "cancelled");
+    if (activeOrders.length > 0) {
+      throw new Error(
+        `Cannot delete vehicle: Linked to active order(s) [${activeOrders.map((o) => o.orderNumber).join(", ")}]`
+      );
+    }
+
+    // Delete images
+    const images = await ctx.db
+      .query("vehicleImages")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+    for (const image of images) {
+      await ctx.db.delete(image._id);
+    }
+
+    // Delete documents
+    const documents = await ctx.db
+      .query("vehicleDocuments")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+    for (const doc of documents) {
+      await ctx.db.delete(doc._id);
+    }
+
+    // Delete spare parts
+    const parts = await ctx.db
+      .query("spareParts")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+    for (const part of parts) {
+      await ctx.db.delete(part._id);
+    }
+
+    // Delete watchlist entries
+    const watchlistEntries = await ctx.db
+      .query("watchlist")
+      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
+      .collect();
+    for (const entry of watchlistEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
+    // Delete vehicle record
+    await ctx.db.delete(args.vehicleId);
+
+    return {
+      success: true,
+      message: `Vehicle ${vehicle.make} ${vehicle.model} (VIN: ${vehicle.vin || args.vehicleId}) safely deleted.`,
+    };
+  },
+});
+

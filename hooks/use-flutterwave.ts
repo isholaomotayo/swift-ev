@@ -39,15 +39,13 @@
  }
 
  export function useFlutterwaveCheckout() {
-   const [ready, setReady] = useState(false);
-   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(
+    () => typeof window !== "undefined" && Boolean(window.FlutterwaveCheckout)
+  );
+  const [error, setError] = useState<string | null>(null);
 
-   useEffect(() => {
-     if (typeof window === "undefined") return;
-     if (window.FlutterwaveCheckout) {
-       setReady(true);
-       return;
-     }
+  useEffect(() => {
+    if (typeof window === "undefined" || window.FlutterwaveCheckout) return;
 
      const existing = document.getElementById(FLUTTERWAVE_SCRIPT_ID);
      if (existing) {

@@ -1,6 +1,14 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserOrNull } from "./lib/auth";
+
+export const getUserFromTokenQuery = internalQuery({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    return await getAuthUserOrNull(ctx, args.token);
+  },
+});
 
 // ============================================================
 // INTERNAL HELPERS (called by authActions.ts via Node.js actions)

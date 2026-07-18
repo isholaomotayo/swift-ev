@@ -1,7 +1,9 @@
+import "./setup-test-guard";
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+
 
 const CONVEX_URL =
   process.env.NEXT_PUBLIC_CONVEX_URL ||
@@ -274,6 +276,164 @@ describe("Auctions", () => {
     });
   });
 
+  describe("createAuctionWithLots", () => {
+    test("admin can create auction with multiple lots in 1 atomic mutation", async () => {
+      const createApprovedVehicle = async (vinSuffix: string) => {
+        const created = await client.mutation(api.vehicles.createVehicle, {
+          token: vendorToken,
+          vehicleData: {
+            make: "NIO",
+            model: "ET7",
+            year: 2024,
+            vin: `${Date.now()}-${vinSuffix}`.slice(-17),
+            odometer: 5000,
+            exteriorColor: "Blue",
+            interiorColor: "White",
+            batteryCapacity: 100,
+            batteryHealthPercent: 99,
+            range: 580,
+            batteryType: "Lithium-ion",
+            chargingTypes: ["AC", "DC"],
+            motorPower: 480,
+            condition: "excellent",
+            damageDescription: "None",
+            locationCity: "Lagos",
+            locationState: "Lagos",
+            locationCountry: "Nigeria",
+            startingBid: 8000000,
+            reservePrice: 9000000,
+            buyItNowPrice: 11000000,
+            mediaUploads: [
+              { storageId: "https://example.com/f.jpg", category: "Front View", isRequired: true },
+              { storageId: "https://example.com/r.jpg", category: "Rear View", isRequired: true },
+              { storageId: "https://example.com/d.jpg", category: "Driver Side", isRequired: true },
+              { storageId: "https://example.com/i.jpg", category: "Interior (Dashboard)", isRequired: true },
+              { storageId: "https://example.com/e.jpg", category: "Engine Bay", isRequired: true },
+            ],
+          },
+        });
+        await client.mutation(api.vehicles.approveVehicle, {
+          token: adminToken,
+          vehicleId: created.vehicleId,
+        });
+        return created.vehicleId;
+      };
+
+      const v1 = await createApprovedVehicle("BULK1");
+      const v2 = await createApprovedVehicle("BULK2");
+
+      const scheduledStart = Date.now() + 48 * 60 * 60 * 1000;
+      const result = await client.mutation(api.auctions.createAuctionWithLots, {
+        token: adminToken,
+        name: "Bulk Test Auction",
+        description: "Testing atomic batch auction creation",
+        auctionType: "live",
+        scheduledStart,
+        bidIncrement: 20000,
+        lots: [
+          {
+            vehicleId: v1,
+            lotOrder: 1,
+            lotDuration: 300000,
+            startingBid: 8000000,
+            reservePrice: 9000000,
+            buyItNowPrice: 11000000,
+          },
+          {
+            vehicleId: v2,
+            lotOrder: 2,
+            lotDuration: 300000,
+            startingBid: 8500000,
+            reservePrice: 9500000,
+            buyItNowPrice: 12000000,
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.createdLotsCount).toBe(2);
+      expect(result.lotIds.length).toBe(2);
+
+      const auctionDetails = await client.query(api.auctions.getAuctionById, {
+        auctionId: result.auctionId,
+      });
+      expect(auctionDetails?.auction.totalLots).toBe(2);
+
+      const vehicle1 = await client.query(api.vehicles.getVehicleById, {
+        token: adminToken,
+        vehicleId: v1,
+      });
+      const vehicle2 = await client.query(api.vehicles.getVehicleById, {
+        token: adminToken,
+        vehicleId: v2,
+      });
+      expect(vehicle1?.status).toBe("scheduled");
+      expect(vehicle2?.status).toBe("scheduled");
+    });
+
+    test("rejects duplicate lot orders in batch payload", async () => {
+      const createApprovedVehicle = async (vinSuffix: string) => {
+        const created = await client.mutation(api.vehicles.createVehicle, {
+          token: vendorToken,
+          vehicleData: {
+            make: "BYD",
+            model: "Han",
+            year: 2024,
+            vin: `${Date.now()}-${vinSuffix}`.slice(-17),
+            odometer: 1000,
+            exteriorColor: "Black",
+            interiorColor: "Red",
+            batteryCapacity: 85,
+            batteryHealthPercent: 100,
+            range: 600,
+            batteryType: "Lithium-ion",
+            chargingTypes: ["AC", "DC"],
+            motorPower: 380,
+            condition: "excellent",
+            damageDescription: "None",
+            locationCity: "Lagos",
+            locationState: "Lagos",
+            locationCountry: "Nigeria",
+            startingBid: 7000000,
+            reservePrice: 8000000,
+            buyItNowPrice: 10000000,
+            mediaUploads: [
+              { storageId: "https://example.com/f.jpg", category: "Front View", isRequired: true },
+              { storageId: "https://example.com/r.jpg", category: "Rear View", isRequired: true },
+              { storageId: "https://example.com/d.jpg", category: "Driver Side", isRequired: true },
+              { storageId: "https://example.com/i.jpg", category: "Interior (Dashboard)", isRequired: true },
+              { storageId: "https://example.com/e.jpg", category: "Engine Bay", isRequired: true },
+            ],
+          },
+        });
+        await client.mutation(api.vehicles.approveVehicle, {
+          token: adminToken,
+          vehicleId: created.vehicleId,
+        });
+        return created.vehicleId;
+      };
+
+      const v1 = await createApprovedVehicle("DUP1");
+      const v2 = await createApprovedVehicle("DUP2");
+
+      const scheduledStart = Date.now() + 48 * 60 * 60 * 1000;
+
+      await expect(
+        client.mutation(api.auctions.createAuctionWithLots, {
+          token: adminToken,
+          name: "Invalid Duplicate Order Auction",
+          auctionType: "live",
+          scheduledStart,
+          bidIncrement: 10000,
+          lots: [
+            { vehicleId: v1, lotOrder: 1, lotDuration: 300000, buyItNowPrice: 10000000 },
+            { vehicleId: v2, lotOrder: 1, lotDuration: 300000, buyItNowPrice: 10000000 },
+          ],
+        })
+      ).rejects.toThrow("Duplicate lot order");
+    });
+  });
+
   describe("startAuction", () => {
     test("admin can start auction", async () => {
       if (testAuctionId) {
@@ -386,4 +546,135 @@ describe("Auctions", () => {
       ).rejects.toThrow();
     });
   });
+
+  describe("deleteAuction and getAuctionDeletePreview", () => {
+    test("non-admin cannot delete auction or preview deletion", async () => {
+      const auctions = await client.query(api.auctions.listAuctions, {});
+      if (auctions.length > 0) {
+        const auctionId = auctions[0]._id;
+        await expect(
+          client.query(api.auctions.getAuctionDeletePreview, {
+            token: buyerToken,
+            auctionId,
+          })
+        ).rejects.toThrow();
+
+        await expect(
+          client.mutation(api.auctions.deleteAuction, {
+            token: buyerToken,
+            auctionId,
+          })
+        ).rejects.toThrow();
+      }
+    });
+
+    test("admin can preview and safely delete an auction, resetting vehicle status", async () => {
+      // 1. Create a test vehicle
+      const createdVehicle = await client.mutation(api.vehicles.createVehicle, {
+        token: vendorToken,
+        vehicleData: {
+          make: "NIO",
+          model: "ET7",
+          year: 2024,
+          vin: `DELTEST-${Date.now()}`.slice(-17),
+          odometer: 500,
+          exteriorColor: "Blue",
+          interiorColor: "Grey",
+          batteryCapacity: 100,
+          batteryHealthPercent: 100,
+          range: 700,
+          batteryType: "Solid State",
+          chargingTypes: ["AC", "DC"],
+          motorPower: 480,
+          condition: "excellent",
+          damageDescription: "None",
+          locationCity: "Shanghai",
+          locationState: "Shanghai",
+          locationCountry: "China",
+          startingBid: 12000000,
+          reservePrice: 15000000,
+          buyItNowPrice: 18000000,
+          mediaUploads: [
+            { storageId: "https://example.com/f.jpg", category: "Front View", isRequired: true },
+            { storageId: "https://example.com/r.jpg", category: "Rear View", isRequired: true },
+            { storageId: "https://example.com/d.jpg", category: "Driver Side", isRequired: true },
+            { storageId: "https://example.com/i.jpg", category: "Interior (Dashboard)", isRequired: true },
+            { storageId: "https://example.com/e.jpg", category: "Engine Bay", isRequired: true },
+          ],
+        },
+      });
+
+
+
+      await client.mutation(api.vehicles.approveVehicle, {
+        token: adminToken,
+        vehicleId: createdVehicle.vehicleId,
+      });
+
+      // 2. Create a test auction with this vehicle
+      const auctionRes = await client.mutation(api.auctions.createAuctionWithLots, {
+        token: adminToken,
+        name: `Temporary Delete Test Auction ${Date.now()}`,
+        description: "Testing safe deletion functionality",
+        auctionType: "live",
+        scheduledStart: Date.now() + 24 * 60 * 60 * 1000,
+        bidIncrement: 50000,
+        lots: [
+          {
+            vehicleId: createdVehicle.vehicleId,
+            lotOrder: 1,
+            lotDuration: 300000,
+            startingBid: 12000000,
+            reservePrice: 15000000,
+            buyItNowPrice: 18000000,
+          },
+        ],
+      });
+
+      expect(auctionRes.success).toBe(true);
+
+      // Verify vehicle status changed to scheduled
+      const scheduledVehicle = await client.query(api.vehicles.getVehicleById, {
+        token: adminToken,
+        vehicleId: createdVehicle.vehicleId,
+      });
+      expect(scheduledVehicle?.status).toBe("scheduled");
+
+      // 3. Preview auction deletion
+      const preview = await client.query(api.auctions.getAuctionDeletePreview, {
+        token: adminToken,
+        auctionId: auctionRes.auctionId,
+      });
+
+      expect(preview.canDelete).toBe(true);
+      expect(preview.lotCount).toBe(1);
+      expect(preview.vehicleCount).toBe(1);
+
+      // 4. Execute safe delete
+      const deleteRes = await client.mutation(api.auctions.deleteAuction, {
+        token: adminToken,
+        auctionId: auctionRes.auctionId,
+        resetVehicleStatusTo: "approved",
+      });
+
+      expect(deleteRes.success).toBe(true);
+      expect(deleteRes.deletedAuctionId).toBe(auctionRes.auctionId);
+      expect(deleteRes.deletedLotsCount).toBe(1);
+      expect(deleteRes.resetVehiclesCount).toBe(1);
+
+      // 5. Verify auction is gone
+      const deletedAuction = await client.query(api.auctions.getAuctionById, {
+        auctionId: auctionRes.auctionId,
+      });
+      expect(deletedAuction).toBeNull();
+
+      // 6. Verify vehicle status was cleanly reset to approved
+      const resetVehicle = await client.query(api.vehicles.getVehicleById, {
+        token: adminToken,
+        vehicleId: createdVehicle.vehicleId,
+      });
+      expect(resetVehicle?.status).toBe("approved");
+    });
+  });
 });
+

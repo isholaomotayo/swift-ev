@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Calendar, Play } from "lucide-react";
+import { Plus, Calendar, Play, Zap, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,12 +16,22 @@ import {
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LiveControlCenter } from "@/components/admin/auctions/live-control-center";
+import { DeleteAuctionDialog } from "@/components/admin/auctions/delete-auction-dialog";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface AdminAuctionsClientProps {
   initialAuctions: any[];
 }
 
 export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>("control-center");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: Id<"auctions">;
+    name: string;
+  } | null>(null);
+
   // Client-side filtering (no additional subscriptions)
   const liveAuctions = useMemo(() => 
     initialAuctions.filter(a => a.status === "live"),
@@ -114,7 +125,7 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" asChild>
                     <Link href={`/admin/auctions/${auction._id}`}>
                       Manage
@@ -128,6 +139,20 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
                       </Link>
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-error-red hover:text-error-red hover:bg-error-red/10"
+                    title="Delete auction"
+                    onClick={() =>
+                      setDeleteTarget({
+                        id: auction._id,
+                        name: auction.name,
+                      })
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>
@@ -142,22 +167,36 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Auctions</h1>
+          <h1 className="text-3xl font-bold mb-2">Auctions Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage all auction events and lots
+            Live auction control center and event management
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/auctions/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Auction
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={activeTab === "control-center" ? "default" : "outline"}
+            onClick={() => setActiveTab("control-center")}
+            className="bg-electric-blue hover:bg-electric-blue/90 text-white"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Control Center
+          </Button>
+          <Button asChild>
+            <Link href="/admin/auctions/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Auction
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
+          <TabsTrigger value="control-center" className="flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-electric-blue" />
+            Live Control Center
+          </TabsTrigger>
           <TabsTrigger value="all">
             All Auctions
             <Badge variant="secondary" className="ml-2">
@@ -190,6 +229,10 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="control-center" className="mt-6">
+          <LiveControlCenter />
+        </TabsContent>
+
         <TabsContent value="all" className="mt-6">
           <div className="bg-background border rounded-lg overflow-hidden">
             {renderAuctionTable(initialAuctions)}
@@ -214,6 +257,23 @@ export function AdminAuctionsClient({ initialAuctions }: AdminAuctionsClientProp
           </div>
         </TabsContent>
       </Tabs>
+
+      {deleteTarget && (
+        <DeleteAuctionDialog
+          auctionId={deleteTarget.id}
+          auctionName={deleteTarget.name}
+          open={!!deleteTarget}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          onDeleted={() => {
+            setDeleteTarget(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+

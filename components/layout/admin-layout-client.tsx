@@ -12,6 +12,7 @@ import {
   Package,
   TrendingUp,
   Mail,
+  MailCheck,
   LogOut,
   CheckCircle,
   CreditCard,
@@ -65,6 +66,11 @@ const adminNavItems = [
     label: "Mail",
     href: "/admin/mail",
     icon: Mail,
+  },
+  {
+    label: "Email Review",
+    href: "/admin/mail-review",
+    icon: MailCheck,
   },
   {
     label: "Settings",

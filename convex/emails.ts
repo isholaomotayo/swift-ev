@@ -1,9 +1,10 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 import {
   verificationEmailTemplate,
   passwordResetEmailTemplate,
@@ -69,6 +70,7 @@ async function sendAndLogEmail(
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
       subject: args.subject,
+      bodyHtml: args.html,
       status: "skipped_suppressed",
       errorMessage: `Suppressed: ${suppression.reason}`,
       relatedOrderId: args.relatedOrderId,
@@ -77,6 +79,35 @@ async function sendAndLogEmail(
     });
     console.log(`[EMAIL SKIPPED — suppressed] ${args.to}: ${args.subject}`);
     return;
+  }
+
+  // Account-critical emails bypass the outgoing email review queue
+  const isCriticalEmail =
+    args.emailType === "verification" || args.emailType === "password_reset";
+
+  if (!isCriticalEmail) {
+    const isReviewRequired = await ctx.runQuery(
+      internal.userMail.checkReviewRequiredQuery,
+      {}
+    );
+
+    if (isReviewRequired) {
+      await ctx.runMutation(internal.userMail.logTransactionalEmail, {
+        emailType: args.emailType,
+        recipientEmail: args.to,
+        recipientUserId: args.recipientUserId,
+        subject: args.subject,
+        bodyHtml: args.html,
+        status: "pending_review",
+        relatedOrderId: args.relatedOrderId,
+        relatedVehicleId: args.relatedVehicleId,
+        relatedAuctionId: args.relatedAuctionId,
+      });
+      console.log(
+        `[EMAIL INTERCEPTED FOR REVIEW] ${args.to}: ${args.subject} (type: ${args.emailType})`
+      );
+      return;
+    }
   }
 
   if (!apiKey) {
@@ -92,6 +123,7 @@ async function sendAndLogEmail(
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
       subject: args.subject,
+      bodyHtml: args.html,
       status: "skipped_dev",
       relatedOrderId: args.relatedOrderId,
       relatedVehicleId: args.relatedVehicleId,
@@ -123,6 +155,7 @@ async function sendAndLogEmail(
         recipientEmail: args.to,
         recipientUserId: args.recipientUserId,
         subject: args.subject,
+        bodyHtml: args.html,
         status: "failed",
         errorMessage: `HTTP ${res.status}: ${body}`,
         relatedOrderId: args.relatedOrderId,
@@ -138,6 +171,7 @@ async function sendAndLogEmail(
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
       subject: args.subject,
+      bodyHtml: args.html,
       status: "sent",
       resendEmailId: data.id,
       relatedOrderId: args.relatedOrderId,
@@ -151,6 +185,7 @@ async function sendAndLogEmail(
       recipientEmail: args.to,
       recipientUserId: args.recipientUserId,
       subject: args.subject,
+      bodyHtml: args.html,
       status: "failed",
       errorMessage: err?.message ?? "Unknown error",
       relatedOrderId: args.relatedOrderId,
@@ -886,5 +921,110 @@ export const sendWalletFundedEmail = internalAction({
       html,
       recipientUserId: args.userId,
     });
+  },
+});
+
+// =============================================
+// OUTGOING EMAIL REVIEW ADMIN APIs
+// Functions moved to convex/emailAdmin.ts to comply with Convex Node.js action isolation rules.
+// =============================================
+
+/** Approve and send a pending transactional email via Resend. */
+export const approveTransactionalEmail = action({
+  args: {
+    token: v.string(),
+    emailId: v.id("transactionalEmails"),
+  },
+  handler: async (ctx, args) => {
+    // Check auth via user query
+    const user: any = await ctx.runQuery(internal.auth.getUserFromTokenQuery, {
+      token: args.token,
+    });
+    if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
+      throw new Error("Unauthorized - Admin access required");
+    }
+
+    const email: any = await ctx.runQuery(
+      internal.emailAdmin.getTransactionalEmailInternal,
+      { emailId: args.emailId }
+    );
+    if (!email) {
+      throw new Error("Transactional email not found");
+    }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM ?? "noreply@autoexports.live";
+
+    if (!apiKey) {
+      console.log("[EMAIL APPROVED — STUB DEV MODE]", {
+        to: email.recipientEmail,
+        subject: email.subject,
+      });
+      await ctx.runMutation(
+        internal.emailAdmin.updateTransactionalEmailStatusInternal,
+        {
+          emailId: args.emailId,
+          status: "skipped_dev",
+          reviewedBy: user._id,
+        }
+      );
+      return { success: true, status: "skipped_dev" };
+    }
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          from,
+          to: email.recipientEmail,
+          subject: email.subject,
+          html: email.bodyHtml ?? "<p>No content</p>",
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        console.error(`Email approval send failed (${res.status}): ${body}`);
+        await ctx.runMutation(
+          internal.emailAdmin.updateTransactionalEmailStatusInternal,
+          {
+            emailId: args.emailId,
+            status: "failed",
+            errorMessage: body,
+            reviewedBy: user._id,
+          }
+        );
+        return { success: false, error: body };
+      }
+
+      const data = (await res.json()) as { id?: string };
+      await ctx.runMutation(
+        internal.emailAdmin.updateTransactionalEmailStatusInternal,
+        {
+          emailId: args.emailId,
+          status: "sent",
+          resendEmailId: data.id,
+          reviewedBy: user._id,
+        }
+      );
+
+      return { success: true, status: "sent", resendEmailId: data.id };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await ctx.runMutation(
+        internal.emailAdmin.updateTransactionalEmailStatusInternal,
+        {
+          emailId: args.emailId,
+          status: "failed",
+          errorMessage: msg,
+          reviewedBy: user._id,
+        }
+      );
+      return { success: false, error: msg };
+    }
   },
 });

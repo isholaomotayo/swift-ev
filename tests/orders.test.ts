@@ -1,7 +1,9 @@
+import "./setup-test-guard";
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import { Doc, Id } from "../convex/_generated/dataModel";
+
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -32,7 +34,7 @@ describe("Orders", () => {
       limit: 10,
     });
     const vehicleToBuy = vehiclesList.vehicles.find(
-      (v: any) => v.status === "approved" || v.status === "unsold"
+      (v: { status?: string }) => v.status === "approved" || v.status === "unsold"
     );
     if (vehicleToBuy) {
       const purchaseResult = await client.mutation(api.vehicles.purchaseVehicleDirectly, {
@@ -270,7 +272,7 @@ describe("Orders", () => {
     });
 
     test("returns error for non-existent order", async () => {
-      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as Id<"orders">);
       await expect(
         client.query(api.orders.getOrderDetails, {
           token: adminToken,
@@ -308,7 +310,7 @@ describe("Orders", () => {
     });
 
     test("requires valid order ID", async () => {
-      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as Id<"orders">);
       await expect(
         client.mutation(api.orders.updateOrderStatus, {
           token: adminToken,
@@ -374,7 +376,7 @@ describe("Orders", () => {
     });
 
     test("requires valid order ID", async () => {
-      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as any);
+      const fakeOrderId = testOrderId ? (testOrderId.substring(0, 15) + (testOrderId[15] === "0" ? "1" : "0") + testOrderId.substring(16) as Id<"orders">) : ("j1234567890abcdef" as Id<"orders">);
       await expect(
         client.mutation(api.orders.addShippingTracking, {
           token: adminToken,

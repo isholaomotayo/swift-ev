@@ -63,8 +63,7 @@ export default function CreateAuctionPage() {
   );
 
   // Mutations
-  const createAuction = useMutation(api.auctions.createAuction);
-  const addLotToAuction = useMutation(api.auctions.addLotToAuction);
+  const createAuctionWithLots = useMutation(api.auctions.createAuctionWithLots);
 
   const handleVehicleToggle = (vehicleId: Id<"vehicles">) => {
     const newSelected = new Set(selectedVehicles);
@@ -168,24 +167,13 @@ export default function CreateAuctionPage() {
     setLoading(true);
     try {
       const defaultBidIncrement = configuredLots[0]?.bidIncrement ?? 1000;
-      // Create auction
-      const auction = await createAuction({
-        token,
-        name: auctionName,
-        description: description || undefined,
-        auctionType,
-        scheduledStart: new Date(scheduledStart).getTime(),
-        bidIncrement: defaultBidIncrement,
-      });
 
-      // Add lots
       let lotOrder = 1;
-      for (const vehicleId of selectedVehicles) {
-        const config = lotConfigs.get(vehicleId);
-        if (config) {
-          await addLotToAuction({
-            token,
-            auctionId: auction.auctionId,
+      const lots = Array.from(selectedVehicles)
+        .map((vehicleId) => {
+          const config = lotConfigs.get(vehicleId);
+          if (!config) return null;
+          return {
             vehicleId,
             lotOrder: lotOrder++,
             lotDuration: lotDurationMinutes * 60 * 1000,
@@ -195,9 +183,19 @@ export default function CreateAuctionPage() {
             bidIncrement: config.bidIncrement,
             buyItNowEnabled: true,
             estimatedStartTime: undefined,
-          });
-        }
-      }
+          };
+        })
+        .filter((lot): lot is NonNullable<typeof lot> => lot !== null);
+
+      await createAuctionWithLots({
+        token,
+        name: auctionName,
+        description: description || undefined,
+        auctionType,
+        scheduledStart: new Date(scheduledStart).getTime(),
+        bidIncrement: defaultBidIncrement,
+        lots,
+      });
 
       toast({
         title: "Success!",

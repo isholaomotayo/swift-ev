@@ -34,11 +34,11 @@ export default async function ProtectedLayout({
     user = await convex.query(api.auth.getCurrentUser, { token });
   } catch (error) {
     console.error("Failed to verify user:", error);
-    redirect("/login");
+    redirect("/login?auth_failed=1");
   }
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?auth_failed=1");
   }
 
   // Check user status

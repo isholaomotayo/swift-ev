@@ -1008,7 +1008,11 @@ export default defineSchema({
     recipientEmail: v.string(),
     recipientUserId: v.optional(v.id("users")),
     subject: v.string(),
+    bodyHtml: v.optional(v.string()),
     status: v.union(
+      v.literal("pending_review"),
+      v.literal("approved"),
+      v.literal("rejected"),
       v.literal("sent"),
       v.literal("failed"),
       v.literal("skipped_suppressed"),
@@ -1019,7 +1023,10 @@ export default defineSchema({
     relatedOrderId: v.optional(v.id("orders")),
     relatedVehicleId: v.optional(v.id("vehicles")),
     relatedAuctionId: v.optional(v.id("auctions")),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_type", ["emailType"])
     .index("by_recipient", ["recipientEmail"])

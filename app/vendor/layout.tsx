@@ -34,11 +34,11 @@ export default async function VendorLayout({
     user = await convex.query(api.auth.getCurrentUser, { token });
   } catch (error) {
     console.error("Failed to verify user:", error);
-    redirect("/login?redirect=/vendor");
+    redirect("/login?redirect=/vendor&auth_failed=1");
   }
 
   if (!user) {
-    redirect("/login?redirect=/vendor");
+    redirect("/login?redirect=/vendor&auth_failed=1");
   }
 
   // Verify seller role

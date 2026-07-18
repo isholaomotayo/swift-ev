@@ -408,7 +408,11 @@ export const logTransactionalEmail = internalMutation({
     recipientEmail: v.string(),
     recipientUserId: v.optional(v.id("users")),
     subject: v.string(),
+    bodyHtml: v.optional(v.string()),
     status: v.union(
+      v.literal("pending_review"),
+      v.literal("approved"),
+      v.literal("rejected"),
       v.literal("sent"),
       v.literal("failed"),
       v.literal("skipped_suppressed"),
@@ -419,21 +423,44 @@ export const logTransactionalEmail = internalMutation({
     relatedOrderId: v.optional(v.id("orders")),
     relatedVehicleId: v.optional(v.id("vehicles")),
     relatedAuctionId: v.optional(v.id("auctions")),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("transactionalEmails", {
+    return await ctx.db.insert("transactionalEmails", {
       emailType: args.emailType,
       recipientEmail: args.recipientEmail,
       recipientUserId: args.recipientUserId,
       subject: args.subject,
+      bodyHtml: args.bodyHtml,
       status: args.status,
       resendEmailId: args.resendEmailId,
       errorMessage: args.errorMessage,
       relatedOrderId: args.relatedOrderId,
       relatedVehicleId: args.relatedVehicleId,
       relatedAuctionId: args.relatedAuctionId,
+      reviewedBy: args.reviewedBy,
+      reviewedAt: args.reviewedAt,
       createdAt: Date.now(),
     });
+  },
+});
+
+export const checkReviewRequiredQuery = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", "email.requireReview"))
+      .first();
+
+    if (!setting) return true;
+    try {
+      const parsed = JSON.parse(setting.value);
+      return Boolean(parsed);
+    } catch {
+      return setting.value === "true";
+    }
   },
 });
 

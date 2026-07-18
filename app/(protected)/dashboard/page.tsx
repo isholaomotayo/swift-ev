@@ -29,12 +29,17 @@ export default async function DashboardPage() {
   let initialUserOrders: any = null;
 
   try {
-    [user, initialUserBids, initialWatchlist, initialUserOrders] = await Promise.all([
-      convex.query(api.auth.getCurrentUser, { token }),
-      convex.query(api.bids.getUserBids, { token }),
-      convex.query(api.watchlist.getWatchlist, { token }),
-      convex.query(api.orders.getUserOrders, { token }),
-    ]);
+    user = await convex.query(api.auth.getCurrentUser, { token });
+    if (user) {
+      const results = await Promise.allSettled([
+        convex.query(api.bids.getUserBids, { token }),
+        convex.query(api.watchlist.getWatchlist, { token }),
+        convex.query(api.orders.getUserOrders, { token }),
+      ]);
+      initialUserBids = results[0].status === "fulfilled" ? results[0].value : null;
+      initialWatchlist = results[1].status === "fulfilled" ? results[1].value : null;
+      initialUserOrders = results[2].status === "fulfilled" ? results[2].value : null;
+    }
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);
     // Continue with null data - client component will handle loading

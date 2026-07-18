@@ -34,11 +34,11 @@ export default async function AdminLayout({
     user = await convex.query(api.auth.getCurrentUser, { token });
   } catch (error) {
     console.error("Failed to verify user:", error);
-    redirect("/login?redirect=/admin");
+    redirect("/login?redirect=/admin&auth_failed=1");
   }
 
   if (!user) {
-    redirect("/login?redirect=/admin");
+    redirect("/login?redirect=/admin&auth_failed=1");
   }
 
   // Verify admin role

@@ -1,7 +1,9 @@
+import "./setup-test-guard";
 import { describe, test, expect, beforeAll } from "bun:test";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
+
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://greedy-rhinoceros-131.convex.cloud";
 const client = new ConvexHttpClient(CONVEX_URL);
@@ -72,7 +74,7 @@ describe("Bids", () => {
     test("returns empty array for lot with no bids", async () => {
       // This would require a lot with no bids - might not always be available
       const bids = await client.query(api.bids.getBidsForLot, {
-        lotId: activeLotId || ("j1234567890abcdef" as any),
+        lotId: activeLotId || ("j1234567890abcdef" as Id<"auctionLots">),
       });
 
       expect(Array.isArray(bids)).toBe(true);

@@ -137,7 +137,7 @@ export const getUserDetails = query({
     // Get audit log
     const auditLogs = await ctx.db
       .query("auditLog")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .order("desc")
       .take(50);
 
@@ -207,7 +207,7 @@ export const updateUserRole = mutation({
     const oldRole = targetUser.role;
 
     // Update role
-    await ctx.db.patch(args.userId, {
+    await ctx.db.patch(targetUserId, {
       role: args.role,
       updatedAt: Date.now(),
     });
@@ -282,7 +282,7 @@ export const updateUserStatus = mutation({
     if (args.status === "suspended" || args.status === "banned") {
       const sessions = await ctx.db
         .query("sessions")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", targetUserId))
         .collect();
 
       for (const session of sessions) {

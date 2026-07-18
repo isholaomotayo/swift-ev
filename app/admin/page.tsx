@@ -23,23 +23,22 @@ export default async function AdminDashboard() {
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-  let vehicleStats: any = null;
-  let liveAuctions: any[] = [];
+  let initialOverview: any = null;
 
   try {
-    [vehicleStats, liveAuctions] = await Promise.all([
-      convex.query(api.vehicles.getVehicleStats, {}),
-      convex.query(api.auctions.listAuctions, { status: "live" }),
-    ]);
+    initialOverview = await convex.query(api.analytics.getAdminDashboardOverview, {
+      token,
+      timeRange: "30d",
+    });
   } catch (error) {
-    console.error("Failed to fetch dashboard data:", error);
-    // Continue with empty data
+    console.error("Failed to fetch dashboard overview data:", error);
+    // Continue with empty fallback
   }
 
   return (
     <AdminDashboardClient
-      vehicleStats={vehicleStats}
-      liveAuctions={liveAuctions || []}
+      initialOverview={initialOverview}
+      token={token}
     />
   );
 }

@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth, requireAdmin } from "./lib/auth";
+import { requireAuth, requireAdmin, getAuthUserOrNull } from "./lib/auth";
 
 /**
  * Get platform-wide statistics
@@ -358,3 +358,256 @@ export const getAuctionMetrics = query({
     };
   },
 });
+
+/**
+ * Get comprehensive Admin Dashboard Overview stats, sneak peeks, pending action queues, and analytics.
+ * Admin/Superadmin only.
+ */
+export const getAdminDashboardOverview = query({
+  args: {
+    token: v.string(),
+    timeRange: v.optional(v.string()), // "7d" | "30d" | "90d" | "1y"
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthUserOrNull(ctx, args.token);
+    if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
+      return null;
+    }
+
+    const now = Date.now();
+    const rangeStr = args.timeRange || "30d";
+    let daysBack = 30;
+    if (rangeStr === "7d") daysBack = 7;
+    if (rangeStr === "90d") daysBack = 90;
+    if (rangeStr === "1y") daysBack = 365;
+    const startTime = now - daysBack * 24 * 60 * 60 * 1000;
+
+    // Collect data across all tables
+    const allVehicles = await ctx.db.query("vehicles").collect();
+    const allAuctions = await ctx.db.query("auctions").collect();
+    const allOrders = await ctx.db.query("orders").collect();
+    const allUsers = await ctx.db.query("users").collect();
+    const allPayments = await ctx.db.query("payments").collect();
+    const allEmails = await ctx.db.query("transactionalEmails").collect();
+    const exchangeRates = await ctx.db.query("exchangeRates").collect();
+
+    // 1. Vehicle KPIs & Sneak Peek
+    const pendingVehicles = allVehicles.filter((v) => v.status === "pending_approval");
+    const approvedVehicles = allVehicles.filter((v) => v.status === "approved");
+    const inAuctionVehicles = allVehicles.filter((v) => v.status === "in_auction");
+    const soldVehicles = allVehicles.filter((v) => v.status === "sold");
+    const draftVehicles = allVehicles.filter((v) => v.status === "draft");
+
+    const pendingVehiclesSneak = pendingVehicles
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 4)
+      .map((v) => ({
+        id: v._id,
+        title: `${v.year} ${v.make} ${v.model}`,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        price: v.startingBid,
+        buyNowPrice: v.buyItNowPrice,
+        status: v.status,
+        createdAt: v.createdAt,
+        mainImage: null,
+      }));
+
+    // 2. Auction KPIs & Sneak Peek
+    const liveAuctions = allAuctions.filter((a) => a.status === "live");
+    const endedAuctions = allAuctions.filter((a) => a.status === "ended");
+    const scheduledAuctions = allAuctions.filter((a) => a.status === "scheduled");
+    const totalBidsCount = allAuctions.reduce((sum, a) => sum + (a.totalBids || 0), 0);
+
+    const liveAuctionsSneak = liveAuctions.map((a) => ({
+      id: a._id,
+      title: a.name,
+      status: a.status,
+      startTime: a.scheduledStart,
+      endTime: a.scheduledEnd,
+      totalLots: a.totalLots || 0,
+      totalBids: a.totalBids || 0,
+    }));
+
+    const completedAuctionsSneak = endedAuctions
+      .sort((a, b) => (b.scheduledEnd || 0) - (a.scheduledEnd || 0))
+      .slice(0, 4)
+      .map((a) => ({
+        id: a._id,
+        title: a.name,
+        status: a.status,
+        endTime: a.scheduledEnd,
+        totalLots: a.totalLots || 0,
+        totalBids: a.totalBids || 0,
+      }));
+
+    // 3. Orders KPIs & Sneak Peek
+    const ordersInRange = allOrders.filter((o) => o._creationTime >= startTime);
+    const pendingOrders = allOrders.filter((o) =>
+      ["pending_payment", "payment_partial", "payment_complete", "processing"].includes(o.status)
+    );
+    const completedOrders = allOrders.filter((o) =>
+      ["shipped", "in_transit", "customs_clearance", "cleared", "out_for_delivery", "delivered"].includes(o.status)
+    );
+    const totalRevenue = allOrders
+      .filter((o) => o.status !== "cancelled")
+      .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    const recentOrdersSneak = allOrders
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 5)
+      .map((o) => ({
+        id: o._id,
+        orderNumber: o.orderNumber || o._id,
+        status: o.status,
+        totalAmount: o.totalAmount,
+        currency: "USD",
+        createdAt: o._creationTime,
+        vehicleDetails: `Order ${o.orderNumber}`,
+      }));
+
+    // 4. User KPIs & KYC Sneak Peek
+    const pendingKycUsers = allUsers.filter((u) => u.kycStatus === "pending");
+    const activeUsersCount = allUsers.filter((u) => u.status === "active").length;
+    const buyerCount = allUsers.filter((u) => u.role === "buyer").length;
+    const sellerCount = allUsers.filter((u) => u.role === "seller").length;
+    const adminCount = allUsers.filter((u) => u.role === "admin" || u.role === "superadmin").length;
+
+    const pendingKycSneak = pendingKycUsers
+      .sort((a, b) => (b.kycSubmittedAt || b.createdAt) - (a.kycSubmittedAt || a.createdAt))
+      .slice(0, 4)
+      .map((u) => ({
+        id: u._id,
+        name: `${u.firstName} ${u.lastName}`,
+        email: u.email,
+        role: u.role,
+        submittedAt: u.kycSubmittedAt || u.createdAt,
+      }));
+
+    // 5. Payment KPIs & Sneak Peek
+    const pendingBankPayments = allPayments.filter(
+      (p) => p.provider === "bank_transfer" && p.status === "pending"
+    );
+    const pendingBankAmount = pendingBankPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    const pendingPaymentsSneak = pendingBankPayments
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 4)
+      .map((p) => ({
+        id: p._id,
+        reference: p.providerReference || p._id,
+        amount: p.amount,
+        currency: p.currency || "NGN",
+        paymentMethod: p.provider,
+        paymentType: p.paymentType,
+        createdAt: p.createdAt,
+      }));
+
+    // 6. Emails Sneak Peek
+    const pendingEmails = allEmails.filter((e) => e.status === "pending_review");
+    const pendingEmailsSneak = pendingEmails
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 4)
+      .map((e) => ({
+        id: e._id,
+        emailType: e.emailType,
+        recipientEmail: e.recipientEmail,
+        createdAt: e.createdAt,
+        status: e.status,
+      }));
+
+    // 7. Time-series chart revenue data
+    const revenueTrend: { period: string; revenue: number; ordersCount: number }[] = [];
+    const points = daysBack <= 7 ? 7 : daysBack <= 30 ? 30 : 12;
+    const intervalMs = (daysBack * 24 * 60 * 60 * 1000) / points;
+    for (let i = points - 1; i >= 0; i--) {
+      const bucketStart = now - (i + 1) * intervalMs;
+      const bucketEnd = now - i * intervalMs;
+      const bucketOrders = allOrders.filter(
+        (o) => o._creationTime >= bucketStart && o._creationTime < bucketEnd && o.status !== "cancelled"
+      );
+      const bucketRev = bucketOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const labelDate = new Date(bucketEnd);
+      const label =
+        daysBack <= 30
+          ? `${labelDate.getMonth() + 1}/${labelDate.getDate()}`
+          : `${labelDate.getFullYear()}-${String(labelDate.getMonth() + 1).padStart(2, "0")}`;
+
+      revenueTrend.push({
+        period: label,
+        revenue: bucketRev,
+        ordersCount: bucketOrders.length,
+      });
+    }
+
+    return {
+      timeframe: rangeStr,
+      kpis: {
+        vehicles: {
+          total: allVehicles.length,
+          pendingApproval: pendingVehicles.length,
+          approved: approvedVehicles.length,
+          inAuction: inAuctionVehicles.length,
+          sold: soldVehicles.length,
+          draft: draftVehicles.length,
+        },
+        auctions: {
+          total: allAuctions.length,
+          live: liveAuctions.length,
+          completed: endedAuctions.length,
+          scheduled: scheduledAuctions.length,
+          totalBids: totalBidsCount,
+        },
+        orders: {
+          total: allOrders.length,
+          pending: pendingOrders.length,
+          completed: completedOrders.length,
+          totalRevenue,
+          periodRevenue: ordersInRange
+            .filter((o) => o.status !== "cancelled")
+            .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+        },
+        users: {
+          total: allUsers.length,
+          active: activeUsersCount,
+          pendingKyc: pendingKycUsers.length,
+          buyers: buyerCount,
+          sellers: sellerCount,
+          admins: adminCount,
+        },
+        payments: {
+          pendingCount: pendingBankPayments.length,
+          pendingAmount: pendingBankAmount,
+        },
+        emails: {
+          pendingReviewCount: pendingEmails.length,
+        },
+        exchangeRates: exchangeRates.map((r) => ({
+          pair: `${r.fromCurrency}/${r.toCurrency}`,
+          rate: r.rate,
+        })),
+      },
+      sneakPeeks: {
+        pendingVehicles: pendingVehiclesSneak,
+        liveAuctions: liveAuctionsSneak,
+        completedAuctions: completedAuctionsSneak,
+        recentOrders: recentOrdersSneak,
+        pendingPayments: pendingPaymentsSneak,
+        pendingKycUsers: pendingKycSneak,
+        pendingEmails: pendingEmailsSneak,
+      },
+      charts: {
+        revenueTrend,
+        vehicleStatusBreakdown: [
+          { name: "Approved", count: approvedVehicles.length, color: "bg-emerald-500" },
+          { name: "In Auction", count: inAuctionVehicles.length, color: "bg-electric-blue" },
+          { name: "Sold", count: soldVehicles.length, color: "bg-purple-500" },
+          { name: "Pending", count: pendingVehicles.length, color: "bg-warning-amber" },
+          { name: "Draft", count: draftVehicles.length, color: "bg-slate-400" },
+        ],
+      },
+    };
+  },
+});
+
