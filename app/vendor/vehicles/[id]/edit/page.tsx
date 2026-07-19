@@ -38,6 +38,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     token ? { vehicleId, token } : "skip"
   );
   const updateVehicle = useMutation(api.vehicles.updateVehicle);
+  const submitVehicleForApproval = useMutation(api.vehicles.submitVehicleForApproval);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const [initialData, setInitialData] = useState<VehicleFormData | null>(null);
@@ -90,7 +91,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     return String(storageId);
   };
 
-  const handleSubmit = async (formData: VehicleSubmitData, newFiles: File[], deletedImageIds: string[]) => {
+  const processSubmission = async (formData: VehicleSubmitData, newFiles: File[], deletedImageIds: string[], submitForApproval: boolean) => {
     if (!user || !token) {
       toast({
         title: "Error",
@@ -161,9 +162,13 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         updates: updates as Parameters<typeof updateVehicle>[0]["updates"],
       });
 
+      if (submitForApproval) {
+        await submitVehicleForApproval({ token, vehicleId });
+      }
+
       toast({
         title: "Success",
-        description: "Vehicle updated successfully",
+        description: submitForApproval ? "Vehicle submitted for approval" : "Vehicle updated successfully",
       });
 
       router.push("/vendor/vehicles");
@@ -181,6 +186,14 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (formData: VehicleSubmitData, newFiles: File[], deletedImageIds: string[]) => {
+    processSubmission(formData, newFiles, deletedImageIds, vehicle?.status === "draft");
+  };
+
+  const handleSaveDraft = (formData: VehicleSubmitData, newFiles: File[], deletedImageIds: string[]) => {
+    processSubmission(formData, newFiles, deletedImageIds, false);
   };
 
   if (vehicle === undefined) {
@@ -211,7 +224,8 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
           initialImages={vehicle.images}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
-          submitButtonText="Save Changes"
+          onSaveDraft={vehicle.status === "draft" ? handleSaveDraft : undefined}
+          submitButtonText={vehicle.status === "draft" ? "Submit for Approval" : "Save Changes"}
         />
       )}
     </div>

@@ -24,6 +24,9 @@ import {
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface VendorVehiclesClientProps {
   initialVehicles: any[];
@@ -34,6 +37,27 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
   const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const token = user?.token;
+
+  const submitVehicle = useMutation(api.vehicles.submitVehicleForApproval);
+
+  const handleSubmit = async (vehicleId: any) => {
+    if (!token) return;
+    try {
+      await submitVehicle({ token, vehicleId });
+      toast({
+        title: "Success",
+        description: "Vehicle submitted for approval",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit vehicle",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Apply filters
   const filteredVehicles = useMemo(() => {
@@ -53,6 +77,7 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
+      draft: { variant: "outline", label: "Draft" },
       pending_approval: {
         variant: "secondary",
         label: "Pending Approval",
@@ -118,6 +143,7 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending_approval">Pending Approval</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -187,12 +213,19 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      {vehicle.status === "draft" && (
+                        <Button variant="default" size="sm" onClick={() => handleSubmit(vehicle._id)}>
+                          Submit
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/vehicles/${vehicle._id}`}>View</Link>
                       </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/vendor/vehicles/${vehicle._id}/edit`}>Edit</Link>
-                      </Button>
+                      {(vehicle.status === "draft" || vehicle.status === "pending_approval" || vehicle.status === "rejected" || vehicle.status === "pending_inspection") && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/vendor/vehicles/${vehicle._id}/edit`}>Edit</Link>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

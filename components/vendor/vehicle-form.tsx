@@ -83,6 +83,7 @@ interface VehicleFormProps {
   initialImages?: any[];
   isSubmitting: boolean;
   onSubmit: (data: VehicleSubmitData, images: File[], deletedImageIds: string[]) => void;
+  onSaveDraft?: (data: VehicleSubmitData, images: File[], deletedImageIds: string[]) => void;
   submitButtonText?: string;
   showSteps?: boolean;
 }
@@ -92,6 +93,7 @@ export function VehicleForm({
   initialImages = [],
   isSubmitting,
   onSubmit,
+  onSaveDraft,
   submitButtonText = "Submit",
   showSteps = true,
 }: VehicleFormProps) {
@@ -284,6 +286,33 @@ export function VehicleForm({
     }
 
     onSubmit(resolvedData, newImages, deletedImageIds);
+  };
+
+  const handleSaveDraft = () => {
+    if (!onSaveDraft) return;
+
+    if (!allRequiredUploaded) {
+      setCurrentStep("images");
+      toast({
+        title: "Required Images Missing",
+        description: "Please upload all required vehicle photos before saving draft.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.buyItNowPrice || formData.buyItNowPrice <= 0) {
+      setCurrentStep("pricing");
+      toast({
+        title: "Buy It Now Required",
+        description: "Please enter a Buy It Now price.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const resolvedData = sanitizeVehicleFormDataForSubmit(formData);
+    onSaveDraft(resolvedData, newImages, deletedImageIds);
   };
 
   const isEV = formData.fuelType === "EV (Electric)" || formData.fuelType === "Hybrid";
@@ -897,20 +926,31 @@ export function VehicleForm({
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-electric-blue hover:bg-electric-blue-dark text-white"
-            >
-              {isSubmitting ? (
-                "Processing..."
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {submitButtonText}
-                </>
+            <>
+              {onSaveDraft && (
+                <Button
+                  variant="outline"
+                  onClick={handleSaveDraft}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processing..." : "Save Draft"}
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-electric-blue hover:bg-electric-blue-dark text-white"
+              >
+                {isSubmitting ? (
+                  "Processing..."
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    {submitButtonText}
+                  </>
+                )}
+              </Button>
+            </>
           )}
         </div>
       </div>

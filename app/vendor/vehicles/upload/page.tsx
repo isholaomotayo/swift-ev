@@ -40,7 +40,11 @@ export default function VehicleUploadPage() {
     return String(storageId);
   };
 
-  const handleSubmit = async (formData: VehicleSubmitData, files: File[], _deletedImageIds: string[]) => {
+  const processSubmission = async (
+    formData: VehicleSubmitData,
+    files: File[],
+    initialStatus: "draft" | "pending_approval"
+  ) => {
     if (!user || !token) {
       toast({
         title: "Error",
@@ -53,7 +57,6 @@ export default function VehicleUploadPage() {
     setIsSubmitting(true);
 
     try {
-
       const taggedFiles = files as TaggedUploadFile[];
       const imageFiles = taggedFiles.filter(
         (file) => file.__mediaRole === "required_image" || file.__mediaRole === "optional_image"
@@ -103,6 +106,7 @@ export default function VehicleUploadPage() {
         buyItNowPrice: formData.buyItNowPrice,
         buyItNowEnabled: formData.buyItNowPrice !== undefined,
         mediaUploads,
+        initialStatus,
         ...(inspectionReportStorageId ? { inspectionReportStorageId } : {}),
         ...(videoWalkthroughStorageId ? { videoWalkthroughStorageId } : {}),
       } satisfies Parameters<typeof createVehicle>[0]["vehicleData"];
@@ -111,7 +115,9 @@ export default function VehicleUploadPage() {
 
       toast({
         title: "Success!",
-        description: "Vehicle uploaded successfully and pending admin approval",
+        description: initialStatus === "draft" 
+          ? "Vehicle saved as draft successfully"
+          : "Vehicle uploaded successfully and pending admin approval",
       });
 
       router.push("/vendor/vehicles");
@@ -127,6 +133,15 @@ export default function VehicleUploadPage() {
     }
   };
 
+  const handleSubmit = (formData: VehicleSubmitData, files: File[], _deletedImageIds: string[]) => {
+    processSubmission(formData, files, "pending_approval");
+  };
+
+  const handleSaveDraft = (formData: VehicleSubmitData, files: File[], _deletedImageIds: string[]) => {
+    processSubmission(formData, files, "draft");
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -140,6 +155,7 @@ export default function VehicleUploadPage() {
       <VehicleForm
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
+        onSaveDraft={handleSaveDraft}
         submitButtonText="Submit for Approval"
       />
     </div>

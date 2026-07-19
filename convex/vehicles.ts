@@ -743,7 +743,7 @@ export const createVehicle = mutation({
       buyItNowPrice: v.number(),
       buyItNowEnabled: v.optional(v.boolean()),
       initialStatus: v.optional(
-        v.union(v.literal("pending_approval"), v.literal("approved"))
+        v.union(v.literal("draft"), v.literal("pending_approval"), v.literal("approved"))
       ),
 
       // Structured media uploads
@@ -1053,6 +1053,13 @@ export const updateVehicle = mutation({
       throw new Error("You do not have permission to update this vehicle");
     }
 
+    if (isOwner && !isAdmin) {
+      const allowedEditingStatuses = ["draft", "pending_inspection", "pending_approval", "rejected"];
+      if (!allowedEditingStatuses.includes(vehicle.status)) {
+        throw new Error(`Vendors cannot edit vehicles that have already been approved (current status: ${vehicle.status}). Please contact support if you need to make changes.`);
+      }
+    }
+
     const { vehicleId, updates } = args;
 
     if (typeof updates.year === "number") {
@@ -1246,6 +1253,47 @@ export const updateVehicle = mutation({
         })
       );
     }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Vendor: Submit a draft vehicle for admin approval.
+ */
+export const submitVehicleForApproval = mutation({
+  args: {
+    token: v.string(),
+    vehicleId: v.id("vehicles"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    const vehicle = await ctx.db.get(args.vehicleId);
+    
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    if (vehicle.sellerId !== user._id) {
+      throw new Error("You do not have permission to submit this vehicle");
+    }
+
+    if (vehicle.status !== "draft" && vehicle.status !== "rejected") {
+      throw new Error(`Vehicle cannot be submitted from status: ${vehicle.status}`);
+    }
+
+    await ctx.db.patch(args.vehicleId, {
+      status: "pending_approval",
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "submit_vehicle_for_approval",
+      entityType: "vehicle",
+      entityId: args.vehicleId,
+      changes: { oldStatus: vehicle.status, newStatus: "pending_approval" },
+    });
 
     return { success: true };
   },
