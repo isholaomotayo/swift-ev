@@ -491,3 +491,84 @@ export const checkBiddingPower = query({
         };
     },
 });
+
+/**
+ * Approve withdrawal (Admin)
+ */
+export const approveWithdrawal = mutation({
+    args: {
+        token: v.string(),
+        transactionId: v.id("walletTransactions"),
+    },
+    handler: async (ctx, args) => {
+        const session = await ctx.db
+            .query("sessions")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .first();
+
+        if (!session) throw new Error("Unauthorized");
+        const adminUser = await ctx.db.get(session.userId);
+        if (!adminUser || adminUser.role !== "admin") throw new Error("Unauthorized - Admin only");
+
+        const transaction = await ctx.db.get(args.transactionId);
+        if (!transaction) throw new Error("Transaction not found");
+        if (transaction.type !== "withdrawal" || transaction.status !== "pending") {
+            throw new Error("Invalid transaction for withdrawal approval");
+        }
+
+        const user = await ctx.db.get(transaction.userId);
+        if (!user) throw new Error("User not found");
+
+        // Complete the transaction
+        await ctx.db.patch(args.transactionId, {
+            status: "completed",
+            completedAt: Date.now(),
+        });
+
+        // Deduct from pending balance
+        await ctx.db.patch(transaction.userId, {
+            pendingBalance: Math.max(0, (user.pendingBalance ?? 0) - transaction.amount),
+            updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+/**
+ * Credit seller for an order that has been completed and verified.
+ */
+export const creditSellerForOrder = internalMutation({
+    args: {
+        orderId: v.id("orders"),
+        sellerId: v.id("users"),
+        payoutAmount: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const seller = await ctx.db.get(args.sellerId);
+        if (!seller) return;
+        
+        const currentBalance = seller.walletBalance ?? 0;
+        
+        // Add to wallet balance
+        await ctx.db.patch(args.sellerId, {
+            walletBalance: currentBalance + args.payoutAmount,
+            updatedAt: Date.now(),
+        });
+
+        // Record transaction
+        const order = await ctx.db.get(args.orderId);
+        await ctx.db.insert("walletTransactions", {
+            userId: args.sellerId,
+            type: "sale_payout",
+            amount: args.payoutAmount,
+            currency: "NGN",
+            status: "completed",
+            reference: `payout_order_${order?.orderNumber ?? args.orderId}`,
+            description: `Sale payout for order ${order?.orderNumber ?? ''}`,
+            relatedOrderId: args.orderId,
+            createdAt: Date.now(),
+            completedAt: Date.now(),
+        });
+    },
+});

@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { User, ShoppingBag, Gavel, Settings as SettingsIcon } from "lucide-react";
+import { User, ShoppingBag, Gavel, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { KycOnboardingFlow } from "@/components/kyc/kyc-onboarding-flow";
 
 interface ProfileClientProps {
   initialUser: any;
@@ -127,6 +128,10 @@ export function ProfileClient({
           <TabsTrigger value="settings">
             <SettingsIcon className="w-4 h-4 mr-2" />
             Settings
+          </TabsTrigger>
+          <TabsTrigger value="kyc">
+            <ShieldCheck className="w-4 h-4 mr-2" />
+            Verification
           </TabsTrigger>
         </TabsList>
 
@@ -313,6 +318,11 @@ export function ProfileClient({
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* KYC Tab */}
+        <TabsContent value="kyc">
+          <KycOnboardingFlow token={token} />
         </TabsContent>
       </Tabs>
     </div>

@@ -29,9 +29,7 @@ export function CurrencySelector() {
           size="sm"
           className="gap-2 text-slate-700 hover:text-brand-primary dark:text-slate-200 dark:hover:text-white"
         >
-          <span className="text-base leading-none">{activeCurrencyInfo.flag}</span>
-          <span className="font-semibold text-sm">{currency}</span>
-          <span className="text-xs text-muted-foreground">({activeCurrencyInfo.symbol})</span>
+          <span className="font-semibold text-sm">{activeCurrencyInfo.symbol} {currency}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="border-slate-200 dark:border-white/10 dark:bg-slate-900">
@@ -43,9 +41,8 @@ export function CurrencySelector() {
               currency === cur ? "bg-accent font-semibold" : ""
             }`}
           >
-            <span className="text-base">{currencyNames[cur].flag}</span>
+            <span className="font-bold w-4 text-center">{currencyNames[cur].symbol}</span>
             <span className="font-bold">{cur}</span>
-            <span className="text-xs text-muted-foreground">- {currencyNames[cur].name}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

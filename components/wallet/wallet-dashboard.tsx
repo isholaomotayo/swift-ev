@@ -31,12 +31,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
+import { formatCompactCurrency } from "@/lib/utils";
 
 export function WalletDashboard() {
   const { token, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [fundAmount, setFundAmount] = useState("");
   const [fundOpen, setFundOpen] = useState(false);
+  
+  // Withdrawal states
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawBank, setWithdrawBank] = useState("");
+  const [withdrawAccount, setWithdrawAccount] = useState("");
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =
     useFlutterwaveCheckout();
@@ -55,6 +63,7 @@ export function WalletDashboard() {
   // Mutations
   const initiateFunding = useMutation(api.wallet.initiateWalletFunding);
   const confirmFunding = useMutation(api.wallet.confirmWalletFunding);
+  const initiateWithdrawal = useMutation(api.wallet.initiateWithdrawal);
 
   const handleFundWallet = async () => {
     const amount = parseFloat(fundAmount) * 100; // Convert to kobo
@@ -149,6 +158,58 @@ export function WalletDashboard() {
     }
   };
 
+  const handleWithdrawFunds = async () => {
+    const amount = parseFloat(withdrawAmount) * 100; // Convert to kobo
+
+    if (isNaN(amount) || amount < 10000) {
+      toast({
+        title: "Invalid amount",
+        description: "Minimum withdrawal is ₦100",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!withdrawBank.trim() || !withdrawAccount.trim()) {
+      toast({
+        title: "Invalid details",
+        description: "Please provide your bank name and account number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!token || !user) return;
+
+    setLoading(true);
+    try {
+      await initiateWithdrawal({
+        token,
+        amount,
+        bankCode: withdrawBank,
+        accountNumber: withdrawAccount,
+      });
+
+      toast({
+        title: "Withdrawal Initiated",
+        description: `Your request to withdraw ₦${(amount / 100).toLocaleString()} has been received.`,
+      });
+
+      setWithdrawOpen(false);
+      setWithdrawAmount("");
+      setWithdrawBank("");
+      setWithdrawAccount("");
+    } catch (error) {
+      toast({
+        title: "Withdrawal Failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const quickAmounts = [50000, 100000, 500000, 1000000]; // in Naira
 
   if (!isAuthenticated) {
@@ -170,7 +231,7 @@ export function WalletDashboard() {
       {/* Balance Cards */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Available Balance */}
-        <div className="p-6 rounded-3xl bg-electric-blue text-white shadow-xl">
+        <div className="p-6 rounded-3xl bg-electric-blue text-white">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-white/70">
               Available Balance
@@ -178,7 +239,7 @@ export function WalletDashboard() {
             <Wallet className="h-5 w-5 text-white/70" />
           </div>
           <div className="text-3xl font-black mb-1">
-            ₦{((walletData?.available ?? 0) / 100).toLocaleString()}
+            {formatCompactCurrency((walletData?.available ?? 0) / 100)}
           </div>
           <p className="text-sm text-white/70">Ready to use</p>
         </div>
@@ -192,23 +253,23 @@ export function WalletDashboard() {
             <Clock className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="text-3xl font-black text-foreground mb-1">
-            ₦{((walletData?.reserved ?? 0) / 100).toLocaleString()}
+            {formatCompactCurrency((walletData?.reserved ?? 0) / 100)}
           </div>
           <p className="text-sm text-muted-foreground">Held for active bids</p>
         </div>
 
         {/* Bidding Power */}
-        <div className="p-6 rounded-3xl bg-volt-green text-slate-950 shadow-xl">
+        <div className="p-6 rounded-3xl bg-volt-green text-slate-950">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-white/70">
+            <span className="text-sm font-medium text-slate-950/70">
               Bidding Power
             </span>
-            <TrendingUp className="h-5 w-5 text-white/70" />
+            <TrendingUp className="h-5 w-5 text-slate-950/70" />
           </div>
           <div className="text-3xl font-black mb-1">
-            ₦{((walletData?.biddingPower ?? 0) / 100).toLocaleString()}
+            {formatCompactCurrency((walletData?.biddingPower ?? 0) / 100)}
           </div>
-          <p className="text-sm text-white/70">Max bid amount (10× balance)</p>
+          <p className="text-sm text-slate-950/70">Max bid amount (10× balance)</p>
         </div>
       </div>
 
@@ -305,15 +366,82 @@ export function WalletDashboard() {
           </DialogContent>
         </Dialog>
 
-        <Button
-          variant="outline"
-          size="lg"
-          className="gap-2 rounded-2xl h-14 px-8"
-          disabled
-        >
-          <ArrowUpRight className="h-5 w-5" />
-          Withdraw
-        </Button>
+        {/* Withdraw Funds Dialog */}
+        <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" variant="outline" className="gap-2 rounded-2xl h-14 px-8 border-2 hover:bg-muted/50">
+              <ArrowUpRight className="h-5 w-5" />
+              Withdraw Funds
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Withdraw Funds</DialogTitle>
+              <DialogDescription>
+                Request a withdrawal from your wallet balance to your bank account.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="withdraw-amount">Amount (₦)</Label>
+                <Input
+                  id="withdraw-amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="h-12 text-lg font-mono"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="withdraw-bank">Bank Name / Code</Label>
+                <Input
+                  id="withdraw-bank"
+                  type="text"
+                  placeholder="e.g. GTBank"
+                  value={withdrawBank}
+                  onChange={(e) => setWithdrawBank(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="withdraw-account">Account Number</Label>
+                <Input
+                  id="withdraw-account"
+                  type="text"
+                  placeholder="10 digit account number"
+                  value={withdrawAccount}
+                  onChange={(e) => setWithdrawAccount(e.target.value)}
+                  className="h-12 font-mono"
+                />
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-sm border border-amber-200 dark:border-amber-900/50">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-amber-800 dark:text-amber-300">
+                  Withdrawal requests typically take 24-48 hours to process. Your funds will be temporarily held until the transfer is complete.
+                </span>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                onClick={handleWithdrawFunds}
+                disabled={loading || !withdrawAmount || !withdrawBank || !withdrawAccount}
+                className="w-full h-12 rounded-xl"
+              >
+                {loading
+                  ? "Processing..."
+                  : `Withdraw ₦${withdrawAmount ? Number(withdrawAmount).toLocaleString() : "0"}`
+                }
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
 
       {/* Transaction History */}

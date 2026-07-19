@@ -13,6 +13,7 @@ import {
   CreditCard,
   ShoppingBag,
   Clock,
+  Wallet,
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -59,6 +60,11 @@ const vendorNavItems = [
     label: "Bank / Payout",
     href: "/vendor/settings?tab=payout",
     icon: CreditCard,
+  },
+  {
+    label: "Wallet",
+    href: "/wallet",
+    icon: Wallet,
   },
   {
     label: "Settings",
@@ -168,11 +174,11 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-volt-green/10 text-volt-green border border-volt-green/20 shadow-sm"
+                          ? "bg-electric-blue text-white shadow-sm"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                     >
-                      <Icon className={cn("h-5 w-5", isActive ? "text-volt-green" : "text-muted-foreground")} />
+                      <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-muted-foreground")} />
                       {item.label}
                     </div>
                   </Link>

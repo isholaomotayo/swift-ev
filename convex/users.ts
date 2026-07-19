@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 
@@ -324,11 +325,30 @@ export const updateKYCStatus = mutation({
 
     const oldStatus = targetUser.kycStatus;
 
-    // Update KYC status
-    await ctx.db.patch(targetUserId, {
+    const updateData: any = {
       kycStatus: args.kycStatus,
       updatedAt: Date.now(),
-    });
+    };
+
+    if (args.kycStatus === "approved") {
+      updateData.kycApprovedAt = Date.now();
+      updateData.status = "active"; // Activate the account when KYC is approved
+    } else if (args.kycStatus === "rejected") {
+      updateData.kycRejectionReason = args.notes;
+    }
+
+    // Update KYC status
+    await ctx.db.patch(targetUserId, updateData);
+
+    if (args.kycStatus === "approved" || args.kycStatus === "rejected") {
+      await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+        userId: targetUser._id,
+        email: targetUser.email,
+        firstName: targetUser.firstName,
+        approved: args.kycStatus === "approved",
+        reason: args.notes,
+      });
+    }
 
     // Update all user documents to match KYC status
     const documents = await ctx.db

@@ -124,22 +124,22 @@ export function SettingsClient({
         settings: [
           {
             key: "auction.defaultBidIncrement",
-            value: auctionSettings.defaultBidIncrement,
+            value: String(auctionSettings.defaultBidIncrement),
             description: "Default bid increment",
           },
           {
             key: "auction.defaultLotDuration",
-            value: auctionSettings.defaultLotDuration,
+            value: String(auctionSettings.defaultLotDuration),
             description: "Default lot duration in ms",
           },
           {
             key: "auction.minimumReservePrice",
-            value: auctionSettings.minimumReservePrice,
+            value: String(auctionSettings.minimumReservePrice),
             description: "Minimum reserve price",
           },
           {
             key: "auction.autoExtendMinutes",
-            value: auctionSettings.autoExtendMinutes,
+            value: String(auctionSettings.autoExtendMinutes),
             description: "Auto-extend minutes",
           },
         ],
@@ -194,22 +194,22 @@ export function SettingsClient({
         settings: [
           {
             key: "platform.serviceFeePercent",
-            value: platformSettings.serviceFeePercent,
+            value: String(platformSettings.serviceFeePercent),
             description: "Service fee percentage",
           },
           {
             key: "platform.documentationFee",
-            value: platformSettings.documentationFee,
+            value: String(platformSettings.documentationFee),
             description: "Documentation fee",
           },
           {
             key: "platform.companyName",
-            value: platformSettings.companyName,
+            value: String(platformSettings.companyName),
             description: "Company name",
           },
           {
             key: "platform.supportEmail",
-            value: platformSettings.supportEmail,
+            value: String(platformSettings.supportEmail),
             description: "Support email",
           },
           ...(hasAnyEscrow
@@ -255,27 +255,27 @@ export function SettingsClient({
         settings: [
           {
             key: "membership.basic.price",
-            value: membershipSettings.basicPrice,
+            value: String(membershipSettings.basicPrice),
             description: "Basic membership price",
           },
           {
             key: "membership.premier.price",
-            value: membershipSettings.premierPrice,
+            value: String(membershipSettings.premierPrice),
             description: "Premier membership price",
           },
           {
             key: "membership.business.price",
-            value: membershipSettings.businessPrice,
+            value: String(membershipSettings.businessPrice),
             description: "Business membership price",
           },
           {
             key: "membership.basic.dailyBidLimit",
-            value: membershipSettings.basicDailyBidLimit,
+            value: String(membershipSettings.basicDailyBidLimit),
             description: "Basic daily bid limit",
           },
           {
             key: "membership.premier.dailyBidLimit",
-            value: membershipSettings.premierDailyBidLimit,
+            value: String(membershipSettings.premierDailyBidLimit),
             description: "Premier daily bid limit",
           },
         ],
@@ -303,8 +303,8 @@ export function SettingsClient({
       await bulkUpdateSettings({
         token,
         settings: [
-          { key: "registration.verificationFeeEnabled", value: registrationSettings.verificationFeeEnabled, description: "Enable verification fee during registration" },
-          { key: "registration.verificationFeeAmount", value: registrationSettings.verificationFeeAmount, description: "Verification fee amount in USD" },
+          { key: "registration.verificationFeeEnabled", value: String(registrationSettings.verificationFeeEnabled), description: "Enable verification fee during registration" },
+          { key: "registration.verificationFeeAmount", value: String(registrationSettings.verificationFeeAmount), description: "Verification fee amount in USD" },
         ],
       });
       toast({ title: "Success", description: "Registration settings saved" });
@@ -325,7 +325,7 @@ export function SettingsClient({
         settings: [
           {
             key: "dev.enableQuickLogin",
-            value: devSettings.enableQuickLogin,
+            value: String(devSettings.enableQuickLogin),
             description: "Enable quick login buttons for development",
           },
         ],

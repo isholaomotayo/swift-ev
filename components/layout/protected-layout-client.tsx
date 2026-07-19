@@ -65,16 +65,14 @@ export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientP
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  // Redirect admin/vendor users to their respective dashboards
+  // Redirect admin users to their respective dashboards
   useEffect(() => {
     if (user.role === "admin" || user.role === "superadmin") {
       router.push("/admin");
-    } else if (user.role === "seller") {
-      router.push("/vendor");
     }
   }, [user.role, router]);
 
-  if (user.role === "admin" || user.role === "superadmin" || user.role === "seller") {
+  if (user.role === "admin" || user.role === "superadmin") {
     return null;
   }
 
@@ -99,17 +97,14 @@ export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientP
                   <Link key={item.href} href={item.href} className="block">
                     <div
                       className={cn(
-                        "flex items-center px-4 py-3 rounded-xl transition-all duration-200 group",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-primary/10 text-primary font-semibold shadow-inner"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:translate-x-1"
+                          ? "bg-electric-blue text-white shadow-sm"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                     >
-                      <Icon className={cn("h-5 w-5 mr-3 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                      <Icon className={cn("h-5 w-5 transition-colors", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
                       {item.title}
-                      {isActive && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      )}
                     </div>
                   </Link>
                 );

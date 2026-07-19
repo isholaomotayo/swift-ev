@@ -24,36 +24,20 @@ export default async function VendorDashboard() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let user: any = null;
-  let vendorStats: any = null;
-  let vehicles: any[] = [];
+  let initialOverview: any = null;
 
   try {
     // Get user first
     user = await convex.query(api.auth.getCurrentUser, { token });
     
     if (user) {
-      // Get vendor stats
-      vendorStats = await convex.query(api.vehicles.getVendorStats, { token });
-      
-      // Get vendor's vehicles (filter by sellerId)
-      const allVehicles = await convex.query(api.vehicles.listVehicles, {
-        page: 0,
-        limit: 100,
-      });
-      
-      vehicles = (allVehicles?.vehicles || []).filter(
-        (v: any) => v.sellerId === user.id
-      );
+      const results = await Promise.allSettled([
+        convex.query(api.analytics.getVendorDashboardOverview, { token, timeRange: "30d" })
+      ]);
+      initialOverview = results[0].status === "fulfilled" ? results[0].value : null;
     }
   } catch (error) {
     console.error("Failed to fetch vendor dashboard data:", error);
-    vendorStats = {
-      totalVehicles: 0,
-      inAuction: 0,
-      sold: 0,
-      pendingApproval: 0,
-      totalRevenue: 0,
-    };
   }
 
   if (!user) {
@@ -63,15 +47,8 @@ export default async function VendorDashboard() {
   return (
     <VendorDashboardClient
       user={user}
-      stats={{
-        totalVehicles: vendorStats?.totalVehicles || 0,
-        inAuction: vendorStats?.inAuction || 0,
-        sold: vendorStats?.sold || 0,
-        pendingApproval: vendorStats?.pending || 0,
-        paymentPending: vendorStats?.paymentPending || 0,
-        totalRevenue: vendorStats?.totalRevenue || 0,
-      }}
-      recentVehicles={vehicles}
+      initialOverview={initialOverview}
+      token={token}
     />
   );
 }

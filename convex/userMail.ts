@@ -283,9 +283,9 @@ export const saveDraft = mutation({
       }
 
       await ctx.db.patch(args.draftId, {
-        to: args.to,
-        cc: args.cc,
-        bcc: args.bcc,
+        to: ["admin@autoexports.live"],
+        cc: undefined,
+        bcc: undefined,
         subject: args.subject,
         bodyHtml: args.bodyHtml,
         bodyText: args.bodyText,
@@ -307,9 +307,9 @@ export const saveDraft = mutation({
       from,
       mailAccountUserId,
       mailAccountEmail,
-      to: args.to,
-      cc: args.cc,
-      bcc: args.bcc,
+      to: ["admin@autoexports.live"],
+      cc: undefined,
+      bcc: undefined,
       subject: args.subject,
       bodyHtml: args.bodyHtml,
       bodyText: args.bodyText,
@@ -378,16 +378,60 @@ export const sendEmail = mutation({
       }
     }
 
-    await ctx.scheduler.runAfter(0, internal.adminMail.sendEmailAction, {
-      userId: user._id,
-      to: args.to,
-      cc: args.cc,
-      bcc: args.bcc,
+    const now = Date.now();
+    const snippet = (args.bodyText || "").slice(0, 120);
+    const fromAddress = user.email; // Using email as the ID to allow admin replies
+
+    if (args.draftId) {
+      await ctx.db.patch(args.draftId, {
+        folder: "sent",
+        to: ["admin@autoexports.live"],
+        cc: undefined,
+        bcc: undefined,
+        subject: args.subject,
+        bodyHtml: args.bodyHtml,
+        bodyText: args.bodyText,
+        snippet,
+        updatedAt: now,
+        from: fromAddress,
+      });
+    } else {
+      await ctx.db.insert("adminEmails", {
+        direction: "outbound",
+        inReplyTo: args.inReplyTo,
+        from: fromAddress,
+        mailAccountUserId: user._id,
+        mailAccountEmail: user.email,
+        to: ["admin@autoexports.live"],
+        subject: args.subject,
+        bodyHtml: args.bodyHtml,
+        bodyText: args.bodyText,
+        snippet,
+        folder: "sent",
+        isRead: true,
+        isStarred: false,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: user._id,
+      });
+    }
+
+    // Insert directly into Admin Inbox (bypassing SMTP)
+    await ctx.db.insert("adminEmails", {
+      direction: "inbound",
+      inReplyTo: args.inReplyTo,
+      from: fromAddress,
+      fromName: `${user.firstName} ${user.lastName}`,
+      to: ["admin@autoexports.live"],
       subject: args.subject,
       bodyHtml: args.bodyHtml,
       bodyText: args.bodyText,
-      inReplyTo: args.inReplyTo,
-      draftId: args.draftId,
+      snippet,
+      folder: "inbox",
+      isRead: false,
+      isStarred: false,
+      createdAt: now,
+      updatedAt: now,
     });
   },
 });

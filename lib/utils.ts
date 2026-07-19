@@ -69,6 +69,20 @@ export function formatCurrency(
 }
 
 /**
+ * Format a NGN amount in a compact way (e.g. ₦50M)
+ */
+export function formatCompactCurrency(amountNgn: number): string {
+  if (amountNgn === 0) return "₦0";
+  return new Intl.NumberFormat("en-NG", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+    style: "currency",
+    currency: "NGN",
+  }).format(amountNgn);
+}
+
+/**
  * Format date to readable string
  */
 export function formatDate(

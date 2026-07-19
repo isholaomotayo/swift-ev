@@ -24,13 +24,15 @@ export default async function AdminAuctionsPage() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let initialAuctions: any[] = [];
+  let initialSettings: any = {};
 
   try {
     initialAuctions = await convex.query(api.auctions.listAuctions, {});
+    initialSettings = await convex.query(api.settings.getSettings, { token });
   } catch (error) {
     console.error("Failed to fetch auctions:", error);
     // Continue with empty array
   }
 
-  return <AdminAuctionsClient initialAuctions={initialAuctions} />;
+  return <AdminAuctionsClient initialAuctions={initialAuctions} initialSettings={initialSettings} token={token} />;
 }

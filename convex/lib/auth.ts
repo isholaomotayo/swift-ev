@@ -18,6 +18,9 @@ export interface AuthenticatedUser {
   membershipTier: "guest" | "basic" | "premier" | "business";
   vendorCompany?: string;
   vendorLicense?: string;
+  walletBalance?: number;
+  reservedBalance?: number;
+  kycStatus?: "unverified" | "pending" | "approved" | "rejected";
 }
 
 /**

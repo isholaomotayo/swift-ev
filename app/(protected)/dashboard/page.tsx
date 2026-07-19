@@ -24,21 +24,15 @@ export default async function DashboardPage() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   let user: any = null;
-  let initialUserBids: any = null;
-  let initialWatchlist: any = null;
-  let initialUserOrders: any = null;
+  let initialOverview: any = null;
 
   try {
     user = await convex.query(api.auth.getCurrentUser, { token });
     if (user) {
       const results = await Promise.allSettled([
-        convex.query(api.bids.getUserBids, { token }),
-        convex.query(api.watchlist.getWatchlist, { token }),
-        convex.query(api.orders.getUserOrders, { token }),
+        convex.query(api.analytics.getBuyerDashboardOverview, { token }),
       ]);
-      initialUserBids = results[0].status === "fulfilled" ? results[0].value : null;
-      initialWatchlist = results[1].status === "fulfilled" ? results[1].value : null;
-      initialUserOrders = results[2].status === "fulfilled" ? results[2].value : null;
+      initialOverview = results[0].status === "fulfilled" ? results[0].value : null;
     }
   } catch (error) {
     console.error("Failed to fetch dashboard data:", error);
@@ -51,9 +45,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      initialUserBids={initialUserBids}
-      initialWatchlist={initialWatchlist}
-      initialUserOrders={initialUserOrders}
+      initialOverview={initialOverview}
       token={token}
       user={user}
     />

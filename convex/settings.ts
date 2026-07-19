@@ -263,6 +263,7 @@ export const initializeDefaultSettings = mutation({
       { key: "auction.defaultLotDuration", value: "300000", description: "Default lot duration in ms (5 min)" },
       { key: "auction.minimumReservePrice", value: "10000", description: "Minimum reserve price" },
       { key: "auction.autoExtendMinutes", value: "2", description: "Auto-extend time on last-minute bids" },
+      { key: "auction.enforceMinimumDeposit", value: "false", description: "Enforce minimum 10% deposit before bidding" },
 
       // Platform settings
       { key: "platform.serviceFeePercent", value: "5", description: "Service fee percentage" },

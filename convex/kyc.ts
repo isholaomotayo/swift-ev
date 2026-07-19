@@ -26,15 +26,77 @@ export const getKycStatus = query({
             return null;
         }
 
+        const documents = await ctx.db
+            .query("userDocuments")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+
         return {
             status: user.kycStatus,
             verificationFeeStatus: user.verificationFeeStatus ?? "not_paid",
             sumsubApplicantId: user.sumsubApplicantId,
+            bvnVerificationStatus: user.bvnVerificationStatus ?? "unverified",
+            ninVerificationStatus: user.ninVerificationStatus ?? "unverified",
             submittedAt: user.kycSubmittedAt,
             approvedAt: user.kycApprovedAt,
             rejectionReason: user.kycRejectionReason,
             accountType: user.accountType,
+            documents: documents,
         };
+    },
+});
+
+/**
+ * Submit an individual KYC document (for manual review or business docs)
+ */
+export const submitDocument = mutation({
+    args: {
+        token: v.string(),
+        documentType: v.union(
+            v.literal("government_id"),
+            v.literal("proof_of_address"),
+            v.literal("business_registration"),
+            v.literal("dealer_license"),
+            v.literal("cac_certificate"),
+            v.literal("cac_form_1_1"),
+            v.literal("amdon_certificate"),
+            v.literal("bvn_slip"),
+            v.literal("source_of_funds_proof")
+        ),
+        storageId: v.id("_storage"),
+    },
+    handler: async (ctx, args) => {
+        const session = await ctx.db
+            .query("sessions")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .first();
+
+        if (!session) {
+            throw new Error("Unauthorized");
+        }
+
+        const user = await ctx.db.get(session.userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const documentId = await ctx.db.insert("userDocuments", {
+            userId: user._id,
+            documentType: args.documentType,
+            documentUrl: args.storageId,
+            status: "pending",
+            uploadedAt: Date.now(),
+        });
+
+        if (user.kycStatus === "not_started" || user.kycStatus === "rejected") {
+            await ctx.db.patch(user._id, {
+                kycStatus: "pending",
+                kycSubmittedAt: Date.now(),
+                updatedAt: Date.now(),
+            });
+        }
+
+        return { success: true, documentId };
     },
 });
 

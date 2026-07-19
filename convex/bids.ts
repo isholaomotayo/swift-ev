@@ -109,18 +109,28 @@ export const placeBid = mutation({
     // Check 10% wallet balance requirement (FEAT-001)
     const walletBalance = user.walletBalance ?? 0;
     const requiredReserve = calculateBidReserveAmountKobo(args.amount);
-    if (walletBalance < requiredReserve) {
-      throw new Error(
-        `Insufficient wallet balance. Need ₦${(requiredReserve / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
-      );
-    }
+    
+    // Fetch deposit enforcement setting
+    const enforceDepositSetting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", "auction.enforceMinimumDeposit"))
+      .first();
+    const enforceDeposit = enforceDepositSetting ? enforceDepositSetting.value === "true" : false;
 
-    // Check user's buying power derived from available wallet (Naira)
-    const buyingPower = buyingPowerFromWalletKobo(walletBalance);
-    if (args.amount > buyingPower) {
-      throw new Error(
-        `Bid exceeds your buying power of ₦${buyingPower.toLocaleString()}. Fund your wallet to increase buying power.`
-      );
+    if (enforceDeposit) {
+      if (walletBalance < requiredReserve) {
+        throw new Error(
+          `Insufficient wallet balance. Need ₦${(requiredReserve / 100).toLocaleString()} (10% of bid) but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
+        );
+      }
+
+      // Check user's buying power derived from available wallet (Naira)
+      const buyingPower = buyingPowerFromWalletKobo(walletBalance);
+      if (args.amount > buyingPower) {
+        throw new Error(
+          `Bid exceeds your buying power of ₦${buyingPower.toLocaleString()}. Fund your wallet to increase buying power.`
+        );
+      }
     }
 
     // Check daily bid limit
@@ -170,31 +180,33 @@ export const placeBid = mutation({
       reserveMet,
     });
 
-    // Move funds from available to reserved (locking the 10% reserve)
-    const newBalance = walletBalance - requiredReserve;
-    const newReserved = (user.reservedBalance ?? 0) + requiredReserve;
+    if (enforceDeposit) {
+      // Move funds from available to reserved (locking the 10% reserve)
+      const newBalance = walletBalance - requiredReserve;
+      const newReserved = (user.reservedBalance ?? 0) + requiredReserve;
 
-    await ctx.db.patch(session.userId, {
-      walletBalance: newBalance,
-      reservedBalance: newReserved,
-      buyingPower: buyingPowerFromWalletKobo(newBalance),
-      updatedAt: Date.now(),
-    });
+      await ctx.db.patch(session.userId, {
+        walletBalance: newBalance,
+        reservedBalance: newReserved,
+        buyingPower: buyingPowerFromWalletKobo(newBalance),
+        updatedAt: Date.now(),
+      });
 
-    // Create transaction record for reserving funds
-    const reference = `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    await ctx.db.insert("walletTransactions", {
-      userId: session.userId,
-      type: "bid_reserve",
-      amount: requiredReserve,
-      currency: "NGN",
-      status: "completed",
-      reference,
-      description: `Bid reserve for ₦${args.amount.toLocaleString()} bid`,
-      relatedBidId: bidId,
-      createdAt: Date.now(),
-      completedAt: Date.now(),
-    });
+      // Create transaction record for reserving funds
+      const reference = `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      await ctx.db.insert("walletTransactions", {
+        userId: session.userId,
+        type: "bid_reserve",
+        amount: requiredReserve,
+        currency: "NGN",
+        status: "completed",
+        reference,
+        description: `Bid reserve for ₦${args.amount.toLocaleString()} bid`,
+        relatedBidId: bidId,
+        createdAt: Date.now(),
+        completedAt: Date.now(),
+      });
+    }
 
     // Mark previous high bids as outbid and release their reserved funds
     const previousBids = await ctx.db

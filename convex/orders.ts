@@ -784,5 +784,94 @@ export const getOrderStats = query({
       byType,
       byStatus,
     };
+    },
+});
+
+/**
+ * Admin: Trigger payment to seller for an order
+ */
+export const triggerSellerPayout = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+  },
+  handler: async (ctx, args) => {
+    // Validate authorization
+    const user = await requireAuth(ctx, args.token);
+    requireAdmin(user);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    const vehicle = await ctx.db.get(order.vehicleId);
+    if (!vehicle || !vehicle.sellerId) {
+      throw new Error("Vehicle does not have a seller associated with it");
+    }
+
+    // Check if payout already exists for this order to prevent double payout
+    const existingPayout = await ctx.db
+      .query("walletTransactions")
+      .withIndex("by_user", (q) => q.eq("userId", vehicle.sellerId!))
+      .filter((q) => q.eq(q.field("relatedOrderId"), order._id))
+      .filter((q) => q.eq(q.field("type"), "sale_payout"))
+      .first();
+
+    if (existingPayout) {
+      throw new Error("Seller has already been paid for this order");
+    }
+
+    // Calculate payout
+    const setting = await ctx.db
+      .query("systemSettings")
+      .withIndex("by_key", (q) => q.eq("key", "seller_commission_percentage"))
+      .first();
+
+    let commissionRate = 0.05; // Default 5%
+    if (setting && setting.value) {
+      const parsed = parseFloat(setting.value);
+      if (!isNaN(parsed)) {
+        commissionRate = parsed / 100;
+      }
+    }
+    const commission = order.winningBid * commissionRate;
+    const payoutAmount = order.winningBid - commission;
+
+    // Credit seller
+    const seller = await ctx.db.get(vehicle.sellerId);
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+    
+    const currentBalance = seller.walletBalance ?? 0;
+    
+    await ctx.db.patch(vehicle.sellerId, {
+      walletBalance: currentBalance + payoutAmount,
+      updatedAt: Date.now(),
+    });
+
+    await ctx.db.insert("walletTransactions", {
+      userId: vehicle.sellerId,
+      type: "sale_payout",
+      amount: payoutAmount,
+      currency: "NGN",
+      status: "completed",
+      reference: `payout_order_${order.orderNumber}`,
+      description: `Sale payout for order ${order.orderNumber}`,
+      relatedOrderId: order._id,
+      createdAt: Date.now(),
+      completedAt: Date.now(),
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "trigger_seller_payout",
+      entityType: "order",
+      entityId: order._id,
+      metadata: `Payout amount: ${payoutAmount}`,
+    });
+
+    return { success: true, payoutAmount };
   },
 });

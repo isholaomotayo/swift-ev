@@ -86,6 +86,9 @@ export default defineSchema({
       v.literal("rejected")
     ),
     sumsubApplicantId: v.optional(v.string()),
+    bvnVerificationStatus: v.optional(v.union(v.literal("unverified"), v.literal("verified"), v.literal("failed"))),
+    ninVerificationStatus: v.optional(v.union(v.literal("unverified"), v.literal("verified"), v.literal("failed"))),
+    sourceOfFunds: v.optional(v.string()),
     kycSubmittedAt: v.optional(v.number()),
     kycApprovedAt: v.optional(v.number()),
     kycRejectionReason: v.optional(v.string()),
@@ -115,7 +118,12 @@ export default defineSchema({
       v.literal("government_id"),
       v.literal("proof_of_address"),
       v.literal("business_registration"),
-      v.literal("dealer_license")
+      v.literal("dealer_license"),
+      v.literal("cac_certificate"),
+      v.literal("cac_form_1_1"),
+      v.literal("amdon_certificate"),
+      v.literal("bvn_slip"),
+      v.literal("source_of_funds_proof")
     ),
     documentUrl: v.union(v.string(), v.id("_storage")), // Support both legacy URLs and new storage IDs
     status: v.union(
@@ -517,6 +525,8 @@ export default defineSchema({
     updatedAt: v.number(),
     paidAt: v.optional(v.number()),
     deliveredAt: v.optional(v.number()),
+    amlFlagged: v.optional(v.boolean()),
+    strFiled: v.optional(v.boolean()),
   })
     .index("by_order_number", ["orderNumber"])
     .index("by_user", ["userId"])
@@ -887,7 +897,8 @@ export default defineSchema({
       v.literal("bid_release"),
       v.literal("payment"),
       v.literal("refund"),
-      v.literal("fee")
+      v.literal("fee"),
+      v.literal("sale_payout")
     ),
     amount: v.number(), // in kobo
     currency: v.string(),

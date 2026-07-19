@@ -56,6 +56,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatCountdownClock, formatCurrency, formatDate } from "@/lib/utils";
 
+const getFormattedLotStatus = (status: string, hasBidder: boolean) => {
+  if (status === "no_sale") return hasBidder ? "Reserve Not Met" : "No Sale";
+  return status.replace(/_/g, " ");
+};
+
 interface LiveControlCenterProps {
   initialAuctionId?: Id<"auctions">;
 }
@@ -111,6 +116,18 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
 
     return () => clearInterval(interval);
   }, [controlData?.timing?.activeLotRemainingMs, controlData?.activeLot?.lot._id]);
+
+
+  useEffect(() => {
+    if (inspectedLotId) {
+      setTimeout(() => {
+        const el = document.getElementById("inspection-card");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
+    }
+  }, [inspectedLotId]);
 
   const currentAuction = controlData?.auction;
   const activeLot = controlData?.activeLot;
@@ -721,7 +738,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                     }`}
                   >
                     <Badge className={`text-[10px] ${badgeColor}`}>
-                      #{lot.lotOrder} {lot.status.toUpperCase()}
+                      #{lot.lotOrder} {getFormattedLotStatus(lot.status, !!(lot.currentBidderId || lot.winnerId)).toUpperCase()}
                     </Badge>
                     <span className="font-semibold truncate max-w-[120px]">
                       {vehicle.year} {vehicle.make} {vehicle.model}
@@ -877,7 +894,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
           <div className="lg:col-span-8 space-y-6">
             {/* Active or Inspected Historical Vehicle Display Card */}
             {currentDisplayedLot ? (
-              <Card className="overflow-hidden border-2 border-electric-blue/30 shadow-md">
+              <Card id="inspection-card" className="overflow-hidden border-2 border-electric-blue/30 shadow-md">
                 {/* Header Ticker Bar */}
                 <div className="bg-gradient-to-r from-card via-card to-electric-blue/10 p-4 border-b flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -885,7 +902,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                       LOT #{currentDisplayedLot.lot.lotOrder}
                     </Badge>
                     <Badge variant="outline" className="capitalize text-xs font-semibold">
-                      Status: {currentDisplayedLot.lot.status}
+                      Status: {getFormattedLotStatus(currentDisplayedLot.lot.status, !!(currentDisplayedLot.lot.currentBidderId || currentDisplayedLot.lot.winnerId))}
                     </Badge>
                     {isInspectingHistorical && (
                       <span className="text-xs font-semibold text-warning-amber">
@@ -1314,7 +1331,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                           </TableCell>
                           <TableCell>
                             <Badge className="capitalize text-[10px]" variant="outline">
-                              {lot.status}
+                              {getFormattedLotStatus(lot.status, !!(lot.currentBidderId || lot.winnerId))}
                             </Badge>
                           </TableCell>
                           <TableCell className="font-bold text-electric-blue font-mono">
@@ -1344,6 +1361,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                               onClick={() => {
                                 setInspectedLotId(lot._id);
                                 setSelectedImageIndex(0);
+
                               }}
                               className="h-7 px-2 text-[11px]"
                             >

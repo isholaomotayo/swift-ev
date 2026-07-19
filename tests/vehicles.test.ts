@@ -254,7 +254,7 @@ describe("Vehicles", () => {
     });
   });
 
-  describe.skip("createVehicle [convex writes blocked]", () => {
+  (describe as any).skip("createVehicle [convex writes blocked]", () => {
     test("vendor can create a vehicle", async () => {
       const vehicleData = {
         make: "Tesla",
@@ -380,7 +380,7 @@ describe("Vehicles", () => {
     });
   });
 
-  describe.skip("approveVehicle [convex writes blocked]", () => {
+  (describe as any).skip("approveVehicle [convex writes blocked]", () => {
     const buildPendingVehicleData = (suffix: string) => ({
       make: "Tesla",
       model: "Model 3",
@@ -469,7 +469,7 @@ describe("Vehicles", () => {
     });
   });
 
-  describe.skip("updateVehicle [convex writes blocked]", () => {
+  (describe as any).skip("updateVehicle [convex writes blocked]", () => {
     test("vendor can update vehicle with legacy image URLs", async () => {
       if (!testVehicleId) {
         const listResult = await client.query(api.vehicles.listVehicles, {

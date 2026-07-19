@@ -407,6 +407,7 @@ export function UserMailClient({ initialEmails, initialStats, token }: MailClien
             setComposeData(null);
           }}
           isSending={isSending}
+          isUserMode={true}
         />
       )}
     </div>

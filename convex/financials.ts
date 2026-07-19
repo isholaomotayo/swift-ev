@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 
 /**
  * Calculate the required deposit for a user to bid on a vehicle or generally.
@@ -56,5 +56,34 @@ export const calculateBuyerPremium = query({
     handler: async (ctx, args) => {
         const PREMIUM_RATE = 0.05;
         return args.bidAmount * PREMIUM_RATE;
+    },
+});
+
+/**
+ * Calculate Seller Payout
+ * Policy: Deduct a percentage commission from the winning bid.
+ * Defaults to 5% if not set in systemSettings.
+ */
+export const calculateSellerPayout = internalQuery({
+    args: {
+        winningBid: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const setting = await ctx.db
+            .query("systemSettings")
+            .withIndex("by_key", (q) => q.eq("key", "seller_commission_percentage"))
+            .first();
+
+        // Default to 5% (0.05) if setting not found or invalid
+        let commissionRate = 0.05;
+        if (setting && setting.value) {
+            const parsed = parseFloat(setting.value);
+            if (!isNaN(parsed)) {
+                commissionRate = parsed / 100;
+            }
+        }
+
+        const commission = args.winningBid * commissionRate;
+        return args.winningBid - commission;
     },
 });

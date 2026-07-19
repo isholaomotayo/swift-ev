@@ -67,10 +67,6 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
               Platform Command Center
             </h1>
-            <Badge variant="outline" className="bg-volt-green/10 text-volt-green border-volt-green/30 flex items-center gap-1.5 py-1 px-3">
-              <span className="h-2 w-2 rounded-full bg-volt-green animate-pulse" />
-              Live & Synced
-            </Badge>
           </div>
           <p className="text-muted-foreground text-sm max-w-2xl">
             Real-time status overview of vehicles, live auctions, platform orders, bank payment queue, user verification, and system settings.
@@ -96,7 +92,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
             ))}
           </div>
 
-          <Link href="/admin/auctions/live">
+          <Link href="/admin/auctions">
             <Button className="bg-volt-green text-black font-semibold hover:bg-volt-green/90 shadow-md transition-all">
               <Zap className="h-4 w-4 mr-2" />
               Live Auction Room
@@ -168,7 +164,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
       )}
 
       {/* 3. Top 5 KPI Scorecards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {/* Card 1: Vehicles */}
         <Link href="/admin/vehicles" className="block group">
           <Card className="p-5 relative overflow-hidden group-hover:border-electric-blue/50 transition-all duration-300 bg-card hover-lift h-full flex flex-col justify-between">
@@ -180,12 +176,12 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <Car className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground">{kpis?.vehicles?.total || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">Total Vehicles Listed</p>
+              <p className="text-3xl font-extrabold text-foreground truncate">{kpis?.vehicles?.periodAdded || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">Vehicles Added ({timeRange.toUpperCase()})</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground font-medium">{kpis?.vehicles?.total || 0} Total Listings</span>
               <span className="text-warning-amber font-medium">{kpis?.vehicles?.pendingApproval || 0} Pending</span>
-              <span className="text-volt-green font-medium">{kpis?.vehicles?.inAuction || 0} In Auction</span>
             </div>
           </Card>
         </Link>
@@ -201,12 +197,12 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <Gavel className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground">{kpis?.auctions?.live || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">Active Live Auctions</p>
+              <p className="text-3xl font-extrabold text-foreground truncate">{kpis?.auctions?.periodCompleted || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">Completed ({timeRange.toUpperCase()})</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">{kpis?.auctions?.completed || 0} Completed</span>
-              <span className="text-volt-green font-medium">{kpis?.auctions?.totalBids || 0} Total Bids</span>
+              <span className="text-volt-green font-medium">{kpis?.auctions?.live || 0} Live Now</span>
+              <span className="text-muted-foreground">{kpis?.auctions?.periodBids || 0} Bids ({timeRange.toUpperCase()})</span>
             </div>
           </Card>
         </Link>
@@ -222,11 +218,11 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <ShoppingBag className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-2xl font-extrabold text-primary">{formatCurrency(kpis?.orders?.totalRevenue || 0, { currency: "USD" })}</p>
-              <p className="text-xs text-muted-foreground mt-1">Total Platform GMV (USD)</p>
+              <p className="text-2xl font-extrabold text-primary truncate" title={formatCurrency(kpis?.orders?.periodRevenue || 0, { currency: "USD" })}>{formatCurrency(kpis?.orders?.periodRevenue || 0, { currency: "USD" })}</p>
+              <p className="text-xs text-muted-foreground mt-1">Platform GMV ({timeRange.toUpperCase()})</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">{kpis?.orders?.total || 0} Total Orders</span>
+              <span className="text-muted-foreground">{kpis?.orders?.periodTotal || 0} Orders ({timeRange.toUpperCase()})</span>
               <span className="text-warning-amber font-medium">{kpis?.orders?.pending || 0} Pending</span>
             </div>
           </Card>
@@ -243,10 +239,11 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <Users className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-foreground">{kpis?.users?.total || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">Registered Users</p>
+              <p className="text-3xl font-extrabold text-foreground truncate">{kpis?.users?.periodNew || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">New Users ({timeRange.toUpperCase()})</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{kpis?.users?.total || 0} Total Users</span>
               <span className="text-muted-foreground">{kpis?.users?.buyers || 0} Buyers / {kpis?.users?.sellers || 0} Sellers</span>
             </div>
           </Card>
@@ -263,7 +260,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <CreditCard className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-3xl font-extrabold text-amber-500">{kpis?.payments?.pendingCount || 0}</p>
+              <p className="text-3xl font-extrabold text-amber-500 truncate">{kpis?.payments?.pendingCount || 0}</p>
               <p className="text-xs text-muted-foreground mt-1">Pending Verification</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
@@ -274,10 +271,10 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
       </div>
 
       {/* 4. Comprehensive Sneak Peek & Module Hub Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* Left Column (2 Cols wide on desktop): Inventory, Auctions & Orders */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="xl:col-span-2 space-y-8">
           
           {/* Module Hub 1: Inventory Management Sneak Peek */}
           <Card className="p-6 border-border/60 bg-card relative overflow-hidden">
@@ -391,7 +388,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Link href="/admin/auctions/live">
+                <Link href="/admin/auctions">
                   <Button variant="outline" size="sm" className="border-volt-green/30 text-volt-green hover:bg-volt-green/10 text-xs">
                     Live Room
                   </Button>

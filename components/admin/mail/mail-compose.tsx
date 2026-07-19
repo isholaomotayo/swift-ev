@@ -28,6 +28,7 @@ interface MailComposeProps {
   onSaveDraft: (data: ComposeData) => void;
   onClose: () => void;
   isSending?: boolean;
+  isUserMode?: boolean;
 }
 
 export function MailCompose({
@@ -40,16 +41,17 @@ export function MailCompose({
   onSaveDraft,
   onClose,
   isSending,
+  isUserMode,
 }: MailComposeProps) {
   const [sendAs, setSendAs] = useState(initialData?.sendAs || defaultSendAs);
   const [newAlias, setNewAlias] = useState("");
-  const [to, setTo] = useState(initialData?.to || "");
-  const [cc, setCc] = useState(initialData?.cc || "");
-  const [bcc, setBcc] = useState(initialData?.bcc || "");
+  const [to, setTo] = useState(isUserMode ? "admin@autoexports.live" : initialData?.to || "");
+  const [cc, setCc] = useState(isUserMode ? "" : initialData?.cc || "");
+  const [bcc, setBcc] = useState(isUserMode ? "" : initialData?.bcc || "");
   const [subject, setSubject] = useState(initialData?.subject || "");
   const [body, setBody] = useState(initialData?.body || "");
   const [showCcBcc, setShowCcBcc] = useState(
-    !!(initialData?.cc || initialData?.bcc)
+    !isUserMode && !!(initialData?.cc || initialData?.bcc)
   );
   const [isEditingAliases, setIsEditingAliases] = useState(false);
 
@@ -71,9 +73,9 @@ export function MailCompose({
     if (!to.trim()) return;
     onSend({
       sendAs,
-      to,
-      cc,
-      bcc,
+      to: isUserMode ? "admin@autoexports.live" : to,
+      cc: isUserMode ? "" : cc,
+      bcc: isUserMode ? "" : bcc,
       subject,
       body,
       inReplyTo: initialData?.inReplyTo,
@@ -84,9 +86,9 @@ export function MailCompose({
   const handleSaveDraft = () => {
     onSaveDraft({
       sendAs,
-      to,
-      cc,
-      bcc,
+      to: isUserMode ? "admin@autoexports.live" : to,
+      cc: isUserMode ? "" : cc,
+      bcc: isUserMode ? "" : bcc,
       subject,
       body,
       inReplyTo: initialData?.inReplyTo,
@@ -179,15 +181,18 @@ export function MailCompose({
               onChange={(e) => setTo(e.target.value)}
               placeholder="recipient@example.com"
               className="border-0 shadow-none focus-visible:ring-0 h-8 text-sm"
+              disabled={isUserMode}
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground"
-              onClick={() => setShowCcBcc(!showCcBcc)}
-            >
-              {showCcBcc ? <ChevronUp className="h-3 w-3" /> : "Cc/Bcc"}
-            </Button>
+            {!isUserMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => setShowCcBcc(!showCcBcc)}
+              >
+                {showCcBcc ? <ChevronUp className="h-3 w-3" /> : "Cc/Bcc"}
+              </Button>
+            )}
           </div>
 
           {/* Cc / Bcc */}

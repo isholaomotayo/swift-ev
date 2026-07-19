@@ -17,12 +17,12 @@ import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const languageNames: Record<string, string> = {
-  en: "English",
-  fr: "Français",
-  "zh-CN": "中文",
-  ha: "Hausa",
-  yo: "Yorùbá",
-  ig: "Igbo",
+  en: "EN",
+  fr: "FR",
+  "zh-CN": "ZH",
+  ha: "HA",
+  yo: "YO",
+  ig: "IG",
 };
 
 export function LanguageSwitcher() {
