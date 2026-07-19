@@ -98,7 +98,7 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative px-3 lg:px-4 py-2 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-md",
+                  "relative px-3 lg:px-4 py-2 text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 rounded-md",
                   isNavLinkActive(item.href)
                     ? "text-brand-primary bg-slate-100 dark:text-white dark:bg-white/10"
                     : "text-slate-500 hover:text-brand-primary hover:bg-slate-50 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5",
@@ -237,18 +237,12 @@ export function Header() {
               </div>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">
-                <Link
-                  href="/login"
-                  className="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary transition-colors dark:text-slate-300 dark:hover:text-white"
-                >
-                  {m.common_log_in()}
-                </Link>
                 <Button
                   size="sm"
                   asChild
-                  className="h-10 sm:h-11 px-3 sm:px-5 bg-brand-primary text-white hover:bg-brand-primary shadow-[4px_4px_0px_0px_rgba(15,23,42,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] rounded-md text-xs font-black uppercase tracking-wider sm:tracking-[0.2em] transition-all dark:bg-brand-gold dark:text-brand-primary"
+                  className="h-10 sm:h-11 px-3 sm:px-5 bg-brand-primary text-white hover:bg-brand-primary shadow-[4px_4px_0px_0px_rgba(15,23,42,0.1)] hover:translate-x-[2px] hover:translate-y-[2px] rounded-md text-xs font-black uppercase tracking-wider sm:tracking-[0.2em] transition-all dark:bg-brand-gold dark:text-brand-primary whitespace-nowrap"
                 >
-                  <Link href="/register">{m.nav_join_now()}</Link>
+                  <Link href="/login">{m.common_log_in()}</Link>
                 </Button>
               </div>
             )}
