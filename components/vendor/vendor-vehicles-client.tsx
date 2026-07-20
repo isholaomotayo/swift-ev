@@ -33,12 +33,11 @@ interface VendorVehiclesClientProps {
 }
 
 export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientProps) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
-  const token = user?.token;
 
   const submitVehicle = useMutation(api.vehicles.submitVehicleForApproval);
 
