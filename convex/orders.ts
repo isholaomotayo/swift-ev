@@ -389,6 +389,87 @@ export const getVendorPendingOrders = query({
 });
 
 /**
+ * Seller: ALL orders for their listed vehicles across all status stages.
+ */
+export const getVendorOrders = query({
+  args: {
+    token: v.string(),
+    status: v.optional(orderStatusValidator),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+    requireSeller(user);
+
+    const vehicles = await ctx.db
+      .query("vehicles")
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+      .collect();
+
+    const results = [];
+
+    for (const vehicle of vehicles) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+        .collect();
+
+      for (const order of orders) {
+        if (args.status && order.status !== args.status) {
+          continue;
+        }
+
+        const shipments = await ctx.db
+          .query("shipments")
+          .withIndex("by_order", (q) => q.eq("orderId", order._id))
+          .collect();
+
+        const regForms = await ctx.db
+          .query("vehicleRegistrationForms")
+          .withIndex("by_order", (q) => q.eq("orderId", order._id))
+          .collect();
+
+        const buyer = await ctx.db.get(order.userId);
+
+        results.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          orderType: order.orderType,
+          totalAmount: order.totalAmount,
+          paidAmount: order.paidAmount,
+          balanceDue: order.balanceDue,
+          paymentDeadline: order.paymentDeadline,
+          guaranteeStatus: order.guaranteeStatus ?? "active",
+          guaranteePolicyNumber: order.guaranteePolicyNumber ?? `MBG-${order.orderNumber}`,
+          createdAt: order.createdAt,
+          buyer: buyer
+            ? {
+                firstName: buyer.firstName,
+                lastName: buyer.lastName,
+                email: buyer.email,
+              }
+            : null,
+          vehicle: {
+            _id: vehicle._id,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            lotNumber: vehicle.lotNumber,
+            status: vehicle.status,
+          },
+          latestShipment: shipments[0] || null,
+          registrationStatus: regForms[0]?.status || "not_submitted",
+        });
+      }
+    }
+
+    results.sort((a, b) => b.createdAt - a.createdAt);
+    return { orders: results, count: results.length };
+  },
+});
+
+
+/**
  * Update order status
  * Admin only
  */
@@ -611,7 +692,6 @@ export const addShippingTracking = mutation({
   handler: async (ctx, args) => {
     // Validate authorization
     const user = await requireAuth(ctx, args.token);
-    requireAdmin(user);
 
     // Normalize and validate ID
     const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
@@ -625,10 +705,17 @@ export const addShippingTracking = mutation({
       throw new Error(`Order ${args.orderId} not found`);
     }
 
-    // Get vehicle to determine origin port
+    // Get vehicle to determine origin port and verify seller permission
     const vehicle = await ctx.db.get(order.vehicleId);
     if (!vehicle) {
       throw new Error(`Vehicle ${order.vehicleId} not found for order ${args.orderId}`);
+    }
+
+    // Authorization check: Admin, Superadmin, or the listing Seller
+    if (user.role !== "admin" && user.role !== "superadmin") {
+      if (vehicle.sellerId !== user._id) {
+        throw new Error("Unauthorized: Only admins or the vehicle seller can add shipping tracking");
+      }
     }
 
     // Check for duplicate tracking number
@@ -874,4 +961,99 @@ export const triggerSellerPayout = mutation({
 
     return { success: true, payoutAmount };
   },
+});
+
+/**
+ * Buyer confirms delivery of the vehicle.
+ * Finalizes the order, fulfills the guarantee, and releases escrow funds to the vendor.
+ */
+export const confirmDelivery = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.token);
+
+    const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
+    if (!targetOrderId) {
+      throw new Error("Order not found");
+    }
+
+    const order = await ctx.db.get(targetOrderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.userId !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+      throw new Error("Unauthorized: Only the buyer can confirm delivery");
+    }
+
+    if (order.status === "delivered" || order.status === "cancelled" || order.status === "refunded") {
+      throw new Error(`Cannot confirm delivery for order in status: ${order.status}`);
+    }
+
+    const vehicle = await ctx.db.get(order.vehicleId);
+    if (!vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    const now = Date.now();
+
+    // 1. Update order and vehicle status to delivered
+    await ctx.db.patch(targetOrderId, {
+      status: "delivered",
+      deliveredAt: now,
+      guaranteeStatus: "fulfilled",
+      updatedAt: now,
+    });
+    
+    await syncVehicleStatusFromOrder(ctx, order, "delivered");
+
+    // 2. Escrow Payout: Release subtotal to vendor's wallet
+    if (vehicle.sellerId) {
+      const seller = await ctx.db.get(vehicle.sellerId);
+      if (seller) {
+        const payoutAmount = order.subtotal; 
+        const currentBalance = seller.walletBalance || 0;
+        await ctx.db.patch(vehicle.sellerId, {
+          walletBalance: currentBalance + payoutAmount,
+        });
+
+        // Notify Vendor of Escrow Release
+        await createInAppNotification(ctx, {
+          userId: vehicle.sellerId,
+          type: "system",
+          title: "Funds Released",
+          message: `Delivery confirmed for order ${order.orderNumber}. ₦${payoutAmount.toLocaleString()} has been added to your wallet balance.`,
+          orderId: targetOrderId,
+          vehicleId: vehicle._id,
+        });
+      }
+    }
+
+    // 3. Notify Buyer of fulfilled guarantee
+    await createInAppNotification(ctx, {
+      userId: order.userId,
+      type: "system",
+      title: "Delivery Confirmed",
+      message: `You have successfully confirmed delivery of your vehicle. The Money-Back Guarantee has been marked as fulfilled.`,
+      orderId: targetOrderId,
+      vehicleId: vehicle._id,
+    });
+
+    await createAuditLog(ctx, {
+      userId: user._id,
+      action: "confirm_delivery",
+      entityType: "order",
+      entityId: targetOrderId,
+      changes: {
+        oldStatus: order.status,
+        newStatus: "delivered",
+        guaranteeStatus: "fulfilled",
+      },
+    });
+
+    return { success: true };
+  }
 });

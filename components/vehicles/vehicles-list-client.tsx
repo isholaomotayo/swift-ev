@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
-import { VehicleCard } from "@/components/autoexports/vehicle-card";
+import { WatchlistVehicleCard } from "@/components/autoexports/watchlist-vehicle-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -404,17 +404,9 @@ export function VehiclesListClient({
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredVehicles.map((vehicle: any) => (
-                <VehicleCard
+                <WatchlistVehicleCard
                   key={vehicle._id}
                   vehicle={vehicle}
-                  auctionLot={vehicle.auctionLot}
-                  onBidClick={() => {
-                    router.push(`/vehicles/${vehicle._id}`);
-                  }}
-                  onWatchlistToggle={() => {
-                    console.log("Toggle watchlist for", vehicle._id);
-                  }}
-                  isWatchlisted={false}
                 />
               ))}
             </div>

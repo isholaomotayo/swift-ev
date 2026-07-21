@@ -63,8 +63,7 @@ export async function AuctionPromoBanner() {
             </Button>
             <Button
               size="lg"
-              variant="outline"
-              className="h-12 px-8 border-white/30 text-white hover:bg-white/10 font-bold"
+              className="h-12 px-8 bg-transparent border-2 border-white/30 text-white hover:bg-white/10 font-bold"
               asChild
             >
               <Link href="/auctions">{m.home_auction_view_all()}</Link>

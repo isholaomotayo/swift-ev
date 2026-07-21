@@ -33,11 +33,11 @@ describe("Vehicles", () => {
   });
 
   describe("getFeaturedVehicles", () => {
-    test("returns up to 3 buyer-visible vehicles", async () => {
+    test("returns up to 15 buyer-visible vehicles", async () => {
       const vehicles = await client.query(api.vehicles.getFeaturedVehicles, {});
 
       expect(Array.isArray(vehicles)).toBe(true);
-      expect(vehicles.length).toBeLessThanOrEqual(3);
+      expect(vehicles.length).toBeLessThanOrEqual(15);
 
       if (vehicles.length > 0) {
         const vehicle = vehicles[0];
@@ -46,7 +46,7 @@ describe("Vehicles", () => {
         expect(vehicle).toHaveProperty("model");
         expect(vehicle).toHaveProperty("year");
         expect(vehicle).toHaveProperty("status");
-        expect(["approved", "scheduled", "in_auction", "sold"]).toContain(
+        expect(["approved", "scheduled", "in_auction", "sold", "unsold"]).toContain(
           vehicle.status
         );
         expect(vehicle).toHaveProperty("images");

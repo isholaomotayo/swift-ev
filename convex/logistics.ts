@@ -7,6 +7,7 @@ import {
     isVehicleStatus,
     type VehicleStatus,
 } from "./lib/vehicleLifecycle";
+import { createInAppNotification } from "./lib/payments";
 
 function vehicleStatusOf(status: string): VehicleStatus {
     if (!isVehicleStatus(status)) {
@@ -203,5 +204,106 @@ export const getGatePass = query({
                 email: user?.email
             }
         };
+    }
+});
+
+/**
+ * Add a shipment milestone update.
+ * Admin or Seller only.
+ */
+export const addShipmentUpdate = mutation({
+    args: {
+        token: v.string(),
+        shipmentId: v.id("shipments"),
+        status: v.string(),
+        location: v.optional(v.string()),
+        description: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireAuth(ctx, args.token);
+
+        const shipment = await ctx.db.get(args.shipmentId);
+        if (!shipment) throw new Error("Shipment not found");
+
+        const order = await ctx.db.get(shipment.orderId);
+        if (!order) throw new Error("Order not found");
+        
+        const vehicle = await ctx.db.get(shipment.vehicleId);
+        if (!vehicle) throw new Error("Vehicle not found");
+
+        if (user.role !== "admin" && user.role !== "superadmin") {
+            if (vehicle.sellerId !== user._id) {
+                throw new Error("Unauthorized");
+            }
+        }
+
+        const now = Date.now();
+        await ctx.db.insert("shipmentUpdates", {
+            shipmentId: args.shipmentId,
+            status: args.status,
+            location: args.location,
+            description: args.description,
+            timestamp: now,
+            source: user.role === "admin" || user.role === "superadmin" ? "system" : "manual"
+        });
+
+        // Potentially transition order status
+        let newOrderStatus = order.status;
+        if (args.status === "in_transit" || args.status === "departed") {
+            newOrderStatus = "in_transit";
+        } else if (args.status === "at_customs") {
+            newOrderStatus = "customs_clearance";
+        } else if (args.status === "cleared") {
+            newOrderStatus = "cleared";
+        }
+
+        if (newOrderStatus !== order.status) {
+            await ctx.db.patch(order._id, { status: newOrderStatus, updatedAt: now });
+        }
+
+        // Notify Buyer
+        await createInAppNotification(ctx, {
+            userId: order.userId,
+            type: "shipment_update",
+            title: "Shipment Update",
+            message: `Your vehicle shipment has a new update: ${args.description}`,
+            orderId: order._id,
+            vehicleId: vehicle._id,
+        });
+
+        return { success: true };
+    }
+});
+
+/**
+ * Get all shipment updates for a given shipment ID
+ */
+export const getShipmentUpdates = query({
+    args: {
+        token: v.string(),
+        shipmentId: v.id("shipments"),
+    },
+    handler: async (ctx, args) => {
+        const user = await requireAuth(ctx, args.token);
+        
+        const shipment = await ctx.db.get(args.shipmentId);
+        if (!shipment) return [];
+
+        const order = await ctx.db.get(shipment.orderId);
+        const vehicle = await ctx.db.get(shipment.vehicleId);
+
+        // Security check: must be admin, seller, or buyer
+        if (user.role !== "admin" && user.role !== "superadmin") {
+            if (order?.userId !== user._id && vehicle?.sellerId !== user._id) {
+                throw new Error("Unauthorized");
+            }
+        }
+
+        const updates = await ctx.db
+            .query("shipmentUpdates")
+            .withIndex("by_shipment", (q) => q.eq("shipmentId", args.shipmentId))
+            .collect();
+            
+        return updates.sort((a, b) => b.timestamp - a.timestamp);
     }
 });

@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   calculateBuyNowPricing,
   calculateServiceFee,
-  CUSTOMS_CLEARING_FEE_NAIRA,
+  calculateCustomsFee,
   DOCUMENTATION_FEE_NAIRA,
   INSPECTION_FEE_NAIRA,
   REGISTRATION_FEE_NAIRA,
@@ -20,7 +20,7 @@ describe("buy now pricing", () => {
     expect(pricing.documentationFee).toBe(DOCUMENTATION_FEE_NAIRA);
     expect(pricing.inspectionFee).toBe(INSPECTION_FEE_NAIRA);
     expect(pricing.shippingCost).toBe(SHIPPING_BY_DESTINATION.lagos);
-    expect(pricing.customsClearingFee).toBe(CUSTOMS_CLEARING_FEE_NAIRA);
+    expect(pricing.customsClearingFee).toBe(calculateCustomsFee(vehiclePrice));
     expect(pricing.registrationFee).toBe(REGISTRATION_FEE_NAIRA);
     expect(pricing.totalAmount).toBe(
       vehiclePrice +
@@ -28,7 +28,7 @@ describe("buy now pricing", () => {
         DOCUMENTATION_FEE_NAIRA +
         INSPECTION_FEE_NAIRA +
         SHIPPING_BY_DESTINATION.lagos +
-        CUSTOMS_CLEARING_FEE_NAIRA +
+        calculateCustomsFee(vehiclePrice) +
         REGISTRATION_FEE_NAIRA
     );
   });

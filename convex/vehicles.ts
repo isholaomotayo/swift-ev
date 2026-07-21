@@ -153,7 +153,7 @@ export const getFeaturedVehicles = query({
       .filter((vehicle) =>
         isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
       )
-      .slice(0, 3);
+      .slice(0, 15);
 
     // Get images for each vehicle
     const vehiclesWithImages = await Promise.all(
@@ -1746,6 +1746,9 @@ export const purchaseVehicleDirectly = mutation({
       balanceDue: pricing.totalAmount,
       status: "pending_payment",
       paymentDeadline: paymentDeadlineFrom(now),
+      guaranteeStatus: "active",
+      guaranteeActivatedAt: now,
+      guaranteePolicyNumber: `MBG-${orderNumber}`,
       createdAt: now,
       updatedAt: now,
     });

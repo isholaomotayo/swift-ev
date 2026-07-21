@@ -7,13 +7,20 @@ export type DestinationPort = "lagos" | "port_harcourt";
 
 export const DOCUMENTATION_FEE_NAIRA = 50_000;
 export const INSPECTION_FEE_NAIRA = 50_000;
-export const CUSTOMS_CLEARING_FEE_NAIRA = 2_500_000;
 export const REGISTRATION_FEE_NAIRA = 150_000;
 
+const USD_TO_NGN = 1650;
+
 export const SHIPPING_BY_DESTINATION: Record<DestinationPort, number> = {
-  lagos: 1_800_000,
-  port_harcourt: 2_000_000,
+  lagos: 2500 * USD_TO_NGN,
+  port_harcourt: 2500 * USD_TO_NGN,
 };
+
+export function calculateCustomsFee(vehiclePriceNaira: number): number {
+  const randomFactor = (vehiclePriceNaira % 997) / 997;
+  const feeUsd = 4000 + randomFactor * 200;
+  return feeUsd * USD_TO_NGN;
+}
 
 export const DESTINATION_LABELS: Record<DestinationPort, string> = {
   lagos: "Lagos (Tincan/Apapa)",
@@ -54,7 +61,7 @@ export function calculateBuyNowPricing(
   const shippingCost = SHIPPING_BY_DESTINATION[destination];
   const documentationFee = DOCUMENTATION_FEE_NAIRA;
   const inspectionFee = INSPECTION_FEE_NAIRA;
-  const customsClearingFee = CUSTOMS_CLEARING_FEE_NAIRA;
+  const customsClearingFee = calculateCustomsFee(vehiclePriceNaira);
   const registrationFee = REGISTRATION_FEE_NAIRA;
 
   const totalAmount =

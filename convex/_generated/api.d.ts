@@ -39,6 +39,7 @@ import type * as logistics from "../logistics.js";
 import type * as mailRouting from "../mailRouting.js";
 import type * as orders from "../orders.js";
 import type * as payments from "../payments.js";
+import type * as registration from "../registration.js";
 import type * as seedData from "../seedData.js";
 import type * as services from "../services.js";
 import type * as settings from "../settings.js";
@@ -86,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   mailRouting: typeof mailRouting;
   orders: typeof orders;
   payments: typeof payments;
+  registration: typeof registration;
   seedData: typeof seedData;
   services: typeof services;
   settings: typeof settings;

@@ -988,6 +988,9 @@ export const purchaseBuyItNow = mutation({
       balanceDue: pricing.totalAmount,
       status: "pending_payment",
       paymentDeadline: paymentDeadlineFrom(now),
+      guaranteeStatus: "active",
+      guaranteeActivatedAt: now,
+      guaranteePolicyNumber: `MBG-${orderNumber}`,
       createdAt: now,
       updatedAt: now,
     });
@@ -1874,6 +1877,9 @@ async function endLot(
         balanceDue: totalAmount,
         status: "pending_payment",
         paymentDeadline: paymentDeadlineFrom(now),
+        guaranteeStatus: "active",
+        guaranteeActivatedAt: now,
+        guaranteePolicyNumber: `MBG-${orderNumber}`,
         createdAt: now,
         updatedAt: now,
       });

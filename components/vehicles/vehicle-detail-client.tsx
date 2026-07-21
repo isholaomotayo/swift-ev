@@ -55,6 +55,7 @@ import Link from "next/link";
 import { RemoteImage } from "@/components/ui/remote-image";
 import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useWatchlistToggle } from "@/hooks/use-watchlist-toggle";
 
 interface Bid {
   _id: string;
@@ -135,13 +136,15 @@ interface VehicleDetailClientProps {
 }
 
 export function VehicleDetailClient({
-  initialVehicle,
   vehicleId,
+  initialVehicle,
 }: VehicleDetailClientProps) {
   const router = useRouter();
+  const { token, user } = useAuth();
+  const { isWatchlisted, handleToggle: toggleWatchlist } = useWatchlistToggle(vehicleId);
+
   const currency = useCurrencyStore((s) => s.currency);
   const exchangeRates = useExchangeRates();
-  const { user, token } = useAuth();
 
   // Use real-time data if available, otherwise use initial data.
   // undefined = still loading; null = not found / no access.
@@ -927,10 +930,16 @@ export function VehicleDetailClient({
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       variant="outline"
-                      className="w-full rounded-full hover:bg-alert-red/5 hover:text-alert-red hover:border-alert-red/20 transition-colors"
+                      className={cn(
+                        "w-full rounded-full transition-colors",
+                        isWatchlisted
+                          ? "bg-alert-red/5 text-alert-red border-alert-red/20 hover:bg-alert-red/10"
+                          : "hover:bg-alert-red/5 hover:text-alert-red hover:border-alert-red/20"
+                      )}
+                      onClick={toggleWatchlist}
                     >
-                      <Heart className="h-4 w-4 mr-2" />
-                      Watch
+                      <Heart className={cn("h-4 w-4 mr-2", isWatchlisted && "fill-current")} />
+                      {isWatchlisted ? "Watching" : "Watch"}
                     </Button>
                     <Button
                       variant="outline"

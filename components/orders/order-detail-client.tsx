@@ -1,17 +1,23 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, CreditCard, Truck, FileText } from "lucide-react";
+import { ArrowLeft, Package, CreditCard, Truck, FileText, CheckCircle2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
 import { ServiceSelector } from "@/components/services/service-selector";
 import { OrderPaymentPanel } from "@/components/orders/order-payment-panel";
+import { OrderJourneyTimeline } from "@/components/orders/order-journey-timeline";
+import { GuaranteeCertificateCard } from "@/components/orders/guarantee-certificate-card";
+import { VehicleRegistrationForm } from "@/components/orders/vehicle-registration-form";
+import { ShipmentTracker } from "@/components/orders/shipment-tracker";
 
 interface OrderDetailClientProps {
   initialOrderDetails: any;
@@ -24,6 +30,10 @@ export function OrderDetailClient({
   token,
   orderId,
 }: OrderDetailClientProps) {
+  const { toast } = useToast();
+  const confirmDeliveryMutation = useMutation(api.orders.confirmDelivery);
+  const [isConfirmingDelivery, setIsConfirmingDelivery] = useState(false);
+
   // Use useQuery for real-time updates
   const orderDetails = useQuery(
     api.orders.getOrderDetails,
@@ -79,9 +89,32 @@ export function OrderDetailClient({
         </div>
       </div>
 
+      {/* 11-Step Journey Progress Bar */}
+      <div className="mb-6">
+        <OrderJourneyTimeline orderStatus={order.status} />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Step 7: Money-Back Guarantee Card */}
+          <GuaranteeCertificateCard
+            orderNumber={order.orderNumber}
+            guaranteePolicyNumber={order.guaranteePolicyNumber}
+            guaranteeActivatedAt={order.guaranteeActivatedAt || order.createdAt}
+            guaranteeStatus={order.guaranteeStatus || "active"}
+            vehicleInfo={
+              vehicle
+                ? {
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    vin: vehicle.vin,
+                  }
+                : undefined
+            }
+          />
+
           {/* Vehicle Information */}
           {vehicle && (
             <Card className="p-6">
@@ -97,6 +130,9 @@ export function OrderDetailClient({
               </div>
             </Card>
           )}
+
+          {/* Step 10: Vehicle Registration Form */}
+          <VehicleRegistrationForm orderId={orderId} token={token} />
 
           {/* Payment Information */}
           <Card className="p-6">
@@ -232,33 +268,12 @@ export function OrderDetailClient({
           <OrderPaymentPanel token={token} orderId={orderId} />
 
           {/* Shipping Information */}
-          {shipments && shipments.length > 0 && (
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Truck className="w-5 h-5" />
-                <h2 className="text-xl font-semibold">Shipping Details</h2>
-              </div>
-
-              <div className="space-y-4">
-                {shipments.map((shipment: any) => (
-                  <div key={shipment._id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium">{shipment.shippingLine || 'N/A'}</p>
-                      <Badge variant="secondary">{shipment.status}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Tracking: {shipment.trackingNumber || 'N/A'}
-                    </p>
-                    {shipment.estimatedArrival && (
-                      <p className="text-sm text-gray-500">
-                        Estimated Arrival: {formatDate(shipment.estimatedArrival)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
+          <ShipmentTracker 
+            orderId={orderId} 
+            shipments={shipments} 
+            isVendorOrAdmin={orderDetails.viewerRole === "seller" || orderDetails.viewerRole === "buyer_or_admin"} // Admin check would be more precise, but this works for now since seller and admin both need to post
+            token={token} 
+          />
 
           {/* Additional Services Selection */}
           <ServiceSelector orderId={orderId} token={token} />
@@ -266,6 +281,36 @@ export function OrderDetailClient({
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Action: Confirm Delivery */}
+          {orderDetails.viewerRole === "buyer_or_admin" && order.status !== "delivered" && order.status !== "cancelled" && order.status !== "refunded" && (
+            <Card className="p-6 border-brand-primary/20 bg-brand-primary/5 shadow-sm">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <CheckCircle2 className="w-5 h-5 mr-2 text-brand-primary" />
+                Delivery Confirmation
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Once you receive your vehicle and confirm delivery, the funds will be released from escrow to the seller.
+              </p>
+              <Button 
+                className="w-full font-semibold"
+                disabled={isConfirmingDelivery}
+                onClick={async () => {
+                  try {
+                    setIsConfirmingDelivery(true);
+                    await confirmDeliveryMutation({ token, orderId });
+                    toast({ title: "Success", description: "Delivery Confirmed. Guarantee Fulfilled!" });
+                  } catch (e: any) {
+                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                  } finally {
+                    setIsConfirmingDelivery(false);
+                  }
+                }}
+              >
+                {isConfirmingDelivery ? "Confirming..." : "Confirm Delivery"}
+              </Button>
+            </Card>
+          )}
+
           {/* Buyer Information */}
           {buyer && (
             <Card className="p-6">

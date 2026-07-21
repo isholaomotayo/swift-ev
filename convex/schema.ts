@@ -527,6 +527,11 @@ export default defineSchema({
     deliveredAt: v.optional(v.number()),
     amlFlagged: v.optional(v.boolean()),
     strFiled: v.optional(v.boolean()),
+    guaranteeStatus: v.optional(
+      v.union(v.literal("active"), v.literal("claimed"), v.literal("fulfilled"))
+    ),
+    guaranteeActivatedAt: v.optional(v.number()),
+    guaranteePolicyNumber: v.optional(v.string()),
   })
     .index("by_order_number", ["orderNumber"])
     .index("by_user", ["userId"])
@@ -1079,5 +1084,33 @@ export default defineSchema({
   })
     .index("by_emailType", ["emailType"])
     .index("by_category", ["category"]),
+
+  // ============================================
+  // VEHICLE REGISTRATION FORMS (Step 10)
+  // ============================================
+
+  vehicleRegistrationForms: defineTable({
+    orderId: v.id("orders"),
+    userId: v.id("users"),
+    vehicleId: v.id("vehicles"),
+    ownerFullName: v.string(),
+    ownerAddress: v.string(),
+    registrationState: v.string(),
+    identityDocType: v.optional(v.string()),
+    identityNumber: v.optional(v.string()),
+    preferredPlateText: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("submitted"),
+      v.literal("approved"),
+      v.literal("completed")
+    ),
+    submittedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_order", ["orderId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
 });
 

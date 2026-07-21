@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const trustItems = [
 	{
 		icon: Shield,
-		label: m.common_escrow_protected(),
+		label: m.common_money_back_guarantee(),
 		accent: "text-brand-blue",
 	},
 	{
@@ -72,7 +72,7 @@ const trustItems = [
 	},
 	{
 		icon: Gavel,
-		label: m.common_transparent_rules(),
+		label: m.common_buy_now_or_auction(),
 		accent: "text-brand-accent",
 	},
 ] as const;
@@ -80,24 +80,24 @@ const trustItems = [
 const journeySteps = [
 	{
 		step: "01",
-		title: m.common_strategic_search(),
-		desc: m.common_access_proprietary_filters_to_find_vehicles_that_m(),
+		title: "Buy Now or Bid in Auction",
+		desc: "Choose your vehicle directly from our verified inventory for instant Buy Now purchase, or place a bid in live scheduled auctions.",
 		accent: "border-brand-blue bg-brand-blue/5",
-		link: "/register",
-		cta: m.common_start_searching(),
+		link: "/vehicles",
+		cta: m.common_explore_inventory(),
 	},
 	{
 		step: "02",
-		title: m.common_verified_bidding(),
-		desc: m.common_our_escrow_system_keeps_your_deposit_safe_until_th(),
+		title: "KYC & Money-Back Guaranteed Payment",
+		desc: "Complete swift identity verification and pay with 100% Money-Back Guarantee and escrow protection until delivery.",
 		accent: "border-brand-accent bg-brand-accent/5",
-		link: "/auctions",
-		cta: m.nav_live_bids(),
+		link: "/how-it-works",
+		cta: m.common_how_it_works(),
 	},
 	{
 		step: "03",
-		title: m.common_seamless_logistics(),
-		desc: m.common_tracking_from_port_of_origin_to_your_city_we_handl(),
+		title: "Track & Submit Vehicle Registration",
+		desc: "Track real-time carrier shipping, submit your vehicle registration form, and receive doorstep delivery with title transfer.",
 		accent: "border-brand-success bg-brand-success/5",
 		link: "/how-it-works",
 		cta: m.common_shipping_info(),
@@ -119,7 +119,9 @@ export default async function Home() {
 	let featuredVehicles: Vehicle[] = [];
 	try {
 		const raw = await convex.query(api.vehicles.getFeaturedVehicles, {});
-		featuredVehicles = raw.map(toFeaturedVehicle);
+		const pool = raw.map(toFeaturedVehicle);
+		// Shuffle array for dynamism
+		featuredVehicles = pool.sort(() => 0.5 - Math.random()).slice(0, 3);
 	} catch (error) {
 		console.error("Failed to fetch homepage data:", error);
 	}
@@ -158,15 +160,19 @@ export default async function Home() {
 									<MapPin className="h-3.5 w-3.5 text-brand-gold" />
 									{m.common_china_nigeria()}
 								</span>
+								<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-brand-gold bg-brand-gold/10 border border-brand-gold/20 uppercase tracking-wider">
+									<Shield className="h-3.5 w-3.5" />
+									{m.common_money_back_guarantee()}
+								</span>
 							</div>
 
 							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white mb-6 leading-[1.02]">
-								{m.common_bid_win()}{" "}
+								{m.common_hero_headline_dual()}{" "}
 								<span className="text-brand-gold">{m.common_export()}</span>
 							</h1>
 
 							<p className="text-lg md:text-xl text-slate-300/95 mb-10 leading-relaxed max-w-2xl font-medium">
-								{m.common_global_trade_invisible()}
+								Purchase instantly with fixed Buy Now pricing or enter a bid to compete in scheduled live auctions. Protected end-to-end by our 100% Money-Back Guarantee and escrow security.
 							</p>
 
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-14">
@@ -175,15 +181,14 @@ export default async function Home() {
 									className="h-14 px-8 text-base rounded-lg bg-brand-gold hover:bg-brand-gold/90 text-brand-primary font-bold shadow-lg shadow-brand-gold/20"
 									asChild
 								>
-									<Link href="/register">{m.common_get_started()}</Link>
+									<Link href="/vehicles">{m.common_explore_inventory()}</Link>
 								</Button>
 								<Button
 									size="lg"
-									variant="outline"
-									className="h-14 px-8 text-base rounded-lg border-2 border-white/30 text-white bg-white/5 hover:bg-white/15 backdrop-blur-sm font-semibold"
+									className="h-14 px-8 text-base rounded-lg bg-white hover:bg-slate-100 text-brand-primary font-bold shadow-lg border-0"
 									asChild
 								>
-									<Link href="/vehicles">{m.common_explore_inventory()}</Link>
+									<Link href="/auctions">{m.home_auction_view_all()}</Link>
 								</Button>
 							</div>
 
@@ -197,7 +202,7 @@ export default async function Home() {
 								<div className="flex items-center gap-2">
 									<Shield className="h-4 w-4 text-brand-gold" />
 									<span className="text-xs font-bold uppercase tracking-wider">
-										{m.common_fully_insured()}
+										{m.common_money_back_guarantee()}
 									</span>
 								</div>
 								<div className="flex items-center gap-2">
@@ -212,8 +217,8 @@ export default async function Home() {
 						{/* Floating stats — grounded in real logistics scale */}
 						<div className="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-4xl">
 							{[
-								{ value: "4+", label: m.common_global_reach() },
-								{ value: "100%", label: m.common_guaranteed_delivery() },
+								{ value: "Buy / Bid", label: m.common_buy_now_or_auction() },
+								{ value: "100%", label: m.common_money_back_guarantee() },
 								{ value: "24/7", label: m.common_live_tracking() },
 								{ value: "Escrow", label: m.common_escrow_protected() },
 							].map((stat) => (
