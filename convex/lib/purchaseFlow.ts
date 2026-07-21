@@ -46,7 +46,6 @@ export function resolveBuyNowPrice(pricing: {
   const candidates = [
     pricing.buyItNowPrice,
     pricing.reservePrice,
-    pricing.startingBid,
   ];
   for (const value of candidates) {
     if (typeof value === "number" && Number.isFinite(value) && value > 0) {

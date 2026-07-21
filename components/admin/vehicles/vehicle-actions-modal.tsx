@@ -85,6 +85,11 @@ export function VehicleActionsModal({
     const [imagesDirty, setImagesDirty] = useState(false);
     const [newImageInput, setNewImageInput] = useState("");
 
+    // Document state
+    const [docRefs, setDocRefs] = useState<{ type: string; displayUrl: string; storageRef: string }[]>([]);
+    const [docsDirty, setDocsDirty] = useState(false);
+    const [isDocUploading, setIsDocUploading] = useState(false);
+
     const sourceVehicle = vehicleDetail ?? vehicle;
 
     // Initialize form data when vehicle changes
@@ -141,6 +146,19 @@ export function VehicleActionsModal({
             setImageRefs([]);
         }
         setImagesDirty(false);
+
+        if (sourceVehicle.documents?.length) {
+            setDocRefs(
+                sourceVehicle.documents.map((doc: any) => ({
+                    type: doc.type,
+                    displayUrl: doc.url,
+                    storageRef: doc.storageRef ?? doc.url,
+                }))
+            );
+        } else {
+            setDocRefs([]);
+        }
+        setDocsDirty(false);
     }, [sourceVehicle]);
 
     const handleInputChange = (field: string, value: any) => {
@@ -222,6 +240,62 @@ export function VehicleActionsModal({
         }
     };
 
+    const handleDocumentUpload = async (type: string, file: File) => {
+        if (!token) {
+            toast({
+                title: "Error",
+                description: "You must be logged in to upload documents",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsDocUploading(true);
+        try {
+            const uploadUrl = await generateUploadUrl({ token });
+            const result = await fetch(uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type || "application/octet-stream" },
+                body: file,
+            });
+
+            if (!result.ok) {
+                throw new Error("Upload failed");
+            }
+
+            const { storageId } = await result.json();
+            const storageRef = String(storageId);
+            const displayUrl =
+                (await convex.query(api.files.getFileUrl, {
+                    storageId: storageRef as Id<"_storage">,
+                })) ?? "";
+
+            setDocRefs((prev) => {
+                const filtered = prev.filter((d) => d.type !== type);
+                return [...filtered, { type, displayUrl, storageRef }];
+            });
+            setDocsDirty(true);
+            toast({
+                title: "Document Uploaded",
+                description: `${type.replace(/_/g, " ")} successfully uploaded.`,
+            });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Error uploading document.";
+            toast({
+                title: "Upload Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setIsDocUploading(false);
+        }
+    };
+
+    const handleRemoveDocument = (type: string) => {
+        setDocRefs((prev) => prev.filter((d) => d.type !== type));
+        setDocsDirty(true);
+    };
+
     const handleSave = async () => {
         if (!token) {
             toast({
@@ -265,6 +339,9 @@ export function VehicleActionsModal({
                 odometer: toNumber(formData.odometer),
                 exteriorColor: formData.exteriorColor,
                 interiorColor: formData.interiorColor,
+                trim: formData.trim,
+                fuelType: formData.fuelType,
+                drivetrain: formData.drivetrain,
                 batteryCapacity: toNumber(formData.batteryCapacity),
                 batteryHealthPercent: toNumber(formData.batteryHealthPercent),
                 estimatedRange: toNumber(formData.estimatedRange),
@@ -273,6 +350,10 @@ export function VehicleActionsModal({
                 motorPower: toNumber(formData.motorPower),
                 condition: formData.condition,
                 damageDescription: formData.damageDescription,
+                titleType: formData.titleType,
+                titleCountry: formData.titleCountry,
+                hasKeys: formData.hasKeys,
+                sourceType: formData.sourceType,
                 startingBid: toNumber(formData.startingBid),
                 reservePrice: toNumber(formData.reservePrice),
                 buyItNowPrice: toNumber(formData.buyItNowPrice),
@@ -295,6 +376,13 @@ export function VehicleActionsModal({
                 }
 
                 updates.imageUrls = persistableRefs;
+            }
+
+            if (docsDirty) {
+                updates.documents = docRefs.map((ref) => ({
+                    type: ref.type as any,
+                    storageId: ref.storageRef,
+                }));
             }
 
             await updateVehicle({
@@ -429,9 +517,9 @@ export function VehicleActionsModal({
 
                 <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                     {/* Sidebar / Tabs */}
-                    <div className="w-full md:w-48 border-r bg-muted/30 p-2">
+                    <div className="w-full md:w-48 border-r bg-muted/30 p-2 overflow-y-auto">
                         <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="w-full flex-col">
-                            <TabsList className="flex flex-col h-auto bg-transparent gap-1">
+                            <TabsList className="flex flex-col h-auto md:h-auto items-stretch bg-transparent gap-1">
                                 <TabsTrigger value="details" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
                                     <Car className="w-4 h-4 mr-2" /> Details
                                 </TabsTrigger>
@@ -440,6 +528,9 @@ export function VehicleActionsModal({
                                 </TabsTrigger>
                                 <TabsTrigger value="condition" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
                                     <FileText className="w-4 h-4 mr-2" /> Condition
+                                </TabsTrigger>
+                                <TabsTrigger value="documents" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
+                                    <FileText className="w-4 h-4 mr-2" /> Documents
                                 </TabsTrigger>
                                 <TabsTrigger value="auction" className="w-full justify-start px-3 py-2 h-auto data-[state=active]:bg-background">
                                     <Gavel className="w-4 h-4 mr-2" /> Auction
@@ -481,6 +572,10 @@ export function VehicleActionsModal({
                                 handleOverrideStatus={handleOverrideStatus}
                                 isLoading={isLoading}
                                 getStatusBadgeColor={getStatusBadgeColor}
+                                docRefs={docRefs}
+                                handleRemoveDocument={handleRemoveDocument}
+                                handleDocumentUpload={handleDocumentUpload}
+                                isDocUploading={isDocUploading}
                             />
                         )}
                     </ScrollArea>
@@ -534,9 +629,29 @@ function ViewModeContent({ vehicle, activeTab }: { vehicle: any; activeTab: stri
                         <Label className="text-muted-foreground">Color</Label>
                         <p className="font-medium">{vehicle.exteriorColor} / {vehicle.interiorColor}</p>
                     </div>
-                    <div className="col-span-2">
+                    <div>
+                        <Label className="text-muted-foreground">Trim</Label>
+                        <p className="font-medium">{vehicle.trim || "N/A"}</p>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Title Type</Label>
+                        <p className="font-medium capitalize">{vehicle.titleType ? vehicle.titleType.replace("_", " ") : "N/A"}</p>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Title Country</Label>
+                        <p className="font-medium">{vehicle.titleCountry || "N/A"}</p>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Keys</Label>
+                        <p className="font-medium">{vehicle.hasKeys ? "Yes" : "No"}</p>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Source</Label>
+                        <p className="font-medium capitalize">{vehicle.sourceType || "N/A"}</p>
+                    </div>
+                    <div className="col-span-2 border-t pt-4 mt-2">
                         <Label className="text-muted-foreground">Location</Label>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 mt-1">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
                             <p className="font-medium">{vehicle.currentLocation?.city}, {vehicle.currentLocation?.country}</p>
                         </div>
@@ -549,20 +664,144 @@ function ViewModeContent({ vehicle, activeTab }: { vehicle: any; activeTab: stri
         return (
             <div className="grid grid-cols-2 gap-4">
                 <div>
+                    <Label className="text-muted-foreground">Fuel Type</Label>
+                    <p className="font-medium">{vehicle.fuelType || "N/A"}</p>
+                </div>
+                <div>
+                    <Label className="text-muted-foreground">Battery Type</Label>
+                    <p className="font-medium">{vehicle.batteryType || "N/A"}</p>
+                </div>
+                <div>
                     <Label className="text-muted-foreground">Battery Capacity</Label>
-                    <p className="font-medium">{vehicle.batteryCapacity} kWh</p>
+                    <p className="font-medium">{vehicle.batteryCapacity ? `${vehicle.batteryCapacity} kWh` : "N/A"}</p>
                 </div>
                 <div>
                     <Label className="text-muted-foreground">Health</Label>
-                    <p className="font-medium">{vehicle.batteryHealthPercent}%</p>
+                    <p className="font-medium">{vehicle.batteryHealthPercent ? `${vehicle.batteryHealthPercent}%` : "N/A"}</p>
                 </div>
                 <div>
                     <Label className="text-muted-foreground">Range</Label>
-                    <p className="font-medium">{vehicle.estimatedRange} km</p>
+                    <p className="font-medium">{vehicle.estimatedRange ? `${vehicle.estimatedRange} km` : "N/A"}</p>
                 </div>
                 <div>
-                    <Label className="text-muted-foreground">Motor</Label>
-                    <p className="font-medium">{vehicle.motorPower} kW</p>
+                    <Label className="text-muted-foreground">Motor Power</Label>
+                    <p className="font-medium">{vehicle.motorPower ? `${vehicle.motorPower} kW` : "N/A"}</p>
+                </div>
+                <div>
+                    <Label className="text-muted-foreground">Drivetrain</Label>
+                    <p className="font-medium">{vehicle.drivetrain || "N/A"}</p>
+                </div>
+                <div className="col-span-2">
+                    <Label className="text-muted-foreground">Charging Type</Label>
+                    <p className="font-medium">{vehicle.chargingType?.length ? vehicle.chargingType.join(", ") : "N/A"}</p>
+                </div>
+            </div>
+        )
+    }
+    if (activeTab === "condition") {
+        return (
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label className="text-muted-foreground">Condition</Label>
+                        <p className="font-medium capitalize">{vehicle.condition || "N/A"}</p>
+                    </div>
+                    <div>
+                        <Label className="text-muted-foreground">Odometer</Label>
+                        <p className="font-medium">{vehicle.odometer ? `${vehicle.odometer.toLocaleString()} ${vehicle.odometerUnit || "km"}` : "0 km"}</p>
+                    </div>
+                </div>
+                <div className="border-t pt-4">
+                    <Label className="text-muted-foreground">Damage Description</Label>
+                    <p className="font-medium mt-1 whitespace-pre-wrap">{vehicle.damageDescription || "No damage description provided."}</p>
+                </div>
+            </div>
+        )
+    }
+    if (activeTab === "documents") {
+        const inspectionReport = vehicle.documents?.find((d: any) => d.type === "inspection_report");
+        const videoWalkthrough = vehicle.documents?.find((d: any) => d.type === "bill_of_sale");
+        const otherDocs = vehicle.documents?.filter((d: any) => d.type !== "inspection_report" && d.type !== "bill_of_sale");
+
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h3 className="font-semibold text-base mb-2">Inspection Report</h3>
+                    {inspectionReport ? (
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                            <span className="text-sm font-medium">Inspection Report (PDF/Image)</span>
+                            <Button asChild size="sm" variant="outline">
+                                <a href={inspectionReport.url} target="_blank" rel="noopener noreferrer">
+                                    View Report
+                                </a>
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No inspection report uploaded.</p>
+                    )}
+                </div>
+
+                <div className="border-t pt-4">
+                    <h3 className="font-semibold text-base mb-2">Video Walkthrough</h3>
+                    {videoWalkthrough ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                <span className="text-sm font-medium">Walkthrough Video</span>
+                                <Button asChild size="sm" variant="outline">
+                                    <a href={videoWalkthrough.url} target="_blank" rel="noopener noreferrer">
+                                        View Video
+                                    </a>
+                                </Button>
+                            </div>
+                            {videoWalkthrough.url && (
+                                <div className="aspect-[16/9] w-full border rounded-lg overflow-hidden bg-black">
+                                    <video src={videoWalkthrough.url} controls className="w-full h-full object-contain" />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No video walkthrough uploaded.</p>
+                    )}
+                </div>
+
+                {otherDocs && otherDocs.length > 0 && (
+                    <div className="border-t pt-4">
+                        <h3 className="font-semibold text-base mb-2">Other Documents</h3>
+                        <div className="space-y-2">
+                            {otherDocs.map((doc: any) => (
+                                <div key={doc._id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                    <span className="text-sm font-medium capitalize">{doc.type.replace(/_/g, " ")}</span>
+                                    <Button asChild size="sm" variant="outline">
+                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                            Download
+                                        </a>
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        )
+    }
+    if (activeTab === "auction") {
+        return (
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label className="text-muted-foreground">Starting Bid</Label>
+                    <p className="font-medium">{formatCurrency(vehicle.startingBid || 0)} NGN</p>
+                </div>
+                <div>
+                    <Label className="text-muted-foreground">Reserve Price</Label>
+                    <p className="font-medium">{vehicle.reservePrice ? `${formatCurrency(vehicle.reservePrice)} NGN` : "No Reserve"}</p>
+                </div>
+                <div>
+                    <Label className="text-muted-foreground">Buy Now Price</Label>
+                    <p className="font-medium">{vehicle.buyItNowPrice ? `${formatCurrency(vehicle.buyItNowPrice)} NGN` : "Auction Only"}</p>
+                </div>
+                <div>
+                    <Label className="text-muted-foreground">Buy Now Enabled</Label>
+                    <p className="font-medium">{vehicle.buyItNowEnabled ? "Yes" : "No"}</p>
                 </div>
             </div>
         )
@@ -590,6 +829,10 @@ function EditModeContent({
     handleOverrideStatus,
     isLoading,
     getStatusBadgeColor,
+    docRefs,
+    handleRemoveDocument,
+    handleDocumentUpload,
+    isDocUploading,
 }: {
     formData: any;
     handleInputChange: any;
@@ -608,6 +851,10 @@ function EditModeContent({
     handleOverrideStatus: () => void;
     isLoading?: boolean;
     getStatusBadgeColor: (status: string) => string;
+    docRefs: any[];
+    handleRemoveDocument: (type: string) => void;
+    handleDocumentUpload: (type: string, file: File) => void;
+    isDocUploading: boolean;
 }) {
     if (activeTab === "details") {
         return (
@@ -633,16 +880,58 @@ function EditModeContent({
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="exteriorColor">Exterior Color</Label>
-                        <Input id="exteriorColor" value={formData.exteriorColor} onChange={(e) => handleInputChange("exteriorColor", e.target.value)} />
+                        <Input id="exteriorColor" value={formData.exteriorColor || ""} onChange={(e) => handleInputChange("exteriorColor", e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="interiorColor">Interior Color</Label>
-                        <Input id="interiorColor" value={formData.interiorColor} onChange={(e) => handleInputChange("interiorColor", e.target.value)} />
+                        <Input id="interiorColor" value={formData.interiorColor || ""} onChange={(e) => handleInputChange("interiorColor", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="trim">Trim</Label>
+                        <Input id="trim" value={formData.trim || ""} onChange={(e) => handleInputChange("trim", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="titleType">Title Type</Label>
+                        <Select value={formData.titleType || ""} onValueChange={(v) => handleInputChange("titleType", v)}>
+                            <SelectTrigger><SelectValue placeholder="Select Title" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="clean">Clean Title</SelectItem>
+                                <SelectItem value="salvage">Salvage Title</SelectItem>
+                                <SelectItem value="rebuilt">Rebuilt Title</SelectItem>
+                                <SelectItem value="export_only">Export Only</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="titleCountry">Title Country</Label>
+                        <Input id="titleCountry" value={formData.titleCountry || ""} onChange={(e) => handleInputChange("titleCountry", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="hasKeys">Has Keys</Label>
+                        <Select value={formData.hasKeys === true ? "yes" : formData.hasKeys === false ? "no" : ""} onValueChange={(v) => handleInputChange("hasKeys", v === "yes")}>
+                            <SelectTrigger><SelectValue placeholder="Keys?" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sourceType">Source Type</Label>
+                        <Select value={formData.sourceType || ""} onValueChange={(v) => handleInputChange("sourceType", v)}>
+                            <SelectTrigger><SelectValue placeholder="Source" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="manufacturer">Manufacturer</SelectItem>
+                                <SelectItem value="dealer">Dealer</SelectItem>
+                                <SelectItem value="consignment">Consignment</SelectItem>
+                                <SelectItem value="insurance">Insurance</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 border-t pt-4 mt-2">
                     <Label htmlFor="status">Status</Label>
-                    <Badge className={cn("w-fit px-3 py-1 uppercase", getStatusBadgeColor(formData.status || ""))}>
+                    <Badge className={cn("w-fit px-3 py-1 uppercase block mb-1", getStatusBadgeColor(formData.status || ""))}>
                         {(formData.status || "unknown").replace(/_/g, " ")}
                     </Badge>
                     <p className="text-xs text-muted-foreground">
@@ -656,16 +945,36 @@ function EditModeContent({
         return (
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                    <Label htmlFor="fuelType">Fuel Type</Label>
+                    <Input id="fuelType" value={formData.fuelType || ""} onChange={(e) => handleInputChange("fuelType", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="batteryType">Battery Type</Label>
+                    <Input id="batteryType" value={formData.batteryType || ""} onChange={(e) => handleInputChange("batteryType", e.target.value)} />
+                </div>
+                <div className="space-y-2">
                     <Label htmlFor="batteryCapacity">Capacity (kWh)</Label>
-                    <Input id="batteryCapacity" type="number" value={formData.batteryCapacity} onChange={(e) => handleInputChange("batteryCapacity", e.target.value)} />
+                    <Input id="batteryCapacity" type="number" value={formData.batteryCapacity || ""} onChange={(e) => handleInputChange("batteryCapacity", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="batteryHealthPercent">Health (%)</Label>
-                    <Input id="batteryHealthPercent" type="number" value={formData.batteryHealthPercent} onChange={(e) => handleInputChange("batteryHealthPercent", e.target.value)} />
+                    <Input id="batteryHealthPercent" type="number" value={formData.batteryHealthPercent || ""} onChange={(e) => handleInputChange("batteryHealthPercent", e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="estimatedRange">Range (km)</Label>
-                    <Input id="estimatedRange" type="number" value={formData.estimatedRange} onChange={(e) => handleInputChange("estimatedRange", e.target.value)} />
+                    <Input id="estimatedRange" type="number" value={formData.estimatedRange || ""} onChange={(e) => handleInputChange("estimatedRange", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="motorPower">Motor Power (kW)</Label>
+                    <Input id="motorPower" type="number" value={formData.motorPower || ""} onChange={(e) => handleInputChange("motorPower", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="drivetrain">Drivetrain</Label>
+                    <Input id="drivetrain" value={formData.drivetrain || ""} onChange={(e) => handleInputChange("drivetrain", e.target.value)} />
+                </div>
+                <div className="col-span-2 space-y-2">
+                    <Label htmlFor="chargingType">Charging Type (Comma separated)</Label>
+                    <Input id="chargingType" value={Array.isArray(formData.chargingType) ? formData.chargingType.join(", ") : (formData.chargingType || "")} onChange={(e) => handleInputChange("chargingType", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))} />
                 </div>
             </div>
         )
@@ -787,6 +1096,69 @@ function EditModeContent({
                 </div>
             </div>
         )
+    }
+    if (activeTab === "documents") {
+        const getDoc = (type: string) => docRefs.find((d) => d.type === type);
+
+        return (
+            <div className="space-y-6">
+                <div>
+                    <Label className="text-lg font-semibold block mb-1">Manage Documents</Label>
+                    <p className="text-sm text-muted-foreground">Upload and manage vehicle documents.</p>
+                </div>
+
+                <div className="grid gap-6">
+                    {[
+                        { type: "inspection_report", label: "Inspection Report (PDF/Image)", accept: ".pdf,image/*" },
+                        { type: "bill_of_sale", label: "Video Walkthrough / Bill of Sale (MP4/Video)", accept: "video/*" },
+                        { type: "battery_report", label: "Battery Report (PDF/Image)", accept: ".pdf,image/*" },
+                        { type: "title_scan", label: "Title Scan (PDF/Image)", accept: ".pdf,image/*" },
+                    ].map((docType) => {
+                        const existingDoc = getDoc(docType.type);
+                        return (
+                            <div key={docType.type} className="flex flex-col gap-2 p-4 border rounded-xl bg-muted/15">
+                                <Label className="text-sm font-semibold">{docType.label}</Label>
+                                {existingDoc ? (
+                                    <div className="flex items-center justify-between mt-1 bg-background p-2 border rounded-lg">
+                                        <span className="text-sm truncate max-w-[70%] font-medium text-volt-green">
+                                            {docType.type.replace(/_/g, " ").toUpperCase()}
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <Button asChild size="sm" variant="outline" className="h-8">
+                                                <a href={existingDoc.displayUrl} target="_blank" rel="noopener noreferrer">
+                                                    View
+                                                </a>
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => handleRemoveDocument(docType.type)}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-1">
+                                        <Input
+                                            type="file"
+                                            accept={docType.accept}
+                                            disabled={isDocUploading}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleDocumentUpload(docType.type, file);
+                                            }}
+                                            className="cursor-pointer"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     }
     if (activeTab === "lifecycle") {
         return (

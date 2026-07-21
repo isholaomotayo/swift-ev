@@ -565,6 +565,7 @@ export const getVehicleById = query({
           _id: doc._id,
           type: doc.documentType,
           url,
+          storageRef: doc.documentUrl,
         };
       })
     );
@@ -983,6 +984,7 @@ export const updateVehicle = mutation({
       odometer: v.optional(v.number()),
       exteriorColor: v.optional(v.string()),
       interiorColor: v.optional(v.string()),
+      trim: v.optional(v.string()),
 
       // Fuel type
       fuelType: v.optional(v.string()),
@@ -997,6 +999,7 @@ export const updateVehicle = mutation({
       chargingType: v.optional(v.array(v.string())),
       chargingTypes: v.optional(v.array(v.string())),
       motorPower: v.optional(v.number()),
+      drivetrain: v.optional(v.string()),
 
       condition: v.optional(
         v.union(
@@ -1009,6 +1012,12 @@ export const updateVehicle = mutation({
         )
       ),
       damageDescription: v.optional(v.string()),
+
+      // Title & Source
+      titleType: v.optional(v.union(v.literal("clean"), v.literal("salvage"), v.literal("rebuilt"), v.literal("export_only"))),
+      titleCountry: v.optional(v.string()),
+      hasKeys: v.optional(v.boolean()),
+      sourceType: v.optional(v.union(v.literal("manufacturer"), v.literal("dealer"), v.literal("consignment"), v.literal("insurance"))),
 
       // Pricing
       startingBid: v.optional(v.number()),
@@ -1032,6 +1041,22 @@ export const updateVehicle = mutation({
       status: v.optional(vehicleStatusValidator),
       // Images - Optional array of strings (URLs or Storage IDs)
       imageUrls: v.optional(v.array(v.string())),
+      // Documents - Optional array of type + storageId
+      documents: v.optional(
+        v.array(
+          v.object({
+            type: v.union(
+              v.literal("battery_report"),
+              v.literal("inspection_report"),
+              v.literal("title_scan"),
+              v.literal("bill_of_sale"),
+              v.literal("export_certificate"),
+              v.literal("soncap_cert")
+            ),
+            storageId: v.string(),
+          })
+        )
+      ),
     }),
   },
   handler: async (ctx, args) => {
@@ -1075,10 +1100,10 @@ export const updateVehicle = mutation({
       await checkDuplicateVin(ctx, normalizedVin, vehicleId);
     }
 
-    // 1. Update vehicle fields
-    // Separate imageUrls from the patch as it's not a field on the 'vehicles' table
+    // Separate imageUrls and documents from the patch as they're not fields on the 'vehicles' table
     const {
       imageUrls,
+      documents: newDocs,
       status: requestedStatus,
       makeCustom,
       batteryTypeCustom,
@@ -1248,6 +1273,30 @@ export const updateVehicle = mutation({
             thumbnailUrl: imageRef,
             imageType: index === 0 ? "hero" : "exterior", // Simple logic for type
             order: index,
+            uploadedAt: now,
+          });
+        })
+      );
+    }
+
+    // 3. Update documents if provided
+    if (newDocs) {
+      // Delete existing documents
+      const existingDocs = await ctx.db
+        .query("vehicleDocuments")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicleId))
+        .collect();
+
+      await Promise.all(existingDocs.map((doc) => ctx.db.delete(doc._id)));
+
+      // Insert new documents
+      const now = Date.now();
+      await Promise.all(
+        newDocs.map(async (doc) => {
+          await ctx.db.insert("vehicleDocuments", {
+            vehicleId,
+            documentType: doc.type,
+            documentUrl: doc.storageId,
             uploadedAt: now,
           });
         })

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "concurrently --names \"NEXT,CONVEX\" --prefix-colors \"cyan,magenta\" \"next dev --turbopack\" \"convex dev\"",
-    "dev:next": "next dev --turbopack",
+    "dev:next": "next dev --turbopack --port 3001",
     "dev:convex": "convex dev",
     "build": "pnpm paraglide:compile && next build",
     "start": "next start",

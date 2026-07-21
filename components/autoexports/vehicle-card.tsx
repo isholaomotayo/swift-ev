@@ -37,6 +37,8 @@ interface VehicleCardProps {
     heroImage?: string;
     buyItNowPrice?: number;
     buyItNowEnabled?: boolean;
+    startingBid?: number;
+    reservePrice?: number;
   };
   auctionLot?: {
     currentBid: number;
@@ -45,6 +47,8 @@ interface VehicleCardProps {
     status: string;
     buyItNowPrice?: number;
     buyItNowEnabled?: boolean;
+    startingBid?: number;
+    reservePrice?: number;
   };
   onBidClick?: () => void;
   onWatchlistToggle?: () => void;
@@ -79,10 +83,14 @@ export function VehicleCard({
   const isInAuction = auctionLot?.status === "active";
   const isPreBidding = auctionLot?.status === "pending";
   const canBid = isInAuction || isPreBidding;
+  
+  const reservePrice = auctionLot?.reservePrice ?? vehicle.reservePrice;
+
   const buyNowPrice =
     auctionLot?.buyItNowPrice ??
     vehicle.buyItNowPrice ??
-    undefined;
+    reservePrice;
+
   const showBuyNow =
     !!buyNowPrice &&
     !isInAuction &&
