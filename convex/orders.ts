@@ -570,7 +570,14 @@ export const updateOrderStatus = mutation({
       },
     });
 
-    // TODO: Create notification for buyer
+    await createInAppNotification(ctx, {
+      userId: order.userId,
+      type: "system",
+      title: "Order Status Update",
+      message: `Your Order #${order.orderNumber || order._id} status is now: ${args.status.replace("_", " ")}.`,
+      orderId: order._id,
+      vehicleId: order.vehicleId,
+    });
 
     return { success: true };
   },

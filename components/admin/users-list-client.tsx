@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Search, UserPlus, Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { exportToCSV } from "@/lib/csv-export";
 import { validateUserRole, validateUserStatus, validateKYCStatus } from "@/lib/validation";
 
 interface UsersListClientProps {
@@ -74,8 +75,23 @@ export function UsersListClient({
   const showErrorBanner = loadError && !usersData && !stats;
 
   const handleExport = () => {
-    // TODO: Implement CSV export
-    console.log("Export users");
+    const list = usersData?.users || initialUsersData?.users || [];
+    exportToCSV(
+      `users-report-${new Date().toISOString().split("T")[0]}.csv`,
+      [
+        { header: "User ID", key: (row: any) => row._id },
+        { header: "First Name", key: (row: any) => row.firstName || "" },
+        { header: "Last Name", key: (row: any) => row.lastName || "" },
+        { header: "Email", key: (row: any) => row.email || "" },
+        { header: "Phone", key: (row: any) => row.phone || "" },
+        { header: "Role", key: (row: any) => row.role || "user" },
+        { header: "Membership Tier", key: (row: any) => row.membershipTier || "free" },
+        { header: "KYC Status", key: (row: any) => row.kycStatus || "unverified" },
+        { header: "Account Status", key: (row: any) => row.status || "active" },
+        { header: "Joined Date", key: (row: any) => formatDate(row._creationTime) },
+      ],
+      list
+    );
   };
 
   return (

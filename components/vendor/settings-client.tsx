@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,20 +62,19 @@ export function VendorSettingsClient({
   const updateBankDetails = useMutation(api.users.updateBankDetails);
   const updatePreferredCurrency = useMutation(api.users.updatePreferredCurrency);
 
+  const { updateProfile, token } = useAuth();
+  const changePassword = useAction(api.authActions.changePassword);
+
   const handleProfileUpdate = async () => {
     setLoading(true);
     try {
-      // TODO: Implement profile update mutation
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
+      await updateProfile({
+        firstName,
+        lastName,
+        phone: initialUser?.phone,
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -99,9 +99,22 @@ export function VendorSettingsClient({
       return;
     }
 
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Implement password change mutation
+      await changePassword({
+        token,
+        currentPassword,
+        newPassword,
+      });
       toast({
         title: "Success",
         description: "Password changed successfully",

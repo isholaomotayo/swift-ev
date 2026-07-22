@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +128,29 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportToCSV(
+                `vehicles-report-${new Date().toISOString().split("T")[0]}.csv`,
+                [
+                  { header: "VIN", key: (row: any) => row.vin || "N/A" },
+                  { header: "Title", key: (row: any) => `${row.year} ${row.make} ${row.model}` },
+                  { header: "Trim", key: (row: any) => row.trim || "" },
+                  { header: "Status", key: (row: any) => row.status || "" },
+                  { header: "Buy It Now Price (NGN)", key: (row: any) => row.buyItNowPrice || "" },
+                  { header: "Reserve Price (NGN)", key: (row: any) => row.reservePrice || "" },
+                  { header: "Mileage", key: (row: any) => row.mileage ? `${row.mileage} ${row.mileageUnit || 'mi'}` : "" },
+                  { header: "Location", key: (row: any) => row.location ? `${row.location.city || ''}, ${row.location.country || ''}` : "" },
+                  { header: "Creation Date", key: (row: any) => row._creationTime ? new Date(row._creationTime).toLocaleDateString() : "" },
+                ],
+                filteredVehicles
+              );
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
           <Button variant="outline" asChild>
             <Link href="/admin/vehicles/approvals">
               Approvals Queue

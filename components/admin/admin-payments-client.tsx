@@ -36,7 +36,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, ExternalLink, CreditCard } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, CreditCard, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
 
 interface AdminPaymentsClientProps {
   token: string;
@@ -124,11 +125,34 @@ export function AdminPaymentsClient({ token }: AdminPaymentsClientProps) {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Payment Verification</h1>
-        <p className="text-muted-foreground mt-1">
-          Review pending bank transfers and other payment submissions
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Payment Verification</h1>
+          <p className="text-muted-foreground mt-1">
+            Review pending bank transfers and other payment submissions
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToCSV(
+              `payments-report-${new Date().toISOString().split("T")[0]}.csv`,
+              [
+                { header: "Payment ID", key: (row: any) => row._id },
+                { header: "Order ID", key: (row: any) => row.orderId || "N/A" },
+                { header: "Amount (NGN)", key: (row: any) => row.amount || 0 },
+                { header: "Method", key: (row: any) => row.paymentMethod || row.provider || "N/A" },
+                { header: "Reference", key: (row: any) => row.reference || row.transactionId || "N/A" },
+                { header: "Status", key: (row: any) => row.status || "N/A" },
+                { header: "Submitted Date", key: (row: any) => formatDate(row._creationTime) },
+              ],
+              payments || []
+            );
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <Card className="p-4">

@@ -51,6 +51,7 @@ import {
   X,
 } from "lucide-react";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
+import { exportToCSV } from "@/lib/csv-export";
 import { useToast } from "@/hooks/use-toast";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -484,8 +485,28 @@ export function OrdersListClient({ initialOrdersData, initialStats, token }: Ord
           <h1 className="text-2xl font-bold tracking-tight">Order Management</h1>
           <p className="text-muted-foreground text-sm mt-0.5">All orders — auction wins, direct purchases, and offers</p>
         </div>
-        <Button variant="outline" size="sm">
-          <Download className="w-4 h-4 mr-2" />Export
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            exportToCSV(
+              `orders-report-${new Date().toISOString().split("T")[0]}.csv`,
+              [
+                { header: "Order #", key: (row: any) => row.orderNumber || row._id },
+                { header: "Buyer Name", key: (row: any) => row.buyer ? `${row.buyer.firstName || ""} ${row.buyer.lastName || ""}`.trim() : "N/A" },
+                { header: "Buyer Email", key: (row: any) => row.buyer?.email || "N/A" },
+                { header: "Vehicle", key: (row: any) => row.vehicle ? `${row.vehicle.year} ${row.vehicle.make} ${row.vehicle.model}` : "N/A" },
+                { header: "VIN", key: (row: any) => row.vehicle?.vin || "N/A" },
+                { header: "Order Type", key: (row: any) => row.orderType || "N/A" },
+                { header: "Total Amount (NGN)", key: (row: any) => row.totalAmount || 0 },
+                { header: "Status", key: (row: any) => row.status || "N/A" },
+                { header: "Created Date", key: (row: any) => formatDate(row._creationTime) },
+              ],
+              displayedOrders
+            );
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />Export CSV
         </Button>
       </div>
 

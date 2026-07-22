@@ -2,6 +2,7 @@
 
 import { RemoteImage } from "@/components/ui/remote-image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, Zap, Battery, Timer, MapPin, Gauge, Fuel } from "lucide-react";
 import {
   Card,
@@ -64,6 +65,7 @@ export function VehicleCard({
   isWatchlisted = false,
   className,
 }: VehicleCardProps) {
+  const router = useRouter();
   const {
     _id,
     lotNumber,
@@ -100,10 +102,11 @@ export function VehicleCard({
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-border/50 bg-card/50 backdrop-blur-sm hover:-translate-y-1",
+        "group relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-border/50 bg-card/50 backdrop-blur-sm hover:-translate-y-1 cursor-pointer",
         isInAuction ? "hover:shadow-volt-green/20" : "hover:shadow-primary/20",
         className,
       )}
+      onClick={() => router.push(`/vehicles/${_id}`)}
     >
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
@@ -145,6 +148,7 @@ export function VehicleCard({
           className="absolute top-3 right-3 z-10 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:text-white rounded-full transition-all duration-300"
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             onWatchlistToggle?.();
           }}
         >
@@ -177,11 +181,11 @@ export function VehicleCard({
       <CardHeader className="pb-2 pt-4 px-5">
         <div className="flex justify-between items-start gap-2">
           {/* Vehicle Title */}
-          <Link href={`/vehicles/${_id}`} className="flex-1">
+          <div className="flex-1">
             <h3 className="text-xl font-bold line-clamp-1 group-hover:text-electric-blue transition-colors duration-300">
               {year} {make} {model}
             </h3>
-          </Link>
+          </div>
           {batteryHealthPercent !== undefined && (
             <BatteryHealthBadge healthPercent={batteryHealthPercent} />
           )}
@@ -297,9 +301,12 @@ export function VehicleCard({
           <Button
             variant="outline"
             className="flex-1 font-semibold group-hover:border-electric-blue/50 group-hover:text-electric-blue hover:bg-electric-blue/5 transition-all"
-            asChild
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/vehicles/${_id}`);
+            }}
           >
-            <Link href={`/vehicles/${_id}`}>View Details</Link>
+            View Details
           </Button>
           {canBid && onBidClick && (
             <Button
@@ -309,7 +316,10 @@ export function VehicleCard({
                   ? "bg-volt-green hover:bg-volt-green/90 shadow-volt-green/20 hover:shadow-volt-green/40"
                   : "bg-electric-blue hover:bg-electric-blue/90 shadow-electric-blue/20 hover:shadow-electric-blue/40",
               )}
-              onClick={onBidClick}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBidClick();
+              }}
             >
               {isInAuction ? "Place Bid" : "Pre-Bid"}
             </Button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation } from "convex/react";
+import { useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -17,6 +18,18 @@ export function useWatchlistToggle(vehicleId: string) {
   const { token } = useAuth();
   const { toast } = useToast();
   const { watchlistedIds, toggle, setWatchlisted } = useWatchlistStore();
+
+  const serverWatchlist = useQuery(
+    api.watchlist.getWatchlist,
+    token ? { token } : "skip"
+  );
+
+  useEffect(() => {
+    if (serverWatchlist) {
+      const ids = serverWatchlist.map((item) => item.vehicle._id);
+      useWatchlistStore.getState().initFromServer(ids);
+    }
+  }, [serverWatchlist]);
 
   const addMutation = useMutation(api.watchlist.addToWatchlist);
   const removeMutation = useMutation(api.watchlist.removeFromWatchlist);

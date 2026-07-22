@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
+import { createInAppNotification } from "./lib/payments";
 
 /**
  * List all users with filtering and pagination
@@ -222,7 +223,12 @@ export const updateUserRole = mutation({
       changes: { oldRole, newRole: args.role },
     });
 
-    // TODO: Create notification for user
+    await createInAppNotification(ctx, {
+      userId: targetUserId,
+      type: "system",
+      title: "Account Role Updated",
+      message: `Your account role has been updated to ${args.role}.`,
+    });
 
     return { success: true };
   },
@@ -278,7 +284,12 @@ export const updateUserStatus = mutation({
       changes: { oldStatus, newStatus: args.status, reason: args.reason },
     });
 
-    // TODO: Create notification for user
+    await createInAppNotification(ctx, {
+      userId: targetUserId,
+      type: "system",
+      title: "Account Status Updated",
+      message: `Your account status has been changed to ${args.status}${args.reason ? `: ${args.reason}` : "."}`,
+    });
     // Invalidate active sessions when account is no longer active
     if (args.status === "suspended" || args.status === "banned") {
       const sessions = await ctx.db
@@ -389,7 +400,12 @@ export const updateKYCStatus = mutation({
       changes: { oldStatus, newStatus: args.kycStatus, notes: args.notes },
     });
 
-    // TODO: Create notification for user
+    await createInAppNotification(ctx, {
+      userId: targetUserId,
+      type: "system",
+      title: "KYC Verification Update",
+      message: `Your identity verification status is now: ${args.kycStatus.replace("_", " ")}.`,
+    });
 
     return { success: true };
   },
@@ -441,7 +457,12 @@ export const updateMembershipTier = mutation({
       changes: { oldTier, newTier: args.tier },
     });
 
-    // TODO: Create notification for user
+    await createInAppNotification(ctx, {
+      userId: targetUserId,
+      type: "system",
+      title: "Membership Tier Updated",
+      message: `Your membership tier has been updated to ${args.tier.toUpperCase()}.`,
+    });
 
     return { success: true };
   },

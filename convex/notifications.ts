@@ -13,7 +13,7 @@ export const getUserNotifications = query({
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
 
-    let q = ctx.db
+    const q = ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc");

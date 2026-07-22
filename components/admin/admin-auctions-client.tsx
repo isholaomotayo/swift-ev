@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Calendar, Play, Zap, Trash2 } from "lucide-react";
+import { Plus, Calendar, Play, Zap, Trash2, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csv-export";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -279,6 +280,28 @@ export function AdminAuctionsClient({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportToCSV(
+                `auctions-report-${new Date().toISOString().split("T")[0]}.csv`,
+                [
+                  { header: "Auction ID", key: (row: any) => row._id },
+                  { header: "Title", key: (row: any) => row.name || row.title || "N/A" },
+                  { header: "Type", key: (row: any) => row.type || "live_sequential" },
+                  { header: "Status", key: (row: any) => row.status || "N/A" },
+                  { header: "Lots Count", key: (row: any) => row.lotCount || row.lots?.length || 0 },
+                  { header: "Scheduled Start", key: (row: any) => row.scheduledStart ? formatDate(row.scheduledStart) : "N/A" },
+                  { header: "Scheduled End", key: (row: any) => row.scheduledEnd ? formatDate(row.scheduledEnd) : "N/A" },
+                  { header: "Created Date", key: (row: any) => formatDate(row._creationTime) },
+                ],
+                initialAuctions || []
+              );
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
           <Button
             variant={activeTab === "control-center" ? "default" : "outline"}
             onClick={() => setActiveTab("control-center")}
