@@ -266,9 +266,8 @@ export default function HowItWorksPage() {
                 <Link href="/register">{m.register_start_exporting()}</Link>
               </Button>
               <Button
-                variant="outline"
                 size="lg"
-                className="h-20 px-12 border-4 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white rounded-none text-xl font-black uppercase tracking-widest transition-all"
+                className="h-20 px-12 border-4 border-brand-primary bg-transparent text-brand-primary hover:bg-brand-primary hover:text-white rounded-none text-xl font-black uppercase tracking-widest transition-all"
                 asChild
               >
                 <Link href="/vehicles">{m.common_full_inventory()}</Link>

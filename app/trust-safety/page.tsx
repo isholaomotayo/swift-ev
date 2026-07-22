@@ -218,8 +218,7 @@ export default function TrustSafetyPage() {
                 </Button>
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="h-16 px-10 border-2 border-brand-primary text-brand-primary font-black uppercase tracking-widest rounded-none hover:bg-brand-primary hover:text-white transition-all"
+                  className="h-16 px-10 border-2 border-brand-primary bg-transparent text-brand-primary hover:bg-brand-primary hover:text-white font-black uppercase tracking-widest rounded-none transition-all"
                   asChild
                 >
                   <Link href="/faq">{m.trust_safety_read_faq()}</Link>

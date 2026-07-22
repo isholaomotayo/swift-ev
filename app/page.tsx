@@ -277,8 +277,7 @@ export default async function Home() {
 								</p>
 							</div>
 							<Button
-								variant="outline"
-								className="self-start lg:self-auto group h-12 px-6 border-2 border-brand-primary/20 text-brand-primary dark:text-brand-gold dark:border-brand-gold/30 font-bold hover:bg-brand-primary hover:text-white dark:hover:bg-brand-gold dark:hover:text-brand-primary transition-colors"
+								className="self-start lg:self-auto group h-12 px-6 border-2 border-brand-primary/20 bg-transparent text-brand-primary dark:text-brand-gold dark:border-brand-gold/30 font-bold hover:bg-brand-primary hover:text-white dark:hover:bg-brand-gold dark:hover:text-brand-primary transition-colors"
 								asChild
 							>
 								<Link href="/vehicles" className="flex items-center gap-2">

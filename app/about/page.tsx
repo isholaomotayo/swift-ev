@@ -130,8 +130,7 @@ export default function AboutPage() {
               </Button>
               <Button
                 size="lg"
-                variant="outline"
-                className="h-14 px-10 border-2 border-brand-primary font-black uppercase tracking-widest"
+                className="h-14 px-10 border-2 border-brand-primary bg-transparent text-brand-primary hover:bg-brand-primary hover:text-white font-black uppercase tracking-widest transition-all"
                 asChild
               >
                 <Link href="/register">{m.about_cta_register()}</Link>
