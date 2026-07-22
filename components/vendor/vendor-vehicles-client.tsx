@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -37,9 +45,12 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
   const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [withdrawingVehicle, setWithdrawingVehicle] = useState<any | null>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { toast } = useToast();
 
   const submitVehicle = useMutation(api.vehicles.submitVehicleForApproval);
+  const withdrawVehicleMutation = useMutation(api.vehicles.withdrawVehicle);
 
   const handleSubmit = async (vehicleId: any) => {
     if (!token) return;
@@ -57,6 +68,51 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
       });
     }
   };
+
+  const handleWithdraw = async () => {
+    if (!token || !withdrawingVehicle) return;
+    try {
+      setIsWithdrawing(true);
+      await withdrawVehicleMutation({ token, vehicleId: withdrawingVehicle._id });
+      toast({
+        title: "Vehicle Withdrawn",
+        description: `${withdrawingVehicle.year} ${withdrawingVehicle.make} ${withdrawingVehicle.model} has been withdrawn.`,
+      });
+      setWithdrawingVehicle(null);
+    } catch (error: any) {
+      toast({
+        title: "Withdrawal Failed",
+        description: error.message || "Failed to withdraw vehicle",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const editableStatuses = [
+    "draft",
+    "pending_inspection",
+    "pending_approval",
+    "approved",
+    "ready_for_auction",
+    "scheduled",
+    "unsold",
+    "rejected",
+  ];
+
+  const withdrawableStatuses = [
+    "draft",
+    "pending_inspection",
+    "pending_approval",
+    "approved",
+    "ready_for_auction",
+    "scheduled",
+    "unsold",
+    "rejected",
+  ];
+
+  const reapprovalStatuses = ["approved", "ready_for_auction", "scheduled", "unsold"];
 
   // Apply filters
   const filteredVehicles = useMemo(() => {
@@ -184,55 +240,135 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVehicles.map((vehicle) => (
-                <TableRow key={vehicle._id}>
-                  <TableCell className="font-mono">
-                    {vehicle.lotNumber}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {vehicle.batteryCapacity} kWh • {vehicle.estimatedRange} km
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
-                  <TableCell className="font-mono">
-                    {vehicle.auctionLot
-                      ? formatCurrency(vehicle.auctionLot.currentBid, { currency: preferredCurrency })
-                      : vehicle.startingBid
-                      ? formatCurrency(vehicle.startingBid, { currency: preferredCurrency })
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(vehicle.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {vehicle.status === "draft" && (
-                        <Button variant="default" size="sm" onClick={() => handleSubmit(vehicle._id)}>
-                          Submit
+              {filteredVehicles.map((vehicle) => {
+                const canEdit = editableStatuses.includes(vehicle.status);
+                const canWithdraw = withdrawableStatuses.includes(vehicle.status);
+                const requiresReapproval = reapprovalStatuses.includes(vehicle.status);
+                const isLiveAuction = vehicle.status === "in_auction";
+                const isSoldOrPostAvailable = [
+                  "payment_pending",
+                  "sold",
+                  "in_transit",
+                  "delivered",
+                  "cancelled",
+                ].includes(vehicle.status);
+
+                return (
+                  <TableRow key={vehicle._id}>
+                    <TableCell className="font-mono">
+                      {vehicle.lotNumber}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {vehicle.batteryCapacity} kWh • {vehicle.estimatedRange} km
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
+                    <TableCell className="font-mono">
+                      {vehicle.auctionLot
+                        ? formatCurrency(vehicle.auctionLot.currentBid, { currency: preferredCurrency })
+                        : vehicle.startingBid
+                        ? formatCurrency(vehicle.startingBid, { currency: preferredCurrency })
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(vehicle.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {vehicle.status === "draft" && (
+                          <Button variant="default" size="sm" onClick={() => handleSubmit(vehicle._id)}>
+                            Submit
+                          </Button>
+                        )}
+
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/vehicles/${vehicle._id}`}>View</Link>
                         </Button>
-                      )}
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/vehicles/${vehicle._id}`}>View</Link>
-                      </Button>
-                      {(vehicle.status === "draft" || vehicle.status === "pending_approval" || vehicle.status === "rejected" || vehicle.status === "pending_inspection") && (
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/vendor/vehicles/${vehicle._id}/edit`}>Edit</Link>
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+
+                        {canEdit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            title={requiresReapproval ? "Editing this vehicle will require admin re-approval" : undefined}
+                          >
+                            <Link href={`/vendor/vehicles/${vehicle._id}/edit`}>Edit</Link>
+                          </Button>
+                        )}
+
+                        {canWithdraw && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setWithdrawingVehicle(vehicle)}
+                          >
+                            Withdraw
+                          </Button>
+                        )}
+
+                        {isLiveAuction && (
+                          <span className="text-xs text-amber-600 font-medium px-2 py-1 bg-amber-50 rounded dark:bg-amber-950/30 dark:text-amber-400">
+                            Locked (Live Auction)
+                          </span>
+                        )}
+
+                        {isSoldOrPostAvailable && (
+                          <span className="text-xs text-muted-foreground font-medium px-2 py-1 bg-secondary/50 rounded">
+                            Locked (Final/Sold)
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </Card>
+
+      {/* Withdraw Confirmation Modal */}
+      <Dialog open={!!withdrawingVehicle} onOpenChange={(open) => !open && setWithdrawingVehicle(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirm Vehicle Withdrawal
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to withdraw{" "}
+              <span className="font-semibold text-foreground">
+                {withdrawingVehicle?.year} {withdrawingVehicle?.make} {withdrawingVehicle?.model}
+              </span>{" "}
+              (Lot #{withdrawingVehicle?.lotNumber})?
+              <br />
+              Withdrawing will remove this vehicle from all active listings and scheduled auctions.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setWithdrawingVehicle(null)}
+              disabled={isWithdrawing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleWithdraw}
+              disabled={isWithdrawing}
+            >
+              {isWithdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

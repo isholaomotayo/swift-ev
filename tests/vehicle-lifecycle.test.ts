@@ -43,10 +43,18 @@ describe("vehicle lifecycle", () => {
     expect(canTransitionVehicleStatus("approved", "scheduled")).toBe(true);
   });
 
+  test("supports seller edit re-approval transitions", () => {
+    expect(canTransitionVehicleStatus("approved", "pending_approval")).toBe(true);
+    expect(canTransitionVehicleStatus("ready_for_auction", "pending_approval")).toBe(true);
+    expect(canTransitionVehicleStatus("scheduled", "pending_approval")).toBe(true);
+    expect(canTransitionVehicleStatus("unsold", "pending_approval")).toBe(true);
+  });
+
   test("supports explicit review, unsold, and terminal branches", () => {
     expect(canTransitionVehicleStatus("pending_approval", "rejected")).toBe(true);
     expect(canTransitionVehicleStatus("approved", "withdrawn")).toBe(true);
     expect(canTransitionVehicleStatus("scheduled", "withdrawn")).toBe(true);
+    expect(canTransitionVehicleStatus("rejected", "withdrawn")).toBe(true);
     expect(canTransitionVehicleStatus("in_auction", "unsold")).toBe(true);
     expect(canTransitionVehicleStatus("unsold", "approved")).toBe(true);
     expect(canTransitionVehicleStatus("payment_pending", "cancelled")).toBe(true);

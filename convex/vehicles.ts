@@ -1078,10 +1078,34 @@ export const updateVehicle = mutation({
       throw new Error("You do not have permission to update this vehicle");
     }
 
+    let resetToPendingApproval = false;
     if (isOwner && !isAdmin) {
-      const allowedEditingStatuses = ["draft", "pending_inspection", "pending_approval", "rejected"];
-      if (!allowedEditingStatuses.includes(vehicle.status)) {
-        throw new Error(`Vendors cannot edit vehicles that have already been approved (current status: ${vehicle.status}). Please contact support if you need to make changes.`);
+      // 1. Active auction lock
+      const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
+      if (vehicle.status === "in_auction" || activeLot) {
+        throw new Error(
+          "Cannot edit a vehicle while it is in an active live auction. Please wait until the auction finishes."
+        );
+      }
+
+      // 2. Sold / post-available lock
+      const postAvailableStatuses = [
+        "payment_pending",
+        "sold",
+        "in_transit",
+        "delivered",
+        "cancelled",
+      ];
+      if (postAvailableStatuses.includes(vehicle.status)) {
+        throw new Error(
+          `Cannot edit a vehicle that is ${vehicle.status.replace("_", " ")} or has transitioned from an available state.`
+        );
+      }
+
+      // 3. Re-approval required for already approved / scheduled / ready / unsold listings
+      const approvedAvailableStatuses = ["approved", "ready_for_auction", "scheduled", "unsold"];
+      if (approvedAvailableStatuses.includes(vehicle.status)) {
+        resetToPendingApproval = true;
       }
     }
 
@@ -1243,6 +1267,25 @@ export const updateVehicle = mutation({
 
     // Always keep Buy Now enabled when a valid price is set
     vehicleUpdates.buyItNowEnabled = true;
+
+    if (resetToPendingApproval) {
+      vehicleUpdates.status = "pending_approval";
+
+      const pendingLots = await ctx.db
+        .query("auctionLots")
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicleId))
+        .filter((q) => q.eq(q.field("status"), "pending"))
+        .collect();
+      await Promise.all(pendingLots.map((lot) => ctx.db.patch(lot._id, { status: "passed" })));
+
+      await createAuditLog(ctx, {
+        userId: user._id,
+        action: "edit_approved_vehicle",
+        entityType: "vehicle",
+        entityId: vehicleId,
+        changes: { oldStatus: vehicle.status, newStatus: "pending_approval" },
+      });
+    }
 
     const searchableText = [make, model, vin, lotNumber, year.toString()].join(" ").toLowerCase();
 
@@ -1453,8 +1496,33 @@ export const withdrawVehicle = mutation({
       throw new Error("Vehicle not found");
     }
 
-    if (!authIsAdmin(user) && (!vehicle.sellerId || vehicle.sellerId !== user._id)) {
+    const isAdmin = authIsAdmin(user);
+    const isOwner = vehicle.sellerId !== undefined && vehicle.sellerId === user._id;
+
+    if (!isAdmin && !isOwner) {
       throw new Error("You do not have permission to withdraw this vehicle");
+    }
+
+    if (!isAdmin && isOwner) {
+      // Active auction lock
+      const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
+      if (vehicle.status === "in_auction" || activeLot) {
+        throw new Error("Cannot withdraw a vehicle while it is in an active live auction.");
+      }
+
+      // Sold / post-available lock
+      const postAvailableStatuses = [
+        "payment_pending",
+        "sold",
+        "in_transit",
+        "delivered",
+        "cancelled",
+      ];
+      if (postAvailableStatuses.includes(vehicle.status)) {
+        throw new Error(
+          `Cannot withdraw a vehicle that is ${vehicle.status.replace("_", " ")} or has transitioned from an available state.`
+        );
+      }
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "withdrawn");

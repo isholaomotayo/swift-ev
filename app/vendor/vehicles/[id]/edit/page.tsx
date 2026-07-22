@@ -218,6 +218,12 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         </p>
       </div>
 
+      {vehicle && ["approved", "ready_for_auction", "scheduled", "unsold"].includes(vehicle.status) && (
+        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm">
+          <strong>Notice:</strong> Saving changes to an approved vehicle will return its status to <em>Pending Approval</em> for admin re-approval before it can be listed or auctioned again.
+        </div>
+      )}
+
       {initialData && (
         <VehicleForm
           initialData={initialData}
