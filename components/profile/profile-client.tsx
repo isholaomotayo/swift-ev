@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User, ShoppingBag, Gavel, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { KycOnboardingFlow } from "@/components/kyc/kyc-onboarding-flow";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface ProfileClientProps {
   initialUser: any;
@@ -44,20 +45,20 @@ export function ProfileClient({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const { updateProfile } = useAuth();
+  const changePassword = useAction(api.authActions.changePassword);
+
   const handleProfileUpdate = async () => {
     setLoading(true);
     try {
-      // TODO: Implement profile update mutation
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
+      await updateProfile({
+        firstName,
+        lastName,
+        phone: initialUser?.phone,
       });
+      // Note: toast is already handled inside updateProfile in the provider
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,12 @@ export function ProfileClient({
 
     setLoading(true);
     try {
-      // TODO: Implement password change mutation
+      await changePassword({
+        token,
+        currentPassword,
+        newPassword,
+      });
+      
       toast({
         title: "Success",
         description: "Password changed successfully",

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAuth, requireAdmin } from "./lib/auth";
+import { buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 
 /**
  * Create a new dispute
@@ -268,7 +269,56 @@ export const resolveDispute = mutation({
             });
         }
 
-        // TODO: Handle actual refund via wallet if applicable
+        // Handle actual refund via wallet if applicable
+        if (args.resolution === "full_refund" || args.resolution === "partial_refund" || args.resolution === "repair_credit") {
+            const orderRecord = await ctx.db.get(dispute.orderId);
+            let finalRefundAmount = 0;
+            
+            if (args.resolution === "full_refund") {
+                finalRefundAmount = orderRecord?.paidAmount ?? 0;
+            } else {
+                if (!args.refundAmount) {
+                    throw new Error(`refundAmount is required for ${args.resolution}`);
+                }
+                finalRefundAmount = args.refundAmount;
+            }
+
+            if (finalRefundAmount > 0 && reporterUser) {
+                const currentBalance = reporterUser.walletBalance ?? 0;
+                const newBalance = currentBalance + finalRefundAmount;
+                
+                await ctx.db.patch(reporterUser._id, {
+                    walletBalance: newBalance,
+                    buyingPower: buyingPowerFromWalletKobo(newBalance),
+                    updatedAt: Date.now(),
+                });
+
+                await ctx.db.insert("walletTransactions", {
+                    userId: reporterUser._id,
+                    type: "refund",
+                    amount: finalRefundAmount,
+                    currency: "NGN",
+                    status: "completed",
+                    reference: `REFUND_DISPUTE_${dispute._id}`,
+                    description: `Refund for dispute on order ${orderRecord?.orderNumber}`,
+                    relatedOrderId: orderRecord?._id,
+                    createdAt: Date.now(),
+                    completedAt: Date.now(),
+                });
+
+                if (args.resolution === "full_refund" && orderRecord && orderRecord.status !== "refunded") {
+                    await ctx.db.patch(orderRecord._id, { status: "refunded" });
+                    
+                    // Release vehicle if it wasn't already delivered
+                    if (orderRecord.status !== "delivered") {
+                        const vehicle = await ctx.db.get(orderRecord.vehicleId);
+                        if (vehicle && (vehicle.status === "payment_pending" || vehicle.status === "sold")) {
+                           await ctx.db.patch(vehicle._id, { status: "approved", buyItNowPurchasedBy: undefined });
+                        }
+                    }
+                }
+            }
+        }
 
         return { success: true };
     },

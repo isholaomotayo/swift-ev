@@ -37,6 +37,7 @@ import type * as lib_vehicleCatalog from "../lib/vehicleCatalog.js";
 import type * as lib_vehicleLifecycle from "../lib/vehicleLifecycle.js";
 import type * as logistics from "../logistics.js";
 import type * as mailRouting from "../mailRouting.js";
+import type * as notifications from "../notifications.js";
 import type * as orders from "../orders.js";
 import type * as payments from "../payments.js";
 import type * as registration from "../registration.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "lib/vehicleLifecycle": typeof lib_vehicleLifecycle;
   logistics: typeof logistics;
   mailRouting: typeof mailRouting;
+  notifications: typeof notifications;
   orders: typeof orders;
   payments: typeof payments;
   registration: typeof registration;

@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { CurrencySelector } from "@/components/layout/currency-selector";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { cn } from "@/lib/utils";
 import * as m from "@/src/paraglide/messages.js";
 import { BRAND_TAGLINE } from "@/lib/constants";
@@ -149,6 +150,7 @@ export function Header() {
             {/* Profile / Dropdown with Confidential Wallet Balance */}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
+                <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
