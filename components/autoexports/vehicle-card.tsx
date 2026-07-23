@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { AuctionTimer } from "./auction-timer";
 import { PriceDisplay } from "./price-display";
 import { BatteryHealthBadge } from "./battery-health-badge";
+import { MoneyBackGuaranteeCard } from "@/components/vehicles/money-back-guarantee-card";
 import { cn } from "@/lib/utils";
 
 interface VehicleCardProps {
@@ -218,6 +219,7 @@ export function VehicleCard({
               {fuelType}
             </Badge>
           )}
+          <MoneyBackGuaranteeCard variant="compact" className="text-[10px] py-0.5 px-2 font-semibold" />
         </div>
 
         {/* Specs Row */}

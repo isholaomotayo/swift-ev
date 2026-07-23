@@ -56,6 +56,8 @@ import { RemoteImage } from "@/components/ui/remote-image";
 import { LandedCostCalculator } from "@/components/autoexports/landed-cost-calculator";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useWatchlistToggle } from "@/hooks/use-watchlist-toggle";
+import { HowItWorksModal } from "@/components/vehicles/how-it-works-modal";
+import { MoneyBackGuaranteeCard } from "@/components/vehicles/money-back-guarantee-card";
 
 interface Bid {
   _id: string;
@@ -256,7 +258,7 @@ export function VehicleDetailClient({
           <div className="container mx-auto">
             <div className="flex flex-col md:flex-row md:items-end w-full justify-between gap-4">
               <div className="space-y-2 mb-4 md:mb-0">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <Badge className="bg-electric-blue/90 hover:bg-electric-blue text-white border-none py-1.5 px-3 uppercase tracking-wide">
                     {vehicle.year}
                   </Badge>
@@ -265,6 +267,7 @@ export function VehicleDetailClient({
                       healthPercent={vehicle.batteryHealthPercent}
                     />
                   )}
+                  <MoneyBackGuaranteeCard variant="compact" />
                 </div>
                 <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight drop-shadow-lg">
                   {vehicle.make} {vehicle.model}
@@ -302,6 +305,9 @@ export function VehicleDetailClient({
 
           {/* Left Column - Highlights & Tabs Wrapper */}
           <div className="lg:col-span-2 space-y-8 order-3">
+            {/* Money-Back Guarantee Trust Banner */}
+            <MoneyBackGuaranteeCard variant="banner" />
+
             {/* Highlights Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex items-center gap-3 p-4 bg-card rounded-2xl shadow-md border border-border/50">
@@ -941,15 +947,21 @@ export function VehicleDetailClient({
                       <Heart className={cn("h-4 w-4 mr-2", isWatchlisted && "fill-current")} />
                       {isWatchlisted ? "Watching" : "Watch"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full"
-                      onClick={() => router.push("/faq#buy-now")}
-                    >
-                      <Info className="h-4 w-4 mr-2" />
-                      How it works
-                    </Button>
+                    <HowItWorksModal
+                      trigger={
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-full border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium"
+                        >
+                          <Info className="h-4 w-4 mr-2 text-electric-blue" />
+                          How it works
+                        </Button>
+                      }
+                    />
                   </div>
+
+                  {/* Money-Back Guarantee Sidebar Box */}
+                  <MoneyBackGuaranteeCard variant="sidebar" className="mt-4" />
                 </div>
               </div>
 
