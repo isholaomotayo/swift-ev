@@ -57,7 +57,7 @@ export function AdminKycClient({ token }: { token: string }) {
         description: error.message || "Unable to batch auto-approve users.",
         variant: "destructive",
       });
-    } font-bold {
+    } finally {
       setIsAutoApproving(false);
     }
   };

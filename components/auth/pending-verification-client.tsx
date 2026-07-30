@@ -84,7 +84,7 @@ export function PendingVerificationClient() {
         description: error.message || "Unable to send verification email.",
         variant: "destructive",
       });
-    } font-bold {
+    } finally {
       setResendLoading(false);
     }
   };
