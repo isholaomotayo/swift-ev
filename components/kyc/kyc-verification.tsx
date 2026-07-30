@@ -11,6 +11,7 @@ import {
   Camera,
   Loader2,
   ArrowRight,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -255,6 +256,20 @@ export function KycVerification() {
           );
         })}
       </div>
+
+      {/* Rejection Alert Banner if rejected */}
+      {kycStatus?.status === "rejected" && (
+        <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 space-y-1">
+          <div className="font-bold flex items-center gap-2">
+            <XCircle className="h-5 w-5" />
+            Verification Application Rejected
+          </div>
+          <p className="text-sm font-medium">
+            Reason: {kycStatus.rejectionReason || "Uploaded documents did not meet compliance requirements."}
+          </p>
+          <p className="text-xs opacity-80">Please re-submit clear identity documents below.</p>
+        </div>
+      )}
 
       {/* Step Content */}
       <div className="rounded-3xl border p-8 bg-card">

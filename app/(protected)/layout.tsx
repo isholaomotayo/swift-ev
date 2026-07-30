@@ -41,9 +41,9 @@ export default async function ProtectedLayout({
     redirect("/login?auth_failed=1");
   }
 
-  // Check user status
+  // Check user status — non-active users are routed to pending verification screen
   if (user.status !== "active") {
-    redirect("/login?error=account_inactive");
+    redirect("/pending-verification");
   }
 
   return (

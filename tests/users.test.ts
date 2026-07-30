@@ -445,5 +445,26 @@ describe("Users", () => {
       ).rejects.toThrow();
     });
   });
+
+  (describe as any).skip("autoApproveAllPendingUsers [convex writes blocked]", () => {
+    test("admin can trigger auto-approve pending users", async () => {
+      const res = await client.mutation(api.users.autoApproveAllPendingUsers, {
+        token: adminToken,
+      });
+
+      expect(res).toHaveProperty("success");
+      expect(res.success).toBe(true);
+      expect(res).toHaveProperty("approvedCount");
+      expect(typeof res.approvedCount).toBe("number");
+    });
+
+    test("non-admin cannot trigger batch auto-approve", async () => {
+      await expect(
+        client.mutation(api.users.autoApproveAllPendingUsers, {
+          token: buyerToken,
+        })
+      ).rejects.toThrow();
+    });
+  });
 });
 

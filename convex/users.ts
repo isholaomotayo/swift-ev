@@ -569,3 +569,54 @@ export const updatePreferredCurrency = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Auto-approve all pending user accounts
+ * Used to unlock existing users stuck in pending verification loop.
+ * Admin/Superadmin only.
+ */
+export const autoApproveAllPendingUsers = mutation({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, args.token);
+    requireAdmin(currentUser);
+
+    const allUsers = await ctx.db.query("users").collect();
+    const pendingUsers = allUsers.filter(
+      (u) => u.status === "pending" || u.kycStatus === "pending"
+    );
+
+    let approvedCount = 0;
+    const now = Date.now();
+
+    for (const u of pendingUsers) {
+      await ctx.db.patch(u._id, {
+        status: "active",
+        kycStatus: "approved",
+        emailVerified: true,
+        kycApprovedAt: now,
+        updatedAt: now,
+      });
+      approvedCount++;
+    }
+
+    if (approvedCount > 0) {
+      await createAuditLog(ctx, {
+        userId: currentUser._id,
+        action: "batch_auto_approve_pending_users",
+        entityType: "user",
+        entityId: "batch",
+        changes: { count: approvedCount },
+      });
+    }
+
+    return {
+      success: true,
+      approvedCount,
+      message: `Successfully auto-approved ${approvedCount} pending user account(s).`,
+    };
+  },
+});
+
