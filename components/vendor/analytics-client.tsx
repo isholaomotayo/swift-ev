@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Package, DollarSign, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorAnalyticsClientProps {
   initialStats: any;
@@ -20,7 +21,7 @@ export function VendorAnalyticsClient({
   token,
 }: VendorAnalyticsClientProps) {
   const { user } = useAuth();
-  const preferredCurrency = user?.preferredCurrency ?? "NGN";
+  const formatPrice = useFormatPrice();
   // Use useQuery for real-time updates
   const stats = useQuery(
     api.vehicles.getVendorStats,
@@ -68,7 +69,7 @@ export function VendorAnalyticsClient({
               <div>
                 <p className="text-sm text-gray-500">Total Revenue</p>
                 <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(stats.totalRevenue, { currency: preferredCurrency })}
+                  {formatPrice(stats.totalRevenue)}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
                   {stats.sold} vehicles sold
@@ -85,7 +86,7 @@ export function VendorAnalyticsClient({
               <div>
                 <p className="text-sm text-gray-500">Average Sale Price</p>
                 <p className="text-3xl font-bold mt-2">
-                  {formatCurrency(stats.averageSalePrice, { currency: preferredCurrency })}
+                  {formatPrice(stats.averageSalePrice)}
                 </p>
                 <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
@@ -122,7 +123,7 @@ export function VendorAnalyticsClient({
                   </div>
                 </div>
                 <div className="w-32 text-right font-semibold">
-                  {formatCurrency(data.revenue, { currency: preferredCurrency })}
+                  {formatPrice(data.revenue)}
                 </div>
               </div>
             ))}

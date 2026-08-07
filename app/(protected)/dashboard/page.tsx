@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { api } from "@/convex/_generated/api";
@@ -41,6 +42,11 @@ export default async function DashboardPage() {
 
   if (!user) {
     return null; // Layout will handle redirect
+  }
+
+  // If a seller navigates to /dashboard, redirect them to the vendor dashboard
+  if (user.role === "seller") {
+    redirect("/vendor");
   }
 
   return (

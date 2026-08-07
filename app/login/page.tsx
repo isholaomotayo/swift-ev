@@ -14,6 +14,9 @@ import { QuickLogin } from "@/components/auth/quick-login";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { getRoleHomePath, getSafeRedirectPath } from "@/lib/safe-redirect";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,7 +97,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background relative">
+      {/* Top-Right Quick Switchers */}
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-1 p-1 rounded-xl bg-card/80 border border-border/50 backdrop-blur-md shadow-sm">
+        <LanguageSwitcher />
+        <CurrencySelector />
+        <ThemeToggle />
+      </div>
+
       {/* Left Column - Form */}
       <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:px-20 xl:px-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-64 h-64 bg-electric-blue/5 blur-[100px] -z-10" />

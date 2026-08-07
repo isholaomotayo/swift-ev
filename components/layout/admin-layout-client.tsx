@@ -21,6 +21,9 @@ import {
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const adminNavItems = [
   {
@@ -108,7 +111,7 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-background selection:bg-electric-blue/30">
       {/* Mobile Top Header Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card lg:hidden sticky top-0 z-40">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card lg:hidden sticky top-0 z-40">
         <Link href="/" className="flex items-center space-x-2 group">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary">
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe h-5 w-5">
@@ -117,22 +120,27 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
               <path d="M2 12h20"></path>
             </svg>
           </div>
-          <span className="font-black text-xl tracking-tighter text-brand-primary dark:text-white">
+          <span className="font-black text-lg tracking-tighter text-brand-primary dark:text-white">
             autoexports<span className="text-brand-gold">.live</span>
           </span>
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          {sidebarOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          )}
-        </Button>
+        <div className="flex items-center gap-1">
+          <LanguageSwitcher />
+          <CurrencySelector />
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="text-muted-foreground hover:text-foreground ml-1"
+          >
+            {sidebarOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Backdrop overlay */}
@@ -151,7 +159,7 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
         )}
       >
         <div className="p-6">
-          <Link href="/" className="flex items-center space-x-2 group mb-10">
+          <Link href="/" className="flex items-center space-x-2 group mb-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-primary text-white dark:bg-brand-gold dark:text-brand-primary transition-all duration-300 group-hover:rotate-3">
               <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe h-6 w-6">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -163,6 +171,13 @@ export function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
               autoexports<span className="text-brand-gold">.live</span>
             </span>
           </Link>
+
+          {/* Quick Switchers Widget in Sidebar */}
+          <div className="flex items-center justify-around gap-1 p-2 mb-6 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm">
+            <LanguageSwitcher />
+            <CurrencySelector />
+            <ThemeToggle />
+          </div>
 
           <div className="mb-6">
             <h3 className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">

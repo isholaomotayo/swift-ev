@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
+import { useFormatPrice } from "@/hooks/use-format-price";
 import {
   AlertTriangle,
   Building2,
@@ -25,10 +26,16 @@ import {
 interface OrderPaymentPanelProps {
   token: string;
   orderId: Id<"orders">;
+  onSuccess?: () => void;
 }
 
-export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
+export function OrderPaymentPanel({
+  token,
+  orderId,
+  onSuccess,
+}: OrderPaymentPanelProps) {
   const { toast } = useToast();
+  const formatPrice = useFormatPrice();
   const paymentState = useQuery(api.payments.getOrderPaymentState, {
     token,
     orderId,
@@ -230,12 +237,12 @@ export function OrderPaymentPanel({ token, orderId }: OrderPaymentPanelProps) {
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-sm space-y-1">
             <p className="font-semibold text-amber-900 dark:text-amber-200">
-              Payment required — ₦{order.balanceDue.toLocaleString()} by{" "}
+              Payment required — {formatPrice(order.balanceDue)} by{" "}
               {formatDate(order.paymentDeadline)}
             </p>
             <p className="text-amber-800 dark:text-amber-300">
               {depositPaid > 0
-                ? `₦${depositPaid.toLocaleString()} deposit already applied. `
+                ? `${formatPrice(depositPaid)} deposit already applied. `
                 : ""}
               If you do not complete payment by the deadline, your reservation will be
               released and the vehicle will be available again

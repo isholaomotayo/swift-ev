@@ -249,19 +249,24 @@ export function Header() {
               </div>
             )}
 
-            {/* Mobile Menu Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0 lg:hidden hover:bg-slate-100 dark:hover:bg-white/5"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
+            {/* Mobile Menu Toggle & Switchers */}
+            <div className="flex lg:hidden items-center gap-1">
+              <LanguageSwitcher />
+              <CurrencySelector />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0 hover:bg-slate-100 dark:hover:bg-white/5"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle Navigation Menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

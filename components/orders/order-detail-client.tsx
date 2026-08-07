@@ -18,6 +18,7 @@ import { OrderJourneyTimeline } from "@/components/orders/order-journey-timeline
 import { GuaranteeCertificateCard } from "@/components/orders/guarantee-certificate-card";
 import { VehicleRegistrationForm } from "@/components/orders/vehicle-registration-form";
 import { ShipmentTracker } from "@/components/orders/shipment-tracker";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface OrderDetailClientProps {
   initialOrderDetails: any;
@@ -31,6 +32,7 @@ export function OrderDetailClient({
   orderId,
 }: OrderDetailClientProps) {
   const { toast } = useToast();
+  const formatPrice = useFormatPrice();
   const confirmDeliveryMutation = useMutation(api.orders.confirmDelivery);
   const [isConfirmingDelivery, setIsConfirmingDelivery] = useState(false);
 
@@ -156,42 +158,42 @@ export function OrderDetailClient({
               )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Vehicle price</span>
-                <span className="font-medium">{formatCurrency(order.winningBid || 0)}</span>
+                <span className="font-medium">{formatPrice(order.winningBid || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Service fee</span>
-                <span className="font-medium">{formatCurrency(order.serviceFee || 0)}</span>
+                <span className="font-medium">{formatPrice(order.serviceFee || 0)}</span>
               </div>
               {!!order.documentationFee && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Documentation</span>
-                  <span className="font-medium">{formatCurrency(order.documentationFee)}</span>
+                  <span className="font-medium">{formatPrice(order.documentationFee)}</span>
                 </div>
               )}
               {!!order.inspectionFee && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Inspection</span>
-                  <span className="font-medium">{formatCurrency(order.inspectionFee)}</span>
+                  <span className="font-medium">{formatPrice(order.inspectionFee)}</span>
                 </div>
               )}
               {!!order.shippingCost && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">{formatCurrency(order.shippingCost)}</span>
+                  <span className="font-medium">{formatPrice(order.shippingCost)}</span>
                 </div>
               )}
               {!!(order.estimatedDuties || order.clearanceFee) && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Customs &amp; clearing</span>
                   <span className="font-medium">
-                    {formatCurrency(order.estimatedDuties || order.clearanceFee || 0)}
+                    {formatPrice(order.estimatedDuties || order.clearanceFee || 0)}
                   </span>
                 </div>
               )}
               {!!order.registrationFee && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Registration</span>
-                  <span className="font-medium">{formatCurrency(order.registrationFee)}</span>
+                  <span className="font-medium">{formatPrice(order.registrationFee)}</span>
                 </div>
               )}
               {order.destinationPort && (
@@ -210,7 +212,7 @@ export function OrderDetailClient({
                   {orderDetails.additionalServices.map((service: any) => (
                     <div key={service._id} className="flex justify-between text-sm">
                       <span className="text-gray-600 capitalize">{service.serviceType.replace(/_/g, " ")}</span>
-                      <span className="font-medium">{formatCurrency(service.cost)}</span>
+                      <span className="font-medium">{formatPrice(service.cost)}</span>
                     </div>
                   ))}
                 </div>
@@ -218,15 +220,15 @@ export function OrderDetailClient({
 
               <div className="border-t pt-3 flex justify-between">
                 <span className="font-semibold">Total</span>
-                <span className="text-xl font-bold">{formatCurrency(totalWithServices)}</span>
+                <span className="text-xl font-bold">{formatPrice(totalWithServices)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Paid</span>
-                <span className="font-medium">{formatCurrency(order.paidAmount || 0)}</span>
+                <span className="font-medium">{formatPrice(order.paidAmount || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-semibold">Balance due</span>
-                <span className="font-bold">{formatCurrency(order.balanceDue || 0)}</span>
+                <span className="font-bold">{formatPrice(order.balanceDue || 0)}</span>
               </div>
               {order.paymentDeadline && (
                 <div className="flex justify-between text-sm">

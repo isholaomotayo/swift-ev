@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-server";
 import { ProtectedLayoutClient } from "@/components/layout/protected-layout-client";
+import { VendorLayoutClient } from "@/components/layout/vendor-layout-client";
 
 export const metadata: Metadata = {
   title: "Dashboard | autoexports.live",
@@ -44,6 +45,14 @@ export default async function ProtectedLayout({
   // Check user status — non-active users are routed to pending verification screen
   if (user.status !== "active") {
     redirect("/pending-verification");
+  }
+
+  if (user.role === "seller") {
+    return (
+      <VendorLayoutClient user={user}>
+        {children}
+      </VendorLayoutClient>
+    );
   }
 
   return (

@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorPendingOrdersClientProps {
   token: string;
@@ -27,6 +28,7 @@ export function VendorPendingOrdersClient({
   token,
 }: VendorPendingOrdersClientProps) {
   const [tab, setTab] = useState<"all" | "pending">("all");
+  const formatPrice = useFormatPrice();
   const data = useQuery(api.orders.getVendorOrders, { token });
 
   const orders = data?.orders || [];
@@ -117,9 +119,9 @@ export function VendorPendingOrdersClient({
                       <Badge variant="outline">{row.orderType.replace(/_/g, " ")}</Badge>
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {formatCurrency(row.totalAmount)}
+                      {formatPrice(row.totalAmount)}
                       <div className="text-xs text-muted-foreground">
-                        Paid: {formatCurrency(row.paidAmount)}
+                        Paid: {formatPrice(row.paidAmount)}
                       </div>
                     </TableCell>
                     <TableCell>

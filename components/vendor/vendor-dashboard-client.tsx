@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorDashboardClientProps {
   user: {
@@ -26,7 +27,7 @@ interface VendorDashboardClientProps {
 export function VendorDashboardClient({ user, initialOverview, token }: VendorDashboardClientProps) {
   const { user: authUser, token: authStoreToken } = useAuth();
   const activeToken = authStoreToken || token;
-  const preferredCurrency = authUser?.preferredCurrency ?? "NGN";
+  const formatPrice = useFormatPrice();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d");
 
   // Real-time query via Convex
@@ -183,8 +184,8 @@ export function VendorDashboardClient({ user, initialOverview, token }: VendorDa
                 <DollarSign className="h-5 w-5" />
               </div>
             </div>
-            <p className="text-2xl font-extrabold tracking-tight text-foreground truncate" title={formatCurrency(kpis?.totalRevenue || 0, { currency: preferredCurrency })}>
-              {formatCurrency(kpis?.totalRevenue || 0, { currency: preferredCurrency })}
+            <p className="text-2xl font-extrabold tracking-tight text-foreground truncate" title={formatPrice(kpis?.totalRevenue || 0)}>
+              {formatPrice(kpis?.totalRevenue || 0)}
             </p>
           </div>
         </Card>
@@ -218,7 +219,7 @@ export function VendorDashboardClient({ user, initialOverview, token }: VendorDa
                         <div key={idx} className="relative flex-1 flex flex-col justify-end h-full group">
                           {pt.revenue > 0 && (
                             <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-popover text-popover-foreground text-[10px] p-1.5 rounded shadow border border-border pointer-events-none whitespace-nowrap">
-                              {formatCurrency(pt.revenue, { currency: preferredCurrency })}<br />
+                              {formatPrice(pt.revenue)}<br />
                               <span className="text-muted-foreground">{pt.ordersCount} order{pt.ordersCount !== 1 ? "s" : ""}</span>
                             </div>
                           )}
@@ -430,7 +431,7 @@ export function VendorDashboardClient({ user, initialOverview, token }: VendorDa
                   <div key={order._id} className="p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-muted/40 transition-all">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-mono text-muted-foreground">#{String(order.orderNumber).substring(0, 8)}</span>
-                      <span className="text-xs font-bold text-foreground">{formatCurrency(order.totalAmount || 0, { currency: preferredCurrency })}</span>
+                      <span className="text-xs font-bold text-foreground">{formatPrice(order.totalAmount || 0)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className={cn("text-[9px] capitalize px-1.5 py-0", order.status === "delivered" ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground")}>

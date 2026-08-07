@@ -13,6 +13,7 @@ import {
 import { Gavel, Clock } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorAuctionsClientProps {
   auctions: any[];
@@ -20,7 +21,7 @@ interface VendorAuctionsClientProps {
 
 export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
   const { user } = useAuth();
-  const preferredCurrency = user?.preferredCurrency ?? "NGN";
+  const formatPrice = useFormatPrice();
 
   // Filter to only show currently live/active auctions in this tab
   const liveAuctions = auctions.filter((a) => a.status === "live" || a.status === "active");
@@ -121,8 +122,8 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
                       </TableCell>
                       <TableCell className="font-medium">
                         {lot.currentBid
-                          ? formatCurrency(lot.currentBid, { currency: preferredCurrency })
-                          : formatCurrency(lot.startingBid, { currency: preferredCurrency })}
+                          ? formatPrice(lot.currentBid)
+                          : formatPrice(lot.startingBid)}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{lot.bidCount}</Badge>

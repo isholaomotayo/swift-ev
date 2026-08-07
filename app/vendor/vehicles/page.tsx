@@ -32,5 +32,5 @@ export default async function VendorVehiclesPage() {
     // Continue with empty array
   }
 
-  return <VendorVehiclesClient initialVehicles={vehicles} />;
+  return <VendorVehiclesClient initialVehicles={vehicles} token={token} />;
 }

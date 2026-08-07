@@ -18,6 +18,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -30,6 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrencyStore } from "@/store/currency";
+import { useFormatPrice } from "@/hooks/use-format-price";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 import { formatCompactCurrency } from "@/lib/utils";
 
@@ -46,6 +49,9 @@ export function WalletDashboard() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   
   const [loading, setLoading] = useState(false);
+  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const currencySymbols: Record<string, string> = { NGN: "₦", USD: "$", CNY: "¥", GBP: "£" };
+  const currencySymbol = currencySymbols[storeCurrency] || "₦";
   const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =
     useFlutterwaveCheckout();
 
@@ -316,15 +322,14 @@ export function WalletDashboard() {
               {/* Custom Amount */}
               <div className="space-y-2">
                 <Label htmlFor="custom-amount">
-                  Or enter custom amount (₦)
+                  Or enter custom amount ({currencySymbol})
                 </Label>
-                <Input
+                <CurrencyInput
                   id="custom-amount"
-                  type="number"
                   placeholder="Enter amount"
                   value={fundAmount}
-                  onChange={(e) => setFundAmount(e.target.value)}
-                  className="h-14 text-lg font-mono"
+                  onChangeValue={(val) => setFundAmount(val ? val.toString() : "")}
+                  className="h-14 text-lg"
                 />
               </div>
 
@@ -384,14 +389,13 @@ export function WalletDashboard() {
 
             <div className="space-y-6 py-4">
               <div className="space-y-2">
-                <Label htmlFor="withdraw-amount">Amount (₦)</Label>
-                <Input
+                <Label htmlFor="withdraw-amount">Amount ({currencySymbol})</Label>
+                <CurrencyInput
                   id="withdraw-amount"
-                  type="number"
                   placeholder="Enter amount"
                   value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="h-12 text-lg font-mono"
+                  onChangeValue={(val) => setWithdrawAmount(val ? val.toString() : "")}
+                  className="h-12 text-lg"
                 />
               </div>
 

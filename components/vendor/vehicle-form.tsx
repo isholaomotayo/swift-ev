@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +26,8 @@ import {
   type VehicleFormData,
   type VehicleSubmitData,
 } from "@/lib/vehicle-form-payload";
+import { useCurrencyStore } from "@/store/currency";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
@@ -118,6 +121,10 @@ export function VehicleForm({
   const [inspectionReport, setInspectionReport] = useState<File | null>(null);
   const [videoWalkthrough, setVideoWalkthrough] = useState<File | null>(null);
   const isEditMode = initialImages.length > 0;
+  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const formatPrice = useFormatPrice();
+  const currencySymbols: Record<string, string> = { NGN: "₦", USD: "$", CNY: "¥", GBP: "£" };
+  const currencySymbol = currencySymbols[storeCurrency] || "₦";
 
   const tagFile = (file: File, role: UploadRole, category?: string) =>
     Object.assign(file, { __mediaRole: role, __category: category }) as TaggedUploadFile;
@@ -676,14 +683,12 @@ export function VehicleForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="startingBid">Starting Bid (₦)</Label>
-                <Input
+                <Label htmlFor="startingBid">Starting Bid ({currencySymbol})</Label>
+                <CurrencyInput
                   id="startingBid"
-                  type="number"
                   value={formData.startingBid}
-                  onChange={(e) => updateFormData("startingBid", Number(e.target.value) || 0)}
-                  min="0"
-                  step="100000"
+                  onChangeValue={(val) => updateFormData("startingBid", val)}
+                  placeholder="5,000,000"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   Minimum bid to start the auction
@@ -691,14 +696,12 @@ export function VehicleForm({
               </div>
 
               <div>
-                <Label htmlFor="reservePrice">Reserve Price (₦)</Label>
-                <Input
+                <Label htmlFor="reservePrice">Reserve Price ({currencySymbol})</Label>
+                <CurrencyInput
                   id="reservePrice"
-                  type="number"
                   value={formData.reservePrice}
-                  onChange={(e) => updateFormData("reservePrice", Number(e.target.value) || 0)}
-                  min="0"
-                  step="100000"
+                  onChangeValue={(val) => updateFormData("reservePrice", val)}
+                  placeholder="6,000,000"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   Minimum price you'll accept (hidden from buyers)
@@ -706,16 +709,12 @@ export function VehicleForm({
               </div>
 
               <div>
-                <Label htmlFor="buyItNowPrice">Buy It Now Price (₦) *</Label>
-                <Input
+                <Label htmlFor="buyItNowPrice">Buy It Now Price ({currencySymbol}) *</Label>
+                <CurrencyInput
                   id="buyItNowPrice"
-                  type="number"
                   value={formData.buyItNowPrice || ""}
-                  onChange={(e) =>
-                    updateFormData("buyItNowPrice", e.target.value ? Number(e.target.value) : 0)
-                  }
-                  min="0"
-                  step="100000"
+                  onChangeValue={(val) => updateFormData("buyItNowPrice", val)}
+                  placeholder="7,000,000"
                   required
                 />
                 <p className="text-sm text-muted-foreground mt-1">
@@ -733,9 +732,9 @@ export function VehicleForm({
                       className="mt-1"
                     />
                     <label htmlFor="commissionTerms" className="text-sm leading-relaxed cursor-pointer text-muted-foreground">
-                      I agree to the platform commission structure: <strong className="text-foreground">7%</strong> for bids up to ₦5M,{" "}
-                      <strong className="text-foreground">6%</strong> for bids up to ₦15M, and{" "}
-                      <strong className="text-foreground">5%</strong> for bids above ₦15M.
+                      I agree to the platform commission structure: <strong className="text-foreground">7%</strong> for bids up to {formatPrice(5000000)},{" "}
+                      <strong className="text-foreground">6%</strong> for bids up to {formatPrice(15000000)}, and{" "}
+                      <strong className="text-foreground">5%</strong> for bids above {formatPrice(15000000)}.
                       Deducted from the final sale amount upon successful auction completion.
                     </label>
                   </div>

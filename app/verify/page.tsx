@@ -3,6 +3,9 @@
 import { KycVerification } from "@/components/kyc/kyc-verification";
 import { Zap, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function VerifyPage() {
     return (
@@ -24,6 +27,11 @@ export default function VerifyPage() {
                             autoexports <span className="text-gradient">.live</span>
                         </span>
                     </Link>
+                    <div className="flex items-center gap-1">
+                        <LanguageSwitcher />
+                        <CurrencySelector />
+                        <ThemeToggle />
+                    </div>
                 </div>
             </header>
 

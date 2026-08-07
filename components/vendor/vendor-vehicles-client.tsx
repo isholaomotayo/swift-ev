@@ -35,19 +35,22 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorVehiclesClientProps {
   initialVehicles: any[];
+  token: string;
 }
 
-export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientProps) {
-  const { user, token } = useAuth();
+export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesClientProps) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const formatPrice = useFormatPrice();
   const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [withdrawingVehicle, setWithdrawingVehicle] = useState<any | null>(null);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const { toast } = useToast();
 
   const submitVehicle = useMutation(api.vehicles.submitVehicleForApproval);
   const withdrawVehicleMutation = useMutation(api.vehicles.withdrawVehicle);
@@ -271,9 +274,9 @@ export function VendorVehiclesClient({ initialVehicles }: VendorVehiclesClientPr
                     <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                     <TableCell className="font-mono">
                       {vehicle.auctionLot
-                        ? formatCurrency(vehicle.auctionLot.currentBid, { currency: preferredCurrency })
+                        ? formatPrice(vehicle.auctionLot.currentBid)
                         : vehicle.startingBid
-                        ? formatCurrency(vehicle.startingBid, { currency: preferredCurrency })
+                        ? formatPrice(vehicle.startingBid)
                         : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

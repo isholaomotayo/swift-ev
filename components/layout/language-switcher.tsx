@@ -16,13 +16,13 @@ import {
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const languageNames: Record<string, string> = {
-  en: "EN",
-  fr: "FR",
-  "zh-CN": "ZH",
-  ha: "HA",
-  yo: "YO",
-  ig: "IG",
+const languageLabels: Record<string, { short: string; full: string }> = {
+  en: { short: "EN", full: "English" },
+  fr: { short: "FR", full: "Français" },
+  "zh-CN": { short: "ZH", full: "中文" },
+  ha: { short: "HA", full: "Hausa" },
+  yo: { short: "YO", full: "Yoruba" },
+  ig: { short: "IG", full: "Igbo" },
 };
 
 export function LanguageSwitcher() {
@@ -39,24 +39,45 @@ export function LanguageSwitcher() {
     setLocale(newLang as Locale, { reload: true });
   };
 
+  const activeLang = languageLabels[currentLang] || {
+    short: currentLang.toUpperCase(),
+    full: currentLang,
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 text-slate-700 hover:text-brand-primary dark:text-slate-200 dark:hover:text-white">
-          <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">{languageNames[currentLang] || currentLang.toUpperCase()}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 px-2.5 h-9 text-slate-700 hover:text-brand-primary dark:text-slate-200 dark:hover:text-white font-medium"
+          aria-label="Select Language"
+        >
+          <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="font-semibold text-xs sm:text-sm">{activeLang.short}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-slate-200 dark:border-white/10 dark:bg-brand-primary">
-        {locales.map((lang) => (
-          <DropdownMenuItem
-            key={lang}
-            onClick={() => switchLanguage(lang)}
-            className={currentLang === lang ? "bg-accent font-semibold" : ""}
-          >
-            {languageNames[lang] || lang.toUpperCase()}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" className="w-40 border-slate-200 dark:border-white/10 dark:bg-slate-900 shadow-lg z-50">
+        {locales.map((lang) => {
+          const info = languageLabels[lang] || {
+            short: lang.toUpperCase(),
+            full: lang,
+          };
+          return (
+            <DropdownMenuItem
+              key={lang}
+              onClick={() => switchLanguage(lang)}
+              className={`cursor-pointer flex items-center justify-between gap-3 text-xs font-medium px-3 py-2 ${
+                currentLang === lang
+                  ? "bg-accent font-bold text-accent-foreground"
+                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span className="font-bold">{info.short}</span>
+              <span className="text-muted-foreground text-[11px] font-normal">{info.full}</span>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

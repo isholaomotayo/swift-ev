@@ -13,6 +13,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Id } from "@/convex/_generated/dataModel";
 import { WatchlistItem } from "@/lib/types";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface WatchlistClientProps {
   initialWatchlist: any;
@@ -25,6 +26,7 @@ export function WatchlistClient({
 }: WatchlistClientProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const formatPrice = useFormatPrice();
   const [activeTab, setActiveTab] = useState<"all" | "auctions" | "liked">("all");
 
   const watchlist = (useQuery(
@@ -225,7 +227,7 @@ export function WatchlistClient({
                           Current Bid
                         </span>
                         <span className="font-extrabold text-volt-green text-lg">
-                          {formatCurrency(item.vehicle.auctionLot.currentBid || 0)}
+                          {formatPrice(item.vehicle.auctionLot.currentBid || 0)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
@@ -242,7 +244,7 @@ export function WatchlistClient({
                           Starting Price
                         </span>
                         <span className="font-extrabold text-foreground text-lg">
-                          {formatCurrency(item.vehicle.startingBid || 0)}
+                          {formatPrice(item.vehicle.startingBid || 0)}
                         </span>
                       </div>
                     </div>

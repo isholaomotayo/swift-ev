@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency, calculateServiceFee } from "@/lib/utils";
 import * as m from "@/src/paraglide/messages.js";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 export function ServiceFeeCalculator() {
-  const [bidAmount, setBidAmount] = useState<string>("1000000");
+  const [bidAmount, setBidAmount] = useState<number>(1000000);
+  const formatPrice = useFormatPrice();
   const calculatedFee = calculateServiceFee(Number(bidAmount) || 0);
 
   return (
@@ -23,11 +26,10 @@ export function ServiceFeeCalculator() {
       <div className="space-y-4">
         <div>
           <Label htmlFor="bidAmount">{m.common_winning_bid_amount()}</Label>
-          <Input
+          <CurrencyInput
             id="bidAmount"
-            type="number"
             value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
+            onChangeValue={(val) => setBidAmount(val)}
             placeholder={m.common_enter_bid_amount()}
             className="mt-2"
           />
@@ -39,7 +41,7 @@ export function ServiceFeeCalculator() {
               {m.common_winning_bid()}
             </span>
             <span className="font-semibold">
-              {formatCurrency(Number(bidAmount) || 0)}
+              {formatPrice(Number(bidAmount) || 0)}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -47,13 +49,13 @@ export function ServiceFeeCalculator() {
               {m.common_service_fee()}
             </span>
             <span className="font-semibold text-electric-blue">
-              {formatCurrency(calculatedFee)}
+              {formatPrice(calculatedFee)}
             </span>
           </div>
           <div className="border-t pt-3 flex items-center justify-between">
             <span className="font-semibold">{m.common_total_amount()}</span>
             <span className="text-2xl font-bold">
-              {formatCurrency(
+              {formatPrice(
                 (Number(bidAmount) || 0) + calculatedFee
               )}
             </span>

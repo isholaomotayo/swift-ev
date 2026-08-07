@@ -20,6 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AccountTypeStep, type AccountType } from "@/components/auth/account-type-step";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 type RegistrationStep = "account_type" | "form" | "payment";
 
@@ -178,7 +181,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background relative">
+      {/* Top-Right Quick Switchers */}
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-1 p-1 rounded-xl bg-card/80 border border-border/50 backdrop-blur-md shadow-sm">
+        <LanguageSwitcher />
+        <CurrencySelector />
+        <ThemeToggle />
+      </div>
+
       {/* Left Column - Image/Branding */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-slate-900 text-white relative overflow-hidden">
         {/* Abstract Background */}

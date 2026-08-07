@@ -14,6 +14,7 @@ import { User, ShoppingBag, Gavel, Settings as SettingsIcon, ShieldCheck } from 
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { KycOnboardingFlow } from "@/components/kyc/kyc-onboarding-flow";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface ProfileClientProps {
   initialUser: any;
@@ -27,6 +28,7 @@ export function ProfileClient({
   token,
 }: ProfileClientProps) {
   const { toast } = useToast();
+  const formatPrice = useFormatPrice();
   const [loading, setLoading] = useState(false);
 
   // Use useQuery for real-time updates
@@ -218,7 +220,7 @@ export function ProfileClient({
                   <div>
                     <p className="text-sm text-gray-500">Buying Power</p>
                     <p className="font-semibold mt-1">
-                      {formatCurrency(initialUser?.buyingPower || 0)}
+                      {formatPrice(initialUser?.buyingPower || 0)}
                     </p>
                   </div>
                 </div>
@@ -252,7 +254,7 @@ export function ProfileClient({
                       <p className="text-xs text-gray-400">{formatDate(order._creationTime)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(order.totalAmount)}</p>
+                      <p className="font-semibold">{formatPrice(order.totalAmount)}</p>
                       <Badge
                         variant={
                           order.status === "delivered"

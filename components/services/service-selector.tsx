@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Plus, Loader2, Info, ChevronRight, Truck, ShieldCheck, Settings, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useFormatPrice } from "@/hooks/use-format-price";
 import {
     Dialog,
     DialogContent,
@@ -27,6 +28,7 @@ interface ServiceSelectorProps {
 
 export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
     const { toast } = useToast();
+    const formatPrice = useFormatPrice();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [submitting, setSubmitting] = useState<string | null>(null);
 
@@ -127,7 +129,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
                                     </p>
                                     <div className="flex items-center justify-between mt-auto">
                                         <span className="font-mono font-bold">
-                                            {service.estimatedCost > 0 ? formatCurrency(service.estimatedCost) : "Contact for Pricing"}
+                                            {service.estimatedCost > 0 ? formatPrice(service.estimatedCost) : "Contact for Pricing"}
                                         </span>
                                         <Button
                                             size="sm"
@@ -175,7 +177,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="font-mono font-bold text-sm">{formatCurrency(service.cost)}</p>
+                                <p className="font-mono font-bold text-sm">{formatPrice(service.cost)}</p>
                             </div>
                         </div>
                     ))

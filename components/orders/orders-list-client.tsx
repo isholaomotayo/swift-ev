@@ -16,6 +16,7 @@ import {
 import { PackageSearch, ArrowRight } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useState } from "react";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface OrdersListClientProps {
   initialOrders: any;
@@ -27,6 +28,7 @@ export function OrdersListClient({
   token,
 }: OrdersListClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const formatPrice = useFormatPrice();
 
   // Use useQuery for real-time updates
   const orders = useQuery(
@@ -126,7 +128,7 @@ export function OrdersListClient({
               <div className="flex items-center justify-between pt-4 border-t">
                 <div>
                   <p className="text-sm text-gray-500">Total Amount</p>
-                  <p className="text-2xl font-bold">{formatCurrency(order.totalAmount)}</p>
+                  <p className="text-2xl font-bold">{formatPrice(order.totalAmount)}</p>
                 </div>
                 <Button asChild variant="outline">
                   <Link href={`/orders/${order._id}`}>

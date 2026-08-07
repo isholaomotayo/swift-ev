@@ -26,8 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatCurrency, cn } from "@/lib/utils";
-
 import { useAuth } from "@/components/providers/auth-provider";
+import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface AdminDashboardClientProps {
   initialOverview: any;
@@ -37,6 +37,7 @@ interface AdminDashboardClientProps {
 export function AdminDashboardClient({ initialOverview, token }: AdminDashboardClientProps) {
   const { token: authStoreToken } = useAuth();
   const activeToken = authStoreToken || token;
+  const formatPrice = useFormatPrice();
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "1y">("30d");
 
   // Real-time query via Convex (skip if no activeToken to avoid auth errors)
@@ -218,7 +219,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <ShoppingBag className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-2xl font-extrabold text-primary truncate" title={formatCurrency(kpis?.orders?.periodRevenue || 0, { currency: "USD" })}>{formatCurrency(kpis?.orders?.periodRevenue || 0, { currency: "USD" })}</p>
+              <p className="text-2xl font-extrabold text-primary truncate" title={formatPrice(kpis?.orders?.periodRevenue || 0)}>{formatPrice(kpis?.orders?.periodRevenue || 0)}</p>
               <p className="text-xs text-muted-foreground mt-1">Platform GMV ({timeRange.toUpperCase()})</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
@@ -264,7 +265,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
               <p className="text-xs text-muted-foreground mt-1">Pending Verification</p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground truncate">{formatCurrency(kpis?.payments?.pendingAmount || 0)} Pending</span>
+              <span className="text-muted-foreground truncate">{formatPrice(kpis?.payments?.pendingAmount || 0)} Pending</span>
             </div>
           </Card>
         </Link>
@@ -348,7 +349,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                       <div className="min-w-0">
                         <h4 className="font-semibold text-sm text-foreground truncate">{vehicle.title}</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          List Price: <span className="font-semibold text-foreground">{formatCurrency(vehicle.price || 0)}</span>
+                          List Price: <span className="font-semibold text-foreground">{formatPrice(vehicle.price || 0)}</span>
                         </p>
                       </div>
                     </div>
@@ -503,7 +504,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
 
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
-                        <p className="font-bold text-sm text-foreground">{formatCurrency(order.totalAmount || 0, { currency: "USD" })}</p>
+                        <p className="font-bold text-sm text-foreground">{formatPrice(order.totalAmount || 0)}</p>
                         <Badge
                           variant="outline"
                           className={cn(
@@ -556,7 +557,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                   <div key={pm.id} className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-mono font-semibold text-foreground truncate">{pm.reference}</span>
-                      <span className="font-bold text-amber-500">{formatCurrency(pm.amount || 0)}</span>
+                      <span className="font-bold text-amber-500">{formatPrice(pm.amount || 0)}</span>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                       <span className="capitalize">{pm.paymentType || "Deposit / Order"}</span>
@@ -730,7 +731,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                       {/* Tooltip — absolutely positioned above bar, never affects layout height */}
                       {pt.revenue > 0 && (
                         <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-popover text-popover-foreground text-[10px] p-1.5 rounded shadow border border-border pointer-events-none whitespace-nowrap">
-                          {formatCurrency(pt.revenue, { currency: "USD" })}<br />
+                          {formatPrice(pt.revenue)}<br />
                           <span className="text-muted-foreground">{pt.ordersCount} order{pt.ordersCount !== 1 ? "s" : ""}</span>
                         </div>
                       )}

@@ -12,6 +12,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/constants";
 import * as m from "@/src/paraglide/messages.js";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { CurrencySelector } from "@/components/layout/currency-selector";
 
 const footerLinks = {
   platform: [
@@ -149,11 +151,15 @@ export function Footer() {
         <Separator className="my-16 bg-white/5" />
 
         {/* Bottom Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+        <div className="flex flex-col md:flex-row justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 gap-4">
           <p>
             © {currentYear} {SITE_NAME} {m.common_all_rights_reserved_only()}
           </p>
-          <div className="flex gap-8 mt-4 md:mt-0">
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <CurrencySelector />
+          </div>
+          <div className="flex gap-8">
             <p>{m.nav_digital_excellence()}</p>
             <p>{m.nav_global_trade_compliance()}</p>
           </div>

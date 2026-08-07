@@ -27,24 +27,35 @@ export function CurrencySelector() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-slate-700 hover:text-brand-primary dark:text-slate-200 dark:hover:text-white"
+          className="gap-1.5 px-2.5 h-9 text-slate-700 hover:text-brand-primary dark:text-slate-200 dark:hover:text-white font-medium"
+          aria-label="Select Currency"
         >
-          <span className="font-semibold text-sm">{activeCurrencyInfo.symbol} {currency}</span>
+          <span className="text-sm font-bold text-brand-primary dark:text-brand-gold">{activeCurrencyInfo.symbol}</span>
+          <span className="font-semibold text-xs sm:text-sm">{currency}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-slate-200 dark:border-white/10 dark:bg-slate-900">
-        {(Object.keys(currencyNames) as SupportedCurrency[]).map((cur) => (
-          <DropdownMenuItem
-            key={cur}
-            onClick={() => setCurrency(cur)}
-            className={`flex items-center gap-2 cursor-pointer ${
-              currency === cur ? "bg-accent font-semibold" : ""
-            }`}
-          >
-            <span className="font-bold w-4 text-center">{currencyNames[cur].symbol}</span>
-            <span className="font-bold">{cur}</span>
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" className="w-44 border-slate-200 dark:border-white/10 dark:bg-slate-900 shadow-lg z-50">
+        {(Object.keys(currencyNames) as SupportedCurrency[]).map((cur) => {
+          const item = currencyNames[cur];
+          return (
+            <DropdownMenuItem
+              key={cur}
+              onClick={() => setCurrency(cur)}
+              className={`cursor-pointer flex items-center justify-between gap-2 text-xs px-3 py-2 ${
+                currency === cur
+                  ? "bg-accent font-bold text-accent-foreground"
+                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{item.flag}</span>
+                <span className="font-bold w-4 text-center">{item.symbol}</span>
+                <span className="font-bold">{cur}</span>
+              </div>
+              <span className="text-muted-foreground text-[11px] font-normal">{item.name}</span>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
