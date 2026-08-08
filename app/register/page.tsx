@@ -112,7 +112,8 @@ export default function RegisterPage() {
     if (verificationFeeEnabled) {
       setStep("payment");
     } else {
-      // No fee required — go straight to registration
+      // No fee required — go straight to registration.
+      // The auth provider's register() handles the redirect to /login?registered=true
       setLoading(true);
       try {
         await register({
@@ -124,7 +125,7 @@ export default function RegisterPage() {
           accountType: accountType ?? "individual",
           preferredCurrency: formData.preferredCurrency,
         });
-        router.push("/login");
+        // auth provider redirects to /login?registered=true — no need to push here
       } catch (err) {
         setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
         setLoading(false);
@@ -148,9 +149,7 @@ export default function RegisterPage() {
         accountType: accountType ?? "individual",
         preferredCurrency: formData.preferredCurrency,
       });
-
-      // Show success message and redirect to login
-      router.push("/login");
+      // auth provider redirects to /login?registered=true — no need to push here
     } catch (err) {
       setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
       setLoading(false);

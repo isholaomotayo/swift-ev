@@ -32,6 +32,8 @@ export default function LoginPage() {
 
   const resendVerification = useMutation(api.auth.resendVerificationEmail);
   const isAccountInactive = searchParams.get("error") === "account_inactive";
+  const isJustVerified = searchParams.get("verified") === "true";
+  const isJustRegistered = searchParams.get("registered") === "true";
   const redirectParam = searchParams.get("redirect");
 
   // Prefer safe return URL (e.g. after Buy Now), else role home. Non-active users go to /pending-verification.
@@ -136,6 +138,25 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+
+          {isJustVerified && (
+            <div className="mb-6 p-4 rounded-2xl border border-volt-green/30 bg-volt-green/5">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-volt-green shrink-0 mt-0.5" />
+                <p className="text-sm font-medium text-volt-green">
+                  Email verified successfully! Your account is now active. Sign in below to get started.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isJustRegistered && !isJustVerified && (
+            <div className="mb-6 p-4 rounded-2xl border border-electric-blue/30 bg-electric-blue/5">
+              <p className="text-sm font-medium text-electric-blue">
+                Account created! Please check your email and click the verification link before signing in.
+              </p>
+            </div>
+          )}
 
           {isAccountInactive && (
             <div className="mb-6 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">

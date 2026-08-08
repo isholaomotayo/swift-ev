@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Zap, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { useAuth } from "@/components/providers/auth-provider";
 
 type Status = "verifying" | "success" | "error";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token") ?? "";
 
   const [status, setStatus] = useState<Status>("verifying");
@@ -22,8 +24,19 @@ function VerifyEmailContent() {
   const [resendSent, setResendSent] = useState(false);
   const hasRun = useRef(false);
 
+  // Read session context — available when the user is already logged in
+  // (e.g. they logged in while pending, then clicked the email link)
+  const { user, token: sessionToken } = useAuth();
+
   const verifyEmail = useMutation(api.auth.verifyEmail);
   const resendVerification = useMutation(api.auth.resendVerificationEmail);
+
+  // Pre-populate resend email from logged-in user profile
+  useEffect(() => {
+    if (user?.email && !resendEmail) {
+      setResendEmail(user.email);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Guard: only run once (React StrictMode double-invokes effects in dev)
@@ -37,10 +50,25 @@ function VerifyEmailContent() {
     }
 
     verifyEmail({ token })
-      .then(() => setStatus("success"))
+      .then(() => {
+        setStatus("success");
+        // If user already has an active session, auto-redirect them to their
+        // dashboard after a short delay so they can see the success message.
+        if (sessionToken) {
+          setTimeout(() => {
+            if (user?.role === "seller") {
+              router.replace("/vendor");
+            } else if (user?.role === "admin" || user?.role === "superadmin") {
+              router.replace("/admin");
+            } else {
+              router.replace("/dashboard");
+            }
+          }, 2500);
+        }
+      })
       .catch((err) => {
         setErrorMessage(
-          getAuthErrorMessage(err, "Verification failed. Please request a new link.")
+          getAuthErrorMessage(err, "Invalid or expired verification link.")
         );
         setStatus("error");
       });
@@ -57,6 +85,7 @@ function VerifyEmailContent() {
   }
 
   if (status === "success") {
+    const isLoggedIn = !!sessionToken;
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
@@ -66,12 +95,20 @@ function VerifyEmailContent() {
         </div>
         <h1 className="text-2xl font-black">Email verified!</h1>
         <p className="text-muted-foreground">
-          Your email has been confirmed and your account is now active. You can
-          sign in and start bidding.
+          Your email has been confirmed and your account is now active.{" "}
+          {isLoggedIn
+            ? "Redirecting you to your dashboard…"
+            : "You can now sign in and start bidding."}
         </p>
-        <Button asChild className="rounded-2xl bg-electric-blue text-white font-bold px-8">
-          <Link href="/login">Sign in to your account</Link>
-        </Button>
+        {isLoggedIn ? (
+          <div className="flex justify-center pt-2">
+            <Loader2 className="h-6 w-6 animate-spin text-electric-blue" />
+          </div>
+        ) : (
+          <Button asChild className="rounded-2xl bg-electric-blue text-white font-bold px-8">
+            <Link href="/login?verified=true">Sign in to your account</Link>
+          </Button>
+        )}
       </div>
     );
   }
