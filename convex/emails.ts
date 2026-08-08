@@ -127,9 +127,22 @@ async function sendAndLogEmail(
     }
   }
 
-  if (!apiKey) {
-    // Development fallback
-    console.log("[EMAIL STUB — set RESEND_API_KEY to enable sending]", {
+  const isTestEmail =
+    args.to.endsWith("@example.com") ||
+    args.to.endsWith("@test.live") ||
+    args.to.endsWith("@test.com") ||
+    args.to.endsWith("@test.local") ||
+    args.to.endsWith("@example.org") ||
+    args.to.endsWith("@example.net") ||
+    args.to.endsWith("@invalid") ||
+    args.to.toLowerCase().includes("test_") ||
+    args.to.toLowerCase().startsWith("e2e_") ||
+    args.to.toLowerCase().startsWith("dup_") ||
+    process.env.DISABLE_TEST_EMAILS === "true";
+
+  if (!apiKey || isTestEmail) {
+    // Development / Test fallback — preserve Resend quota by stubbing test emails
+    console.log(`[EMAIL STUB — ${isTestEmail ? "test recipient" : "no RESEND_API_KEY"}]`, {
       to: args.to,
       from,
       subject: effectiveSubject,
