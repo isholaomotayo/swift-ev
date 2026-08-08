@@ -51,8 +51,13 @@ function functionName(fn: unknown): string {
   }
 }
 
-function isLoginAction(name: string): boolean {
-  return name === "authActions:login" || name === "login";
+function isAllowedAuthAction(name: string): boolean {
+  return (
+    name === "authActions:login" ||
+    name === "login" ||
+    name === "authActions:register" ||
+    name === "register"
+  );
 }
 
 function blockWrite(kind: "mutation" | "action" | "fetch", detail: string): never {
@@ -70,7 +75,7 @@ ConvexHttpClient.prototype.action = async function (
   args?: unknown
 ) {
   const name = functionName(actionFn);
-  if (!isLoginAction(name)) {
+  if (!isAllowedAuthAction(name)) {
     return blockWrite("action", name);
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,10 +98,12 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     }
     if (lower.includes("/api/action")) {
       const body = typeof init?.body === "string" ? init.body : "";
-      const looksLikeLogin =
+      const looksLikeAuthAction =
         body.includes("authActions:login") ||
-        (body.includes("authActions") && body.includes('"login"'));
-      if (!looksLikeLogin) {
+        (body.includes("authActions") && body.includes('"login"')) ||
+        body.includes("authActions:register") ||
+        (body.includes("authActions") && body.includes('"register"'));
+      if (!looksLikeAuthAction) {
         return blockWrite("fetch", url);
       }
     }

@@ -52,19 +52,22 @@ export const createUser = internalMutation({
     preferredCurrency: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const cleanEmail = args.email.trim().toLowerCase();
+    const cleanPhone = args.phone?.trim() || undefined;
+
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (existingUser) {
       throw new ConvexError({ message: "Email already registered" });
     }
 
-    if (args.phone) {
+    if (cleanPhone) {
       const existingPhone = await ctx.db
         .query("users")
-        .withIndex("by_phone", (q) => q.eq("phone", args.phone))
+        .withIndex("by_phone", (q) => q.eq("phone", cleanPhone))
         .first();
       if (existingPhone) {
         throw new ConvexError({ message: "Phone number already registered" });
@@ -75,10 +78,10 @@ export const createUser = internalMutation({
     const role: "buyer" | "seller" = isSeller ? "seller" : "buyer";
 
     const userId = await ctx.db.insert("users", {
-      email: args.email.toLowerCase(),
-      phone: args.phone,
-      firstName: args.firstName,
-      lastName: args.lastName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      firstName: args.firstName.trim(),
+      lastName: args.lastName.trim(),
       passwordHash: args.passwordHash,
       accountType: args.accountType ?? "individual",
       membershipTier: "guest",
@@ -105,8 +108,8 @@ export const createUser = internalMutation({
     // Schedule the verification email — runs in a Node.js action outside this mutation
     await ctx.scheduler.runAfter(0, internal.emails.sendVerificationEmail, {
       userId,
-      email: args.email.toLowerCase(),
-      firstName: args.firstName,
+      email: cleanEmail,
+      firstName: args.firstName.trim(),
     });
 
     return { userId, message: "Registration successful. Please check your email to verify your account." };

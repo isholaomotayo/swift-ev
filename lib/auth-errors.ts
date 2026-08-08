@@ -16,27 +16,34 @@ export function getMutationErrorMessage(error: unknown, fallback: string): strin
     return error;
   }
 
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
   if (error && typeof error === "object") {
-    if ("message" in error && typeof (error as { message: unknown }).message === "string") {
-      const message = (error as { message: string }).message.trim();
-      if (message) return message;
+    // 1. Check if ConvexError data payload contains a specific message (e.g. from actions/mutations)
+    if ("data" in error && error.data !== null && typeof error.data === "object") {
+      const data = error.data as Record<string, unknown>;
+      if (typeof data.message === "string" && data.message.trim()) {
+        return data.message.trim();
+      }
     }
 
-    if ("data" in error) {
-      const data = (error as { data: unknown }).data;
-      if (
-        typeof data === "object" &&
-        data !== null &&
-        "message" in data &&
-        typeof (data as { message: unknown }).message === "string"
-      ) {
-        const message = (data as { message: string }).message.trim();
-        if (message) return message;
+    // 2. Check if a string data field is present
+    if ("data" in error && typeof (error as { data: unknown }).data === "string") {
+      const dataStr = (error as { data: string }).data.trim();
+      if (dataStr) return dataStr;
+    }
+
+    // 3. Check direct message property on error object
+    if ("message" in error && typeof (error as { message: unknown }).message === "string") {
+      const message = (error as { message: string }).message.trim();
+      if (message && !message.includes("Server Error")) {
+        return message.replace(/^\[CONVEX [^\]]+\]\s*/, "").trim() || fallback;
       }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    const msg = error.message.trim();
+    if (!msg.includes("Server Error")) {
+      return msg.replace(/^\[CONVEX [^\]]+\]\s*/, "").trim() || fallback;
     }
   }
 

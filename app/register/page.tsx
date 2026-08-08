@@ -7,6 +7,7 @@ import { Zap, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/components/providers/auth-provider";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,8 +125,8 @@ export default function RegisterPage() {
           preferredCurrency: formData.preferredCurrency,
         });
         router.push("/login");
-      } catch {
-        setError("Registration failed. Please try again.");
+      } catch (err) {
+        setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
         setLoading(false);
       }
     }
@@ -150,8 +151,8 @@ export default function RegisterPage() {
 
       // Show success message and redirect to login
       router.push("/login");
-    } catch (error) {
-      setError("Registration failed. Please try again.");
+    } catch (err) {
+      setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
       setLoading(false);
     }
   };

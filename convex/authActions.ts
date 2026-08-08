@@ -32,13 +32,28 @@ export const register = action({
     preferredCurrency: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ userId: Id<"users">; message: string }> => {
-    const { password, ...rest } = args;
+    const { password, email, phone, ...rest } = args;
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone?.trim() || undefined;
+
     // bcrypt with cost factor 12 — strong but within reason for a Node.js action
     const passwordHash = await bcrypt.hash(password, 12);
-    return await ctx.runMutation(internal.auth.createUser, {
-      ...rest,
-      passwordHash,
-    });
+    try {
+      return await ctx.runMutation(internal.auth.createUser, {
+        ...rest,
+        email: cleanEmail,
+        phone: cleanPhone,
+        passwordHash,
+      });
+    } catch (err: any) {
+      if (err instanceof ConvexError) {
+        throw err;
+      }
+      if (err?.data?.message) {
+        throw new ConvexError({ message: err.data.message });
+      }
+      throw err;
+    }
   },
 });
 
