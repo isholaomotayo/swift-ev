@@ -101,6 +101,8 @@ export default defineSchema({
     ),
     verificationFeeReference: v.optional(v.string()),
     verificationFeePaidAt: v.optional(v.number()),
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
     lastLoginAt: v.optional(v.number()),

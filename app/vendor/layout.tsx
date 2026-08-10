@@ -46,6 +46,10 @@ export default async function VendorLayout({
     redirect("/");
   }
 
+  if (user.status !== "active") {
+    redirect("/pending-verification");
+  }
+
   return (
     <VendorLayoutClient user={user}>
       {children}

@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Zap, Lock, ArrowLeft, Loader2 } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { Zap, ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
@@ -25,7 +23,7 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { CurrencySelector } from "@/components/layout/currency-selector";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-type RegistrationStep = "account_type" | "form" | "payment";
+type RegistrationStep = "account_type" | "form";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -47,12 +45,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch verification fee setting from admin
-  const feeEnabled = useQuery(api.settings.getPublicSetting, { key: "registration.verificationFeeEnabled" });
-  const feeAmount = useQuery(api.settings.getPublicSetting, { key: "registration.verificationFeeAmount" });
-  const verificationFeeEnabled = feeEnabled === true || feeEnabled === "true";
-  const verificationFeeAmount = feeAmount ? String(feeAmount) : "3";
-
   const loadingScreen = (
     <div className="flex min-h-screen bg-background items-center justify-center">
       <div className="flex flex-col items-center gap-4">
@@ -64,7 +56,6 @@ export default function RegisterPage() {
     </div>
   );
 
-  // Only show full-screen loading when redirecting or initial auth check, not during register attempt
   if (authLoading && !actionLoading) {
     return loadingScreen;
   }
@@ -92,7 +83,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -108,37 +98,7 @@ export default function RegisterPage() {
       return;
     }
 
-    // Proceed to Payment Step (or skip if fee disabled)
-    if (verificationFeeEnabled) {
-      setStep("payment");
-    } else {
-      // No fee required — go straight to registration.
-      // The auth provider's register() handles the redirect to /login?registered=true
-      setLoading(true);
-      try {
-        await register({
-          email: formData.email,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone || undefined,
-          password: formData.password,
-          accountType: accountType ?? "individual",
-          preferredCurrency: formData.preferredCurrency,
-        });
-        // auth provider redirects to /login?registered=true — no need to push here
-      } catch (err) {
-        setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
-        setLoading(false);
-      }
-    }
-  };
-
-  const handlePayment = async () => {
     setLoading(true);
-
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     try {
       await register({
         email: formData.email,
@@ -148,8 +108,8 @@ export default function RegisterPage() {
         password: formData.password,
         accountType: accountType ?? "individual",
         preferredCurrency: formData.preferredCurrency,
+        acceptedTerms: true,
       });
-      // auth provider redirects to /login?registered=true — no need to push here
     } catch (err) {
       setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
       setLoading(false);
@@ -162,8 +122,6 @@ export default function RegisterPage() {
         return "Select Account Type";
       case "form":
         return "Create Account";
-      case "payment":
-        return "Complete Registration";
     }
   };
 
@@ -182,16 +140,13 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen bg-background relative">
-      {/* Top-Right Quick Switchers */}
       <div className="absolute top-6 right-6 z-20 flex items-center gap-1 p-1 rounded-xl bg-card/80 border border-border/50 backdrop-blur-md shadow-sm">
         <LanguageSwitcher />
         <CurrencySelector />
         <ThemeToggle />
       </div>
 
-      {/* Left Column - Image/Branding */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-slate-900 text-white relative overflow-hidden">
-        {/* Abstract Background */}
         <div className="absolute top-[-10%] left-[-10%] w-full h-full bg-volt-green/20 rounded-full blur-[150px]" />
         <div className="absolute bottom-[-20%] right-[-20%] w-full h-full bg-electric-blue/10 rounded-full blur-[150px]" />
 
@@ -206,15 +161,14 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Dynamic Step List */}
         <div className="relative z-10 space-y-8">
           {[
             { label: "01", title: "Account Type", desc: "Choose buyer or seller" },
-            { label: "02", title: "Your Details", desc: "Quick and easy KYC process" },
-            { label: "03", title: "Verification", desc: verificationFeeEnabled ? `One-time $${verificationFeeAmount} verification fee` : "Identity verification" }
+            { label: "02", title: "Your Details", desc: "Create your account and accept terms" },
+            { label: "03", title: "Verify Email", desc: "Confirm your email to start browsing" },
           ].map((s, i) => {
-            const stepIndex = { account_type: 0, form: 1, payment: 2 }[step];
-            const isActive = i === stepIndex;
+            const stepIndex = { account_type: 0, form: 1 }[step];
+            const isActive = i === stepIndex || (i === 2 && step === "form");
             const isComplete = i < stepIndex;
 
             return (
@@ -240,12 +194,10 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right Column - Form */}
       <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:px-20 xl:px-24 bg-background relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-volt-green/5 blur-[100px] -z-10" />
 
         <div className="mx-auto w-full max-w-md">
-          {/* Logo */}
           <div className="mb-12">
             <Link href="/" className="flex items-center space-x-2 group">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-electric-blue text-white shadow-xl shadow-electric-blue/20 group-hover:scale-110 transition-transform">
@@ -258,10 +210,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="mb-10">
-            {/* Back Button */}
             {step !== "account_type" && (
               <button
-                onClick={() => setStep(step === "payment" ? "form" : "account_type")}
+                onClick={() => setStep("account_type")}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -292,7 +243,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Step 1: Account Type Selection */}
           {step === "account_type" && (
             <AccountTypeStep
               selectedType={accountType}
@@ -301,7 +251,6 @@ export default function RegisterPage() {
             />
           )}
 
-          {/* Step 2: Form */}
           {step === "form" && (
             <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in">
               <div className="grid grid-cols-2 gap-4">
@@ -432,60 +381,26 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10 text-white">
-                Continue to Verification
-              </Button>
-            </form>
-          )}
-
-          {/* Step 3: Payment */}
-          {step === "payment" && (
-            <div className="space-y-6 animate-in fade-in">
-              <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl text-center space-y-4">
-                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Lock className="h-6 w-6 text-electric-blue" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl text-deep-navy">Identity Verification</h3>
-                  <p className="text-sm text-muted-foreground">To maintain a secure marketplace, we require a one-time verification fee.</p>
-                </div>
-                <div className="text-4xl font-black text-deep-navy">
-                  ${verificationFeeAmount}.00 <span className="text-sm text-muted-foreground font-medium">USD</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-4 border rounded-xl flex items-center gap-4 cursor-pointer hover:bg-muted/30 transition-colors border-electric-blue/50 bg-blue-50/50">
-                  <div className="w-6 h-6 rounded-full border-4 border-electric-blue" />
-                  <span className="font-bold flex-1">Credit / Debit Card</span>
-                  <div className="flex gap-2">
-                    <div className="w-8 h-5 bg-gray-200 rounded" />
-                    <div className="w-8 h-5 bg-gray-200 rounded" />
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="rounded-2xl bg-error-red/10 border border-error-red/20 p-4">
-                  <p className="text-sm text-error-red font-bold">{error}</p>
-                </div>
-              )}
-
               <Button
-                onClick={handlePayment}
-                disabled={loading}
+                type="submit"
+                disabled={loading || actionLoading}
                 className="w-full h-14 rounded-2xl text-lg font-bold bg-electric-blue hover:bg-electric-blue-dark shadow-xl shadow-electric-blue/10 text-white"
               >
-                {loading ? "Processing Payment..." : "Pay & Create Account"}
+                {loading || actionLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                <Lock className="h-3 w-3 inline mr-1" />
-                Secure 256-bit encrypted payment
+                After signing up, check your email to verify your account. Identity verification (KYC) is required before bidding.
               </p>
-            </div>
+            </form>
           )}
-
         </div>
       </div>
     </div>

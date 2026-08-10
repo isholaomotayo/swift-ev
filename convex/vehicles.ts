@@ -9,6 +9,7 @@ import {
   isAdmin as authIsAdmin,
   requireAdmin,
   requireAuth,
+  requireKycApproved,
   requireSeller,
 } from "./lib/auth";
 import { generateUniqueOrderNumber } from "./lib/orders";
@@ -1706,6 +1707,7 @@ export const purchaseVehicleDirectly = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
+    requireKycApproved(user);
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {

@@ -91,6 +91,14 @@ export function BidButton({
     token ? { token } : "skip"
   );
 
+  const bidEligibility = useQuery(
+    api.kyc.canUserBid,
+    token ? { token } : "skip"
+  );
+
+  const kycBlocked =
+    bidEligibility?.canBid === false && bidEligibility?.reason === "kyc_not_approved";
+
   const availableBalance = walletData?.available ?? 0;
   const biddingPower = walletData?.biddingPower ?? 0;
 
@@ -107,6 +115,24 @@ export function BidButton({
         ? window.location.pathname + window.location.search
         : "/vehicles";
     window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+  };
+
+  const redirectToVerify = () => {
+    router.push("/verify");
+  };
+
+  const ensureCanBid = (): boolean => {
+    if (kycBlocked) {
+      toast({
+        title: "Identity Verification Required",
+        description:
+          bidEligibility?.message ||
+          "Please complete identity verification before bidding.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
   };
 
   const handleQuickBid = async () => {
@@ -127,6 +153,11 @@ export function BidButton({
         variant: "destructive",
       });
       redirectToLogin();
+      return;
+    }
+
+    if (!ensureCanBid()) {
+      redirectToVerify();
       return;
     }
 
@@ -189,6 +220,11 @@ export function BidButton({
 
     if (!token) {
       redirectToLogin();
+      return;
+    }
+
+    if (!ensureCanBid()) {
+      redirectToVerify();
       return;
     }
 
@@ -255,6 +291,11 @@ export function BidButton({
       return;
     }
 
+    if (!ensureCanBid()) {
+      redirectToVerify();
+      return;
+    }
+
     if (!lotId) {
       toast({
         title: "Action Not Available",
@@ -303,6 +344,11 @@ export function BidButton({
     }
 
     if (!buyNowPrice) return;
+
+    if (!ensureCanBid()) {
+      redirectToVerify();
+      return;
+    }
 
     setLoading(true);
     try {
@@ -406,6 +452,26 @@ export function BidButton({
           </DialogDescription>
         </DialogHeader>
 
+        {kycBlocked && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+            <p className="font-semibold text-amber-700 dark:text-amber-400">
+              Identity verification required
+            </p>
+            <p className="text-muted-foreground mt-1">
+              {bidEligibility?.message ||
+                "Complete KYC before bidding or purchasing vehicles."}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={redirectToVerify}
+            >
+              Complete Verification
+            </Button>
+          </div>
+        )}
+
         {/* Buy Now — primary purchase option with all-in fee confirmation */}
         {showBuyNow && buyNowPricing && (
           <div className="rounded-xl border-2 border-volt-green/40 bg-volt-green/5 p-4 space-y-3">
@@ -430,7 +496,7 @@ export function BidButton({
                 </p>
                 <Button
                   onClick={() => setConfirmBuyNow(true)}
-                  disabled={loading}
+                  disabled={loading || kycBlocked}
                   className="w-full h-12 rounded-xl bg-volt-green text-slate-950 hover:bg-volt-green/90 font-bold gap-2"
                 >
                   <ShoppingCart className="h-5 w-5" />
@@ -530,7 +596,7 @@ export function BidButton({
                   </Button>
                   <Button
                     onClick={handleBuyNow}
-                    disabled={loading}
+                    disabled={loading || kycBlocked}
                     className="flex-1 h-12 rounded-xl bg-volt-green text-slate-950 hover:bg-volt-green/90 font-bold"
                   >
                     {loading ? "Creating order..." : "Confirm and continue to payment"}
@@ -636,7 +702,7 @@ export function BidButton({
                     {customBid ? (
                       <Button
                         onClick={handleCustomBid}
-                        disabled={loading || !hasEnoughDeposit}
+                        disabled={loading || !hasEnoughDeposit || kycBlocked}
                         className="flex-1 h-12 rounded-xl text-lg font-bold"
                         variant={showBuyNow ? "outline" : "default"}
                       >
@@ -647,7 +713,7 @@ export function BidButton({
                     ) : (
                       <Button
                         onClick={handleQuickBid}
-                        disabled={loading || !hasEnoughDeposit}
+                        disabled={loading || !hasEnoughDeposit || kycBlocked}
                         className="flex-1 h-12 rounded-xl text-lg font-bold"
                         variant={showBuyNow ? "outline" : "default"}
                       >
@@ -703,7 +769,7 @@ export function BidButton({
                 <DialogFooter>
                   <Button
                     onClick={handleSetMaxBid}
-                    disabled={loading || !maxBid}
+                    disabled={loading || !maxBid || kycBlocked}
                     className="w-full"
                     variant={showBuyNow ? "outline" : "default"}
                   >

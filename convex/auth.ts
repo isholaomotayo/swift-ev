@@ -50,8 +50,12 @@ export const createUser = internalMutation({
       )
     ),
     preferredCurrency: v.optional(v.string()),
+    acceptedTerms: v.boolean(),
   },
   handler: async (ctx, args) => {
+    if (!args.acceptedTerms) {
+      throw new ConvexError({ message: "You must accept the terms and conditions" });
+    }
     const cleanEmail = args.email.trim().toLowerCase();
     const cleanPhone = args.phone?.trim() || undefined;
 
@@ -101,6 +105,8 @@ export const createUser = internalMutation({
       dailyBidsUsed: 0,
       lastBidResetAt: Date.now(),
       role,
+      termsAcceptedAt: Date.now(),
+      termsVersion: "2026-01",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -361,6 +367,8 @@ export const getCurrentUser = query({
       vendorCompany: user.vendorCompany,
       vendorLicense: user.vendorLicense,
       preferredCurrency: user.preferredCurrency ?? "NGN",
+      termsAcceptedAt: user.termsAcceptedAt,
+      termsVersion: user.termsVersion,
     };
   },
 });

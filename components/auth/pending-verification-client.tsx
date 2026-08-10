@@ -164,9 +164,9 @@ export function PendingVerificationClient() {
                   <span className="font-bold text-foreground">
                     {user?.firstName || "Member"}
                   </span>
-                  . Your account is almost ready. Please complete the
-                  verification steps below to gain full access to vehicle
-                  bidding and orders.
+                  . Complete the steps below: verify your email to browse the
+                  platform, then complete identity verification (KYC) to bid
+                  and purchase vehicles.
                 </p>
               </div>
             </div>
@@ -290,7 +290,7 @@ export function PendingVerificationClient() {
                   ? `Application rejected: ${
                       kycData?.rejectionReason || "Please re-submit clear documents."
                     }`
-                  : "Complete government ID upload & NIN/BVN verification to activate full platform access."}
+                  : "Required before bidding. Pay the verification fee and submit your identity documents."}
               </p>
             </div>
 

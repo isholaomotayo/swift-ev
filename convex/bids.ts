@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
+import { requireKycApproved } from "./lib/auth";
 import { internal } from "./_generated/api";
 
 // Query limits - imported from constants would require client-side import
@@ -38,6 +39,8 @@ export const placeBid = mutation({
     if (user.status !== "active") {
       throw new Error("Your account is not active. Please complete verification.");
     }
+
+    requireKycApproved(user as any);
 
     // Get auction lot
     const lot = await ctx.db.get(args.lotId);
@@ -334,6 +337,17 @@ export const setMaxBid = mutation({
       throw new Error("Unauthorized - please log in");
     }
 
+    const user = await ctx.db.get(session.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.status !== "active") {
+      throw new Error("Your account is not active. Please complete verification.");
+    }
+
+    requireKycApproved(user as any);
+
     // Get auction lot
     const lot = await ctx.db.get(args.lotId);
     if (!lot) {
@@ -369,8 +383,6 @@ export const setMaxBid = mutation({
       .filter((q) => q.eq(q.field("userId"), session.userId))
       .first();
 
-    const user = await ctx.db.get(session.userId);
-    if (!user) throw new Error("User not found");
     const walletBalance = user.walletBalance ?? 0;
     const requiredReserve = calculateBidReserveAmountKobo(args.maxAmount);
 

@@ -3,6 +3,16 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
+import { requireAuth, requireAdmin } from "./lib/auth";
+
+const MAX_KYC_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_KYC_DOCUMENT_TYPES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+]);
 
 /**
  * Get KYC status for the current user
@@ -78,6 +88,24 @@ export const submitDocument = mutation({
         const user = await ctx.db.get(session.userId);
         if (!user) {
             throw new Error("User not found");
+        }
+
+        if (user.verificationFeeStatus !== "paid") {
+            throw new Error("Please pay the verification fee before uploading documents");
+        }
+
+        const metadata = await ctx.storage.getMetadata(args.storageId);
+        if (!metadata) {
+            throw new Error("Uploaded file not found");
+        }
+
+        if (metadata.size > MAX_KYC_DOCUMENT_SIZE_BYTES) {
+            throw new Error("Document must be 10 MB or smaller");
+        }
+
+        const contentType = metadata.contentType ?? "";
+        if (!ACCEPTED_KYC_DOCUMENT_TYPES.has(contentType)) {
+            throw new Error("Unsupported file type. Upload JPEG, PNG, WebP, or PDF.");
         }
 
         const documentId = await ctx.db.insert("userDocuments", {
@@ -408,78 +436,72 @@ export const submitKycDocuments = mutation({
 });
 
 /**
- * Simulate KYC approval (STUBBED - for testing)
- * In production, this would be triggered by Sumsub webhook
+ * Simulate KYC approval (admin-only — for testing / manual override)
  */
 export const simulateKycApproval = mutation({
     args: {
         token: v.string(),
+        userId: v.optional(v.id("users")),
         approve: v.boolean(),
         rejectionReason: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const session = await ctx.db
-            .query("sessions")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
-            .first();
+        const admin = await requireAuth(ctx, args.token);
+        requireAdmin(admin);
 
-        if (!session) {
-            throw new Error("Unauthorized");
-        }
-
-        const user = await ctx.db.get(session.userId);
-        if (!user) {
+        const targetUserId = args.userId ?? admin._id;
+        const targetUser = await ctx.db.get(targetUserId);
+        if (!targetUser) {
             throw new Error("User not found");
         }
 
         if (args.approve) {
-            await ctx.db.patch(session.userId, {
+            await ctx.db.patch(targetUserId, {
                 kycStatus: "approved",
                 kycApprovedAt: Date.now(),
-                status: "active", // Activate the account
+                status: "active",
                 updatedAt: Date.now(),
             });
 
             await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
-                userId: user._id,
-                email: user.email,
-                firstName: user.firstName,
+                userId: targetUser._id,
+                email: targetUser.email,
+                firstName: targetUser.firstName,
                 approved: true,
             });
 
             return {
                 success: true,
-                message: "KYC approved! Your account is now active.",
-            };
-        } else {
-            const reason = args.rejectionReason ?? "Document verification failed";
-            await ctx.db.patch(session.userId, {
-                kycStatus: "rejected",
-                kycRejectionReason: reason,
-                updatedAt: Date.now(),
-            });
-
-            await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
-                userId: user._id,
-                email: user.email,
-                firstName: user.firstName,
-                approved: false,
-                reason,
-            });
-
-            return {
-                success: true,
-                message: `KYC rejected: ${reason}`,
+                message: "KYC approved! Account is now fully verified.",
             };
         }
+
+        const reason = args.rejectionReason ?? "Document verification failed";
+        await ctx.db.patch(targetUserId, {
+            kycStatus: "rejected",
+            kycRejectionReason: reason,
+            updatedAt: Date.now(),
+        });
+
+        await ctx.scheduler.runAfter(0, internal.emails.sendKycResultEmail, {
+            userId: targetUser._id,
+            email: targetUser.email,
+            firstName: targetUser.firstName,
+            approved: false,
+            reason,
+        });
+
+        return {
+            success: true,
+            message: `KYC rejected: ${reason}`,
+        };
     },
 });
 
 /**
- * Process Sumsub webhook (STUBBED)
- * In production, this would verify webhook signature and update user status
+ * Process Sumsub webhook (internal — called from HTTP route with signature verification)
  */
-export const processSumsubWebhook = mutation({
+export const processSumsubWebhook = internalMutation({
     args: {
         applicantId: v.string(),
         reviewResult: v.union(

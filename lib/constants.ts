@@ -3,6 +3,8 @@
  */
 
 export const SITE_NAME = "autoexports.live";
+/** Current Terms of Service version — update when /terms content changes materially */
+export const TERMS_VERSION = "2026-01";
 export const BRAND_TAGLINE = "Bid. Win. Export.";
 export const SUPPORT_EMAIL = "hello@autoexports.live";
 export const SAFETY_EMAIL = "safety@autoexports.live";
@@ -370,6 +372,16 @@ export const MAX_USER_BIDS = 50;
 export const MAX_VEHICLE_IMAGES = 20;
 export const MAX_IMAGE_SIZE_MB = 10;
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+// KYC document upload limits
+export const MAX_KYC_DOCUMENT_SIZE_MB = 10;
+export const ACCEPTED_KYC_DOCUMENT_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+] as const;
 
 // Contact Information
 export const CONTACT_INFO = {

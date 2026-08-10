@@ -48,6 +48,7 @@ interface RegisterData {
   password: string;
   accountType?: "individual" | "dealer" | "corporate" | "seller_individual" | "seller_dealer" | "seller_fleet";
   preferredCurrency?: string;
+  acceptedTerms: boolean;
 }
 
 interface ProfileUpdates {

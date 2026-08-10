@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { User, ShoppingBag, Gavel, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { KycOnboardingFlow } from "@/components/kyc/kyc-onboarding-flow";
+import { KycVerification } from "@/components/kyc/kyc-verification";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
@@ -330,7 +330,7 @@ export function ProfileClient({
 
         {/* KYC Tab */}
         <TabsContent value="kyc">
-          <KycOnboardingFlow token={token} />
+          <KycVerification />
         </TabsContent>
       </Tabs>
     </div>

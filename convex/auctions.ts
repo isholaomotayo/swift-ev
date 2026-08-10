@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { requireAdmin, requireAuth, requireSeller } from "./lib/auth";
+import { requireAdmin, requireAuth, requireSeller, requireKycApproved } from "./lib/auth";
 import { generateUniqueOrderNumber, calculateServiceFee } from "./lib/orders";
 import {
   assertVehicleStatusTransition,
@@ -867,6 +867,7 @@ export const purchaseBuyItNow = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.token);
+    requireKycApproved(user);
 
     const lot = await ctx.db.get(args.lotId);
     if (!lot) {

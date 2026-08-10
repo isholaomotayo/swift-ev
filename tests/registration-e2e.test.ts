@@ -36,6 +36,7 @@ describe("End-to-End Registration & Auth Suite", () => {
             password,
             accountType: type,
             preferredCurrency: "NGN",
+            acceptedTerms: true,
           });
 
           expect(regResult).toHaveProperty("userId");
@@ -66,6 +67,8 @@ describe("End-to-End Registration & Auth Suite", () => {
           expect(currentUser?.email).toBe(email.toLowerCase());
           expect(currentUser?.role).toBe(expectedRole);
           expect(currentUser?.accountType).toBe(type);
+          expect(typeof currentUser?.termsAcceptedAt).toBe("number");
+          expect(currentUser?.termsVersion).toBe("2026-01");
         },
         30000
       );
@@ -87,6 +90,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           lastName: "User",
           password,
           accountType: "individual",
+          acceptedTerms: true,
         });
 
         // Second registration with exact same email must fail
@@ -98,6 +102,7 @@ describe("End-to-End Registration & Auth Suite", () => {
             lastName: "User",
             password,
             accountType: "dealer",
+            acceptedTerms: true,
           });
         } catch (err) {
           caughtError = err;
@@ -125,6 +130,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           lastName: "Test",
           password,
           accountType: "individual",
+          acceptedTerms: true,
         });
 
         // Attempt uppercase
@@ -136,6 +142,7 @@ describe("End-to-End Registration & Auth Suite", () => {
             lastName: "Test",
             password,
             accountType: "individual",
+            acceptedTerms: true,
           });
         } catch (err) {
           caughtError = err;
@@ -163,6 +170,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           phone: sharedPhone,
           password,
           accountType: "individual",
+          acceptedTerms: true,
         });
 
         // User 2 attempts registration with same phone
@@ -175,6 +183,7 @@ describe("End-to-End Registration & Auth Suite", () => {
             phone: sharedPhone,
             password,
             accountType: "corporate",
+            acceptedTerms: true,
           });
         } catch (err) {
           caughtError = err;
@@ -201,6 +210,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           phone: "",
           password,
           accountType: "individual",
+          acceptedTerms: true,
         });
         expect(user1.userId).toBeDefined();
 
@@ -212,8 +222,61 @@ describe("End-to-End Registration & Auth Suite", () => {
           phone: "   ",
           password,
           accountType: "seller_individual",
+          acceptedTerms: true,
         });
         expect(user2.userId).toBeDefined();
+      },
+      30000
+    );
+
+    test(
+      "rejects registration when terms are not accepted",
+      async () => {
+        const timestamp = Date.now();
+        let caughtError: unknown = null;
+        try {
+          await client.action(api.authActions.register, {
+            email: `no_terms_${timestamp}@test.live`,
+            firstName: "No",
+            lastName: "Terms",
+            password: "Password123!",
+            accountType: "individual",
+            acceptedTerms: false,
+          });
+        } catch (err) {
+          caughtError = err;
+        }
+
+        expect(caughtError).not.toBeNull();
+        expect(getAuthErrorMessage(caughtError, "Registration failed")).toBe(
+          "You must accept the terms and conditions"
+        );
+      },
+      30000
+    );
+
+    test(
+      "rejects registration with password shorter than 8 characters",
+      async () => {
+        const timestamp = Date.now();
+        let caughtError: unknown = null;
+        try {
+          await client.action(api.authActions.register, {
+            email: `short_pw_${timestamp}@test.live`,
+            firstName: "Short",
+            lastName: "Password",
+            password: "abc",
+            accountType: "individual",
+            acceptedTerms: true,
+          });
+        } catch (err) {
+          caughtError = err;
+        }
+
+        expect(caughtError).not.toBeNull();
+        expect(getAuthErrorMessage(caughtError, "Registration failed")).toBe(
+          "Password must be at least 8 characters"
+        );
       },
       30000
     );

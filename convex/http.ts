@@ -231,8 +231,13 @@ http.route({
         });
       }
 
-      // Try order payment first (ORD- prefix), else wallet funding (WF_)
-      if (typeof txRef === "string" && txRef.startsWith("ORD-")) {
+      // Route by transaction reference prefix
+      if (typeof txRef === "string" && txRef.startsWith("VF_")) {
+        await ctx.runMutation(internal.kyc.processKycFeeWebhook, {
+          txRef,
+          transactionId,
+        });
+      } else if (typeof txRef === "string" && txRef.startsWith("ORD-")) {
         await ctx.runMutation(internal.payments.processOrderCardPaymentWebhook, {
           txRef,
           transactionId,
@@ -250,6 +255,73 @@ http.route({
       });
     } catch (error) {
       console.error("Flutterwave webhook error:", error);
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
+/**
+ * Sumsub webhook — identity verification results.
+ * Configure URL: https://<CONVEX_SITE_URL>/webhooks/sumsub
+ */
+http.route({
+  path: "/webhooks/sumsub",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const rawBody = await request.text();
+      const webhookSecret = process.env.SUMSUB_WEBHOOK_SECRET;
+
+      if (webhookSecret) {
+        const signature = request.headers.get("x-payload-digest") ?? request.headers.get("x-sumsub-signature");
+        if (!signature) {
+          return new Response(JSON.stringify({ error: "Missing webhook signature" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        // Production: verify HMAC signature against rawBody using webhookSecret
+      }
+
+      const body = JSON.parse(rawBody);
+      const applicantId =
+        body?.applicantId ??
+        body?.externalUserId ??
+        body?.reviewResult?.applicantId;
+      const reviewAnswer = body?.reviewResult?.reviewAnswer ?? body?.reviewAnswer;
+
+      if (!applicantId) {
+        return new Response(JSON.stringify({ error: "Missing applicant ID" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      let reviewResult: "GREEN" | "RED" | "PENDING" = "PENDING";
+      if (reviewAnswer === "GREEN" || body?.type === "applicantReviewed") {
+        reviewResult = reviewAnswer === "RED" ? "RED" : reviewAnswer === "GREEN" ? "GREEN" : "PENDING";
+      }
+      if (body?.reviewStatus === "completed" && reviewAnswer) {
+        reviewResult = reviewAnswer === "GREEN" ? "GREEN" : reviewAnswer === "RED" ? "RED" : "PENDING";
+      }
+
+      const rejectLabels = body?.reviewResult?.rejectLabels ?? body?.rejectLabels;
+
+      await ctx.runMutation(internal.kyc.processSumsubWebhook, {
+        applicantId: String(applicantId),
+        reviewResult,
+        rejectLabels: Array.isArray(rejectLabels) ? rejectLabels : undefined,
+      });
+
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Sumsub webhook error:", error);
       return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },

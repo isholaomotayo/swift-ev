@@ -30,11 +30,25 @@ export const register = action({
       )
     ),
     preferredCurrency: v.optional(v.string()),
+    acceptedTerms: v.boolean(),
   },
   handler: async (ctx, args): Promise<{ userId: Id<"users">; message: string }> => {
-    const { password, email, phone, ...rest } = args;
+    const { password, email, phone, acceptedTerms, ...rest } = args;
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone?.trim() || undefined;
+
+    if (!acceptedTerms) {
+      throw new ConvexError({ message: "You must accept the terms and conditions" });
+    }
+
+    if (password.length < 8) {
+      throw new ConvexError({ message: "Password must be at least 8 characters" });
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(cleanEmail)) {
+      throw new ConvexError({ message: "Invalid email address" });
+    }
 
     // bcrypt with cost factor 12 — strong but within reason for a Node.js action
     const passwordHash = await bcrypt.hash(password, 12);
@@ -44,6 +58,7 @@ export const register = action({
         email: cleanEmail,
         phone: cleanPhone,
         passwordHash,
+        acceptedTerms,
       });
     } catch (err: any) {
       if (err instanceof ConvexError) {

@@ -17,9 +17,19 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MockSumsubModal } from "@/components/shared/mock-sumsub-modal";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
+import { ACCEPTED_KYC_DOCUMENT_TYPES, MAX_KYC_DOCUMENT_SIZE_MB } from "@/lib/constants";
 
 type VerificationStep = "fee" | "documents" | "review" | "complete";
 
@@ -43,7 +53,15 @@ export function KycVerification() {
   );
   const generateSumsubToken = useMutation(api.kyc.generateSumsubToken);
   const submitKycDocuments = useMutation(api.kyc.submitKycDocuments);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const submitDocument = useMutation(api.kyc.submitDocument);
   const simulateApproval = useMutation(api.kyc.simulateKycApproval);
+
+  const [documentType, setDocumentType] = useState<string>("government_id");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const isDev = process.env.NODE_ENV === "development";
 
   const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =
     useFlutterwaveCheckout();
@@ -142,9 +160,7 @@ export function KycVerification() {
   const onVerificationComplete = async () => {
     if (!token) return;
     try {
-      // First generate token (backend requirement)
       await generateSumsubToken({ token });
-      // Then submit documents
       await submitKycDocuments({ token });
       toast({
         title: "Documents Submitted",
@@ -157,6 +173,78 @@ export function KycVerification() {
           error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleManualUpload = async () => {
+    if (!token || !selectedFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxBytes = MAX_KYC_DOCUMENT_SIZE_MB * 1024 * 1024;
+    if (selectedFile.size > maxBytes) {
+      toast({
+        title: "File Too Large",
+        description: `Documents must be ${MAX_KYC_DOCUMENT_SIZE_MB} MB or smaller`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!(ACCEPTED_KYC_DOCUMENT_TYPES as readonly string[]).includes(selectedFile.type)) {
+      toast({
+        title: "Unsupported File Type",
+        description: "Upload JPEG, PNG, WebP, or PDF",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl({ token });
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": selectedFile.type },
+        body: selectedFile,
+      });
+
+      if (!result.ok) throw new Error("Failed to upload file");
+
+      const { storageId } = await result.json();
+      await submitDocument({
+        token,
+        documentType: documentType as
+          | "government_id"
+          | "proof_of_address"
+          | "business_registration"
+          | "dealer_license"
+          | "cac_certificate"
+          | "cac_form_1_1"
+          | "amdon_certificate"
+          | "bvn_slip"
+          | "source_of_funds_proof",
+        storageId,
+      });
+
+      toast({
+        title: "Document Submitted",
+        description: "Your document is pending review",
+      });
+      setSelectedFile(null);
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -350,12 +438,53 @@ export function KycVerification() {
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                 ) : null}
-                Submit for Verification
+                Submit via Sumsub (Demo)
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <p className="text-xs text-muted-foreground">
-                This is a stubbed demo — documents are simulated
+                Or upload documents manually below
               </p>
+            </div>
+
+            <div className="max-w-xl mx-auto mt-8 pt-8 border-t text-left space-y-4">
+              <h3 className="font-bold text-lg">Manual Document Upload</h3>
+              <div className="space-y-2">
+                <Label>Document Type</Label>
+                <Select value={documentType} onValueChange={setDocumentType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="government_id">Government ID</SelectItem>
+                    <SelectItem value="proof_of_address">Proof of Address</SelectItem>
+                    <SelectItem value="business_registration">Business Registration (CAC)</SelectItem>
+                    <SelectItem value="cac_form_1_1">CAC Form 1.1 / Form 7</SelectItem>
+                    <SelectItem value="amdon_certificate">AMDON Certificate (Dealers)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>File</Label>
+                <Input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleManualUpload}
+                disabled={!selectedFile || isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload Document for Review"
+                )}
+              </Button>
             </div>
           </div>
         )}
@@ -382,23 +511,25 @@ export function KycVerification() {
               </div>
             </div>
 
-            {/* STUB: Testing button */}
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground mb-3">
-                For testing purposes:
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSimulateApproval}
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                Simulate Approval
-              </Button>
-            </div>
+            {/* Dev-only testing control */}
+            {isDev && (
+              <div className="pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Development only — requires admin account:
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSimulateApproval}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Simulate Approval (Admin)
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

@@ -20,7 +20,7 @@ export interface AuthenticatedUser {
   vendorLicense?: string;
   walletBalance?: number;
   reservedBalance?: number;
-  kycStatus?: "unverified" | "pending" | "approved" | "rejected";
+  kycStatus?: "not_started" | "pending" | "approved" | "rejected";
 }
 
 /**
@@ -129,6 +129,19 @@ export function requireActiveStatus(user: AuthenticatedUser): void {
   if (user.status !== "active") {
     throw new Error(
       `Account is ${user.status}. Please contact support or complete verification.`
+    );
+  }
+}
+
+/**
+ * Require user to have approved KYC before bidding or purchasing
+ */
+export function requireKycApproved(user: AuthenticatedUser): void {
+  if (user.kycStatus !== "approved") {
+    throw new Error(
+      user.kycStatus === "pending"
+        ? "Your identity verification is under review. You'll be able to bid once approved."
+        : "Please complete identity verification before bidding."
     );
   }
 }
