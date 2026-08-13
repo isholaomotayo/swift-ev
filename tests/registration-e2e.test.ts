@@ -69,8 +69,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           expect(currentUser?.accountType).toBe(type);
           expect(typeof currentUser?.termsAcceptedAt).toBe("number");
           expect(currentUser?.termsVersion).toBe("2026-01");
-        },
-        30000
+        }
       );
     }
   });
@@ -111,8 +110,7 @@ describe("End-to-End Registration & Auth Suite", () => {
         expect(caughtError).not.toBeNull();
         const extractedMessage = getAuthErrorMessage(caughtError, "Registration failed");
         expect(extractedMessage).toBe("Email already registered");
-      },
-      30000
+      }
     );
 
     test(
@@ -151,8 +149,7 @@ describe("End-to-End Registration & Auth Suite", () => {
         expect(caughtError).not.toBeNull();
         const extractedMessage = getAuthErrorMessage(caughtError, "Registration failed");
         expect(extractedMessage).toBe("Email already registered");
-      },
-      30000
+      }
     );
 
     test(
@@ -192,8 +189,7 @@ describe("End-to-End Registration & Auth Suite", () => {
         expect(caughtError).not.toBeNull();
         const extractedMessage = getAuthErrorMessage(caughtError, "Registration failed");
         expect(extractedMessage).toBe("Phone number already registered");
-      },
-      30000
+      }
     );
 
     test(
@@ -225,8 +221,7 @@ describe("End-to-End Registration & Auth Suite", () => {
           acceptedTerms: true,
         });
         expect(user2.userId).toBeDefined();
-      },
-      30000
+      }
     );
 
     test(
@@ -251,8 +246,7 @@ describe("End-to-End Registration & Auth Suite", () => {
         expect(getAuthErrorMessage(caughtError, "Registration failed")).toBe(
           "You must accept the terms and conditions"
         );
-      },
-      30000
+      }
     );
 
     test(
@@ -277,8 +271,7 @@ describe("End-to-End Registration & Auth Suite", () => {
         expect(getAuthErrorMessage(caughtError, "Registration failed")).toBe(
           "Password must be at least 8 characters"
         );
-      },
-      30000
+      }
     );
   });
 

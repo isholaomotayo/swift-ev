@@ -1,7 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getAuthUserOrNull } from "./lib/auth";
+import { getAuthUserOrNull, requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 
 export const getUserFromTokenQuery = internalQuery({
   args: { token: v.string() },
@@ -514,7 +514,8 @@ export const waiveUserVerificationFee = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx, args.token);
+    const admin = await requireAuth(ctx, args.token);
+    requireAdmin(admin);
     const user = await ctx.db.get(args.userId);
 
     if (!user) {
@@ -528,14 +529,13 @@ export const waiveUserVerificationFee = mutation({
       updatedAt: Date.now(),
     });
 
-    await createAuditLog(
-      ctx,
-      admin._id,
-      "waive_user_verification_fee",
-      "users",
-      user._id.toString(),
-      { email: user.email }
-    );
+    await createAuditLog(ctx, {
+      userId: admin._id,
+      action: "waive_user_verification_fee",
+      entityType: "users",
+      entityId: user._id.toString(),
+      changes: { email: user.email },
+    });
 
     return { success: true, message: `Verification fee waived for ${user.firstName} ${user.lastName}` };
   },

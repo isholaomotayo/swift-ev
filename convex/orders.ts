@@ -1134,7 +1134,8 @@ export const attachOrderCommissions = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx, args.token);
+    const admin = await requireAuth(ctx, args.token);
+    requireAdmin(admin);
     const order = await ctx.db.get(args.orderId);
 
     if (!order) {

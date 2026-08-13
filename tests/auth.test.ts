@@ -21,8 +21,7 @@ describe("Authentication", () => {
         expect(result.user.role).toBe("superadmin");
         expect(result.user.firstName).toBe("System");
         expect(result.user.lastName).toBe("Administrator");
-      },
-      30000
+      }
     );
 
     test(
@@ -38,8 +37,7 @@ describe("Authentication", () => {
         expect(result.user.role).toBe("seller");
         expect(result.user.vendorCompany).toBe("BYD Auto Nigeria Ltd");
         expect(result.user.vendorLicense).toBe("DL-BYD-2024-001");
-      },
-      30000
+      }
     );
 
     test(
@@ -54,8 +52,7 @@ describe("Authentication", () => {
         expect(result.user.email).toBe("john.doe@example.com");
         expect(result.user.firstName).toBe("John");
         expect(result.user.lastName).toBe("Doe");
-      },
-      30000
+      }
     );
 
     test(
@@ -72,8 +69,7 @@ describe("Authentication", () => {
         }
         expect(error).not.toBeNull();
         expect(getAuthErrorMessage(error, "")).toBe("Invalid email or password");
-      },
-      30000
+      }
     );
 
     test(
@@ -90,8 +86,7 @@ describe("Authentication", () => {
         }
         expect(error).not.toBeNull();
         expect(getAuthErrorMessage(error, "")).toBe("Invalid email or password");
-      },
-      30000
+      }
     );
   });
 
@@ -114,8 +109,7 @@ describe("Authentication", () => {
         expect(user?.email).toBe("vendor@bydnigeria.com");
         expect(user?.role).toBe("seller");
         expect(user?.vendorCompany).toBe("BYD Auto Nigeria Ltd");
-      },
-      30000
+      }
     );
 
     test(
@@ -126,8 +120,7 @@ describe("Authentication", () => {
         });
 
         expect(user).toBeNull();
-      },
-      30000
+      }
     );
   });
 
@@ -154,8 +147,7 @@ describe("Authentication", () => {
         });
 
         expect(user).toBeNull();
-      },
-      30000
+      }
     );
   });
 });
