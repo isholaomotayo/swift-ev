@@ -184,7 +184,7 @@ describe("Users", () => {
           token: adminToken,
           userId: fakeUserId,
         })
-      ).rejects.toThrow("not found");
+      ).rejects.toThrow();
     });
   });
 

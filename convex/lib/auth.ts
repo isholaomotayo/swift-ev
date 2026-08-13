@@ -1,4 +1,5 @@
 import { Id } from "../_generated/dataModel";
+import { ConvexError } from "convex/values";
 
 /**
  * Centralized authorization utilities for Convex functions
@@ -38,18 +39,18 @@ export async function requireAuth(
     .first();
 
   if (!session) {
-    throw new Error("Unauthorized - please log in");
+    throw new ConvexError("Unauthorized - please log in");
   }
 
   // Check if session is expired
   if (session.expiresAt < Date.now()) {
-    throw new Error("Session expired - please log in again");
+    throw new ConvexError("Session expired - please log in again");
   }
 
   // Get user
   const user = await ctx.db.get(session.userId);
   if (!user) {
-    throw new Error("User not found");
+    throw new ConvexError("User not found");
   }
 
   return user as AuthenticatedUser;
@@ -91,7 +92,7 @@ export function requireRole(
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
   if (!roles.includes(user.role)) {
-    throw new Error(
+    throw new ConvexError(
       `Access denied. Required role: ${roles.join(" or ")}, but user has role: ${user.role}`
     );
   }

@@ -40,6 +40,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     preferredCurrency: "NGN",
+    feeWaiverCode: "",
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,6 +110,7 @@ export default function RegisterPage() {
         accountType: accountType ?? "individual",
         preferredCurrency: formData.preferredCurrency,
         acceptedTerms: true,
+        feeWaiverCode: formData.feeWaiverCode || undefined,
       });
     } catch (err) {
       setError(getAuthErrorMessage(err, "Registration failed. Please try again."));
@@ -324,6 +326,24 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">Prices in your dashboard will be shown in this currency.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="feeWaiverCode" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Promo / Waiver Code (Optional)
+                </Label>
+                <Input
+                  id="feeWaiverCode"
+                  name="feeWaiverCode"
+                  type="text"
+                  value={formData.feeWaiverCode}
+                  onChange={handleChange}
+                  placeholder="e.g. OWENYE_MVP"
+                  className="h-14 rounded-2xl bg-muted/30 focus:bg-background border-border transition-all uppercase"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  MVP invitees with a waiver code bypass initial registration & verification fees.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

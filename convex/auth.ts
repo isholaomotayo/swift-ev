@@ -51,6 +51,8 @@ export const createUser = internalMutation({
     ),
     preferredCurrency: v.optional(v.string()),
     acceptedTerms: v.boolean(),
+    feeWaiverCode: v.optional(v.string()),
+    waivePayment: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!args.acceptedTerms) {
@@ -81,6 +83,17 @@ export const createUser = internalMutation({
     const isSeller = args.accountType?.startsWith("seller_");
     const role: "buyer" | "seller" = isSeller ? "seller" : "buyer";
 
+    // Check for fee waiver eligibility (e.g., Owenye MVP promo code or explicit admin flag)
+    const isWaived =
+      args.waivePayment === true ||
+      (args.feeWaiverCode &&
+        ["OWENYE_MVP", "OWENYE", "FREE_MVP", "ONBOARD_WAIVER"].includes(
+          args.feeWaiverCode.trim().toUpperCase()
+        ));
+
+    const verificationFeeStatus = isWaived ? ("waived" as const) : ("not_paid" as const);
+    const membershipTier = isWaived ? ("premier" as const) : ("guest" as const);
+
     const userId = await ctx.db.insert("users", {
       email: cleanEmail,
       phone: cleanPhone,
@@ -88,7 +101,7 @@ export const createUser = internalMutation({
       lastName: args.lastName.trim(),
       passwordHash: args.passwordHash,
       accountType: args.accountType ?? "individual",
-      membershipTier: "guest",
+      membershipTier,
       status: "pending",
       emailVerified: false,
       phoneVerified: false,
@@ -98,9 +111,8 @@ export const createUser = internalMutation({
       reservedBalance: 0,
       walletCurrency: "NGN",
       preferredCurrency: args.preferredCurrency ?? "NGN",
-      // FIX: was incorrectly hardcoded "paid" — now correctly starts as "not_paid"
-      verificationFeeStatus: "not_paid",
-      buyingPower: 0,
+      verificationFeeStatus,
+      buyingPower: isWaived ? 10000000 : 0,
       depositAmount: 0,
       dailyBidsUsed: 0,
       lastBidResetAt: Date.now(),
@@ -488,8 +500,43 @@ export const resendVerificationEmail = mutation({
 
     return {
       success: true,
-      message:
-        "If an account exists and is pending verification, we've sent a new link.",
+      message: "If an unverified account exists for that email, a verification link has been sent.",
     };
+  },
+});
+
+/**
+ * Admin mutation to waive initial verification payment for MVP onboarded users (e.g., "Owenye")
+ */
+export const waiveUserVerificationFee = mutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.token);
+    const user = await ctx.db.get(args.userId);
+
+    if (!user) {
+      throw new ConvexError({ message: "User not found" });
+    }
+
+    await ctx.db.patch(args.userId, {
+      verificationFeeStatus: "waived",
+      membershipTier: "premier",
+      buyingPower: Math.max(user.buyingPower || 0, 10000000),
+      updatedAt: Date.now(),
+    });
+
+    await createAuditLog(
+      ctx,
+      admin._id,
+      "waive_user_verification_fee",
+      "users",
+      user._id.toString(),
+      { email: user.email }
+    );
+
+    return { success: true, message: `Verification fee waived for ${user.firstName} ${user.lastName}` };
   },
 });

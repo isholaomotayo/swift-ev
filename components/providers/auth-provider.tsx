@@ -49,6 +49,7 @@ interface RegisterData {
   accountType?: "individual" | "dealer" | "corporate" | "seller_individual" | "seller_dealer" | "seller_fleet";
   preferredCurrency?: string;
   acceptedTerms: boolean;
+  feeWaiverCode?: string;
 }
 
 interface ProfileUpdates {

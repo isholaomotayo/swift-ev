@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 import { createInAppNotification } from "./lib/payments";
 
@@ -109,13 +109,13 @@ export const getUserDetails = query({
     // Normalize and validate ID
     const targetUserId = ctx.db.normalizeId("users", args.userId);
     if (!targetUserId) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     // Get user
     const user = await ctx.db.get(targetUserId);
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     // Get user documents

@@ -1,0 +1,11 @@
+{
+  "coder": [
+    {
+      "passedCount": 0,
+      "failedCount": 1,
+      "isPassed": false,
+      "at": "2026-08-13T07:47:21.249Z"
+    }
+  ],
+  "postTester": []
+}

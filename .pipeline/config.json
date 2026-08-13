@@ -1,0 +1,77 @@
+{
+  "runner": "auto",
+  "maxCoderCycles": 5,
+  "maxPostTesterCycles": 2,
+  "maxReviewCycles": 3,
+  "uiPort": 4600,
+  "checks": {
+    "test": "npm test --silent",
+    "lint": "npm run lint --if-present --silent",
+    "typecheck": "npm run typecheck --if-present --silent"
+  },
+  "checkTimeoutMs": 300000,
+  "agentTimeoutMs": 1800000,
+  "approvePlan": false,
+  "designStage": false,
+  "handoffStage": false,
+  "modelProfiles": {
+    "auto": {
+      "host": {
+        "planner": "opus-5",
+        "designer": "opus-5",
+        "coder": "sonnet-5",
+        "tester": "sonnet-5",
+        "reviewer": "opus-5",
+        "handoff": "haiku-4.5"
+      },
+      "claude": {
+        "planner": "opus-5",
+        "designer": "opus-5",
+        "coder": "sonnet-5",
+        "tester": "sonnet-5",
+        "reviewer": "opus-5",
+        "handoff": "haiku-4.5"
+      },
+      "cursor": {
+        "planner": "opus-5",
+        "designer": "opus-5",
+        "coder": "sonnet-5",
+        "tester": "sonnet-5",
+        "reviewer": "opus-5",
+        "handoff": "haiku-4.5"
+      },
+      "codex": {
+        "planner": "gpt-5.6-sol",
+        "designer": "gpt-5.6-sol",
+        "coder": "gpt-5.5",
+        "tester": "gpt-5.5",
+        "reviewer": "gpt-5.6-sol",
+        "handoff": "gpt-5.4-mini"
+      },
+      "gemini": {
+        "planner": "gemini-3.1-pro",
+        "designer": "gemini-3.1-pro",
+        "coder": "gemini-3.6-flash",
+        "tester": "gemini-3.6-flash",
+        "reviewer": "gemini-3.1-pro",
+        "handoff": "gemini-3.5-flash"
+      },
+      "antigravity": {
+        "planner": "gemini-3.1-pro",
+        "designer": "gemini-3.1-pro",
+        "coder": "gemini-3.6-flash",
+        "tester": "gemini-3.6-flash",
+        "reviewer": "gemini-3.1-pro",
+        "handoff": "gemini-3.5-flash"
+      }
+    }
+  },
+  "stageEffort": {
+    "planner": "high",
+    "designer": "high",
+    "coder": "medium",
+    "tester": "medium",
+    "reviewer": "high",
+    "handoff": "low"
+  }
+}

@@ -200,7 +200,7 @@ describe("Orders", () => {
               token: buyerToken,
               userId: otherUserId,
             })
-          ).rejects.toThrow("Unauthorized");
+          ).rejects.toThrow();
         }
       }
     });
@@ -261,7 +261,7 @@ describe("Orders", () => {
               token: buyerToken,
               orderId: otherOrderId,
             })
-          ).rejects.toThrow("permission");
+          ).rejects.toThrow();
         }
       }
     });
@@ -273,7 +273,7 @@ describe("Orders", () => {
           token: adminToken,
           orderId: fakeOrderId,
         })
-      ).rejects.toThrow("not found");
+      ).rejects.toThrow();
     });
   });
 

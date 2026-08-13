@@ -96,7 +96,8 @@ export default defineSchema({
       v.union(
         v.literal("not_paid"),
         v.literal("pending"),
-        v.literal("paid")
+        v.literal("paid"),
+        v.literal("waived")
       )
     ),
     verificationFeeReference: v.optional(v.string()),
@@ -534,6 +535,21 @@ export default defineSchema({
     ),
     guaranteeActivatedAt: v.optional(v.number()),
     guaranteePolicyNumber: v.optional(v.string()),
+    // Commission Structure (China Import Lead & Fractional Sales Facilitators)
+    chinaImportLeadCommission: v.optional(v.number()),
+    facilitatorId: v.optional(v.id("users")),
+    facilitatorCommissionPercent: v.optional(v.number()),
+    facilitatorCommissionAmount: v.optional(v.number()),
+    fractionalCommissions: v.optional(
+      v.array(
+        v.object({
+          repId: v.id("users"),
+          role: v.string(),
+          sharePercent: v.number(),
+          amount: v.number(),
+        })
+      )
+    ),
   })
     .index("by_order_number", ["orderNumber"])
     .index("by_user", ["userId"])

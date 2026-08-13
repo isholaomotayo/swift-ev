@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { requireAuth, requireAdmin, requireSeller, hasOwnershipOrAdmin, createAuditLog, getAuthUserOrNull } from "./lib/auth";
@@ -107,7 +107,7 @@ export const listOrders = query({
     const buildOrdersQuery = async (): Promise<Doc<"orders">[]> => {
       const isAdmin = user.role === "admin" || user.role === "superadmin";
       if (args.userId && args.userId !== user._id && !isAdmin) {
-        throw new Error("Unauthorized: Non-admin users cannot query other users' orders");
+        throw new ConvexError("Unauthorized: Non-admin users cannot query other users' orders");
       }
       const targetUserId = isAdmin ? args.userId : user._id;
 
@@ -119,7 +119,7 @@ export const listOrders = query({
       }
 
       if (!isAdmin) {
-        throw new Error("Unauthorized: Non-admin users must query their own orders");
+        throw new ConvexError("Unauthorized: Non-admin users must query their own orders");
       }
 
       // Admin seeing all orders
@@ -216,13 +216,13 @@ export const getOrderDetails = query({
     // Normalize and validate ID
     const targetOrderId = ctx.db.normalizeId("orders", args.orderId);
     if (!targetOrderId) {
-      throw new Error("Order not found");
+      throw new ConvexError("Order not found");
     }
 
     // Get order
     const order = await ctx.db.get(targetOrderId);
     if (!order) {
-      throw new Error("Order not found");
+      throw new ConvexError("Order not found");
     }
 
     // Buyer, admin, or listing seller (read-only for seller)
@@ -230,7 +230,7 @@ export const getOrderDetails = query({
     const isSeller =
       !!vehicle?.sellerId && vehicle.sellerId === user._id;
     if (!hasOwnershipOrAdmin(user, order.userId) && !isSeller) {
-      throw new Error("You don't have permission to view this order");
+      throw new ConvexError("You don't have permission to view this order");
     }
 
     // Get related data
@@ -1063,4 +1063,112 @@ export const confirmDelivery = mutation({
 
     return { success: true };
   }
+});
+
+/**
+ * Query to calculate fractionalized commissions (China Import Lead 3% + Sales Facilitator shares)
+ */
+export const calculateOrderCommissions = query({
+  args: {
+    subtotal: v.number(),
+    isChinaImport: v.optional(v.boolean()),
+    facilitatorPercent: v.optional(v.number()),
+    fractionalReps: v.optional(
+      v.array(
+        v.object({
+          repId: v.id("users"),
+          role: v.string(),
+          sharePercent: v.number(),
+        })
+      )
+    ),
+  },
+  handler: async (_ctx, args) => {
+    const isChina = args.isChinaImport ?? true;
+    const chinaImportLeadCommission = isChina ? Math.round(args.subtotal * 0.03) : 0;
+
+    const facilitatorPercent = args.facilitatorPercent ?? 0;
+    const facilitatorCommissionAmount = Math.round(args.subtotal * (facilitatorPercent / 100));
+
+    const fractionalCommissions = (args.fractionalReps || []).map((rep) => ({
+      repId: rep.repId,
+      role: rep.role,
+      sharePercent: rep.sharePercent,
+      amount: Math.round(args.subtotal * (rep.sharePercent / 100)),
+    }));
+
+    const totalCommissions =
+      chinaImportLeadCommission +
+      facilitatorCommissionAmount +
+      fractionalCommissions.reduce((sum, r) => sum + r.amount, 0);
+
+    return {
+      subtotal: args.subtotal,
+      chinaImportLeadCommission,
+      facilitatorCommissionPercent: facilitatorPercent,
+      facilitatorCommissionAmount,
+      fractionalCommissions,
+      totalCommissions,
+    };
+  },
+});
+
+/**
+ * Admin mutation to attach/update commission structures on an order
+ */
+export const attachOrderCommissions = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    isChinaImport: v.optional(v.boolean()),
+    facilitatorId: v.optional(v.id("users")),
+    facilitatorPercent: v.optional(v.number()),
+    fractionalReps: v.optional(
+      v.array(
+        v.object({
+          repId: v.id("users"),
+          role: v.string(),
+          sharePercent: v.number(),
+        })
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.token);
+    const order = await ctx.db.get(args.orderId);
+
+    if (!order) {
+      throw new ConvexError({ message: "Order not found" });
+    }
+
+    const isChina = args.isChinaImport ?? true;
+    const chinaImportLeadCommission = isChina ? Math.round(order.subtotal * 0.03) : 0;
+
+    const facilitatorPercent = args.facilitatorPercent ?? 0;
+    const facilitatorCommissionAmount = Math.round(order.subtotal * (facilitatorPercent / 100));
+
+    const fractionalCommissions = (args.fractionalReps || []).map((rep) => ({
+      repId: rep.repId,
+      role: rep.role,
+      sharePercent: rep.sharePercent,
+      amount: Math.round(order.subtotal * (rep.sharePercent / 100)),
+    }));
+
+    await ctx.db.patch(args.orderId, {
+      chinaImportLeadCommission,
+      facilitatorId: args.facilitatorId,
+      facilitatorCommissionPercent: facilitatorPercent,
+      facilitatorCommissionAmount,
+      fractionalCommissions,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      orderId: args.orderId,
+      chinaImportLeadCommission,
+      facilitatorCommissionAmount,
+      fractionalCommissions,
+    };
+  },
 });

@@ -118,7 +118,7 @@ export default async function Home() {
 
 	let featuredVehicles: Vehicle[] = [];
 	try {
-		const raw = await convex.query(api.vehicles.getFeaturedVehicles, {});
+		const raw = await convex.query(api.vehicles.getFeaturedVehicles, { randomize: true, limit: 12 });
 		const pool = raw.map(toFeaturedVehicle);
 		// Shuffle array for dynamism
 		featuredVehicles = pool.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -266,9 +266,14 @@ export default async function Home() {
 					<div className="container mx-auto px-4 md:px-6">
 						<div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14 md:mb-16">
 							<div className="max-w-xl">
-								<span className="inline-block text-brand-accent font-bold uppercase tracking-[0.25em] text-[10px] mb-4">
-									{m.common_direct_from_inventory()}
-								</span>
+								<div className="flex items-center gap-3 mb-4">
+									<span className="inline-block text-brand-accent font-bold uppercase tracking-[0.25em] text-[10px]">
+										{m.common_direct_from_inventory()}
+									</span>
+									<span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
+										Live & Dynamic Selection
+									</span>
+								</div>
 								<h2 className="text-3xl md:text-5xl font-black text-brand-primary dark:text-white tracking-tight">
 									{m.common_featured_vehicles()}
 								</h2>

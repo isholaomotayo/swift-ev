@@ -145,20 +145,37 @@ async function hydrateVehicleForList(ctx: any, vehicle: Doc<"vehicles">, auction
  * Soft-held payment_pending listings are excluded from public inventory.
  */
 export const getFeaturedVehicles = query({
-  args: {},
-  handler: async (ctx) => {
-    const vehicles = (await ctx.db
+  args: {
+    randomize: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 15;
+    const randomize = args.randomize ?? true;
+
+    let vehicles = (await ctx.db
       .query("vehicles")
       .order("desc")
       .collect())
       .filter((vehicle) =>
         isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
-      )
-      .slice(0, 15);
+      );
 
-    // Get images for each vehicle
+    if (randomize && vehicles.length > 1) {
+      // Fisher-Yates shuffle for dynamic non-static homepage listings
+      const shuffled = [...vehicles];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      vehicles = shuffled;
+    }
+
+    const selected = vehicles.slice(0, limit);
+
+    // Get hydrated details and images for each vehicle
     const vehiclesWithImages = await Promise.all(
-      vehicles.map(async (vehicle) => {
+      selected.map(async (vehicle) => {
         return hydrateVehicleForList(ctx, vehicle);
       })
     );
