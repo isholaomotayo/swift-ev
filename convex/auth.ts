@@ -83,16 +83,10 @@ export const createUser = internalMutation({
     const isSeller = args.accountType?.startsWith("seller_");
     const role: "buyer" | "seller" = isSeller ? "seller" : "buyer";
 
-    // Check for fee waiver eligibility (e.g., Owenye MVP promo code or explicit admin flag)
-    const isWaived =
-      args.waivePayment === true ||
-      (args.feeWaiverCode &&
-        ["OWENYE_MVP", "OWENYE", "FREE_MVP", "ONBOARD_WAIVER"].includes(
-          args.feeWaiverCode.trim().toUpperCase()
-        ));
-
-    const verificationFeeStatus = isWaived ? ("waived" as const) : ("not_paid" as const);
-    const membershipTier = isWaived ? ("premier" as const) : ("guest" as const);
+    // Free access & auto-waived for all new registrations (buyers and sellers)
+    const verificationFeeStatus = "waived" as const;
+    const membershipTier = "premier" as const;
+    const now = Date.now();
 
     const userId = await ctx.db.insert("users", {
       email: cleanEmail,
@@ -102,25 +96,26 @@ export const createUser = internalMutation({
       passwordHash: args.passwordHash,
       accountType: args.accountType ?? "individual",
       membershipTier,
-      status: "pending",
+      status: "active",
       emailVerified: false,
       phoneVerified: false,
-      kycStatus: "not_started",
+      kycStatus: "approved",
+      kycApprovedAt: now,
       walletBalance: 0,
       pendingBalance: 0,
       reservedBalance: 0,
       walletCurrency: "NGN",
       preferredCurrency: args.preferredCurrency ?? "NGN",
       verificationFeeStatus,
-      buyingPower: isWaived ? 10000000 : 0,
+      buyingPower: 10000000,
       depositAmount: 0,
       dailyBidsUsed: 0,
-      lastBidResetAt: Date.now(),
+      lastBidResetAt: now,
       role,
-      termsAcceptedAt: Date.now(),
+      termsAcceptedAt: now,
       termsVersion: "2026-01",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     });
 
     // Schedule the verification email — runs in a Node.js action outside this mutation
@@ -130,7 +125,7 @@ export const createUser = internalMutation({
       firstName: args.firstName.trim(),
     });
 
-    return { userId, message: "Registration successful. Please check your email to verify your account." };
+    return { userId, message: "Registration successful. Welcome to autoexports.live!" };
   },
 });
 
@@ -159,7 +154,32 @@ export const createSession = internalMutation({
       ipAddress: "unknown",
     });
 
-    await ctx.db.patch(args.userId, { lastLoginAt: now });
+    // Self-healing: unlock and grant free active access to existing users on login
+    const isSuspendedOrBanned = user.status === "suspended" || user.status === "banned";
+    const needsUpgrade =
+      (!isSuspendedOrBanned && user.status !== "active") ||
+      user.kycStatus !== "approved" ||
+      user.verificationFeeStatus !== "waived" ||
+      user.membershipTier === "guest";
+
+    const updatedStatus = isSuspendedOrBanned ? user.status : "active";
+    const updatedKycStatus = "approved";
+    const updatedFeeStatus = "waived";
+    const updatedTier = user.membershipTier === "guest" ? "premier" : user.membershipTier;
+    const updatedBuyingPower = Math.max(user.buyingPower || 0, 10000000);
+
+    const userPatch: Record<string, any> = { lastLoginAt: now };
+    if (needsUpgrade) {
+      userPatch.status = updatedStatus;
+      userPatch.kycStatus = updatedKycStatus;
+      if (!user.kycApprovedAt) userPatch.kycApprovedAt = now;
+      userPatch.verificationFeeStatus = updatedFeeStatus;
+      userPatch.membershipTier = updatedTier;
+      userPatch.buyingPower = updatedBuyingPower;
+      userPatch.updatedAt = now;
+    }
+
+    await ctx.db.patch(args.userId, userPatch);
 
     return {
       token,
@@ -170,16 +190,16 @@ export const createSession = internalMutation({
         lastName: user.lastName,
         phone: user.phone,
         accountType: user.accountType,
-        membershipTier: user.membershipTier,
+        membershipTier: needsUpgrade ? updatedTier : user.membershipTier,
         emailVerified: user.emailVerified,
-        kycStatus: user.kycStatus,
+        kycStatus: needsUpgrade ? updatedKycStatus : user.kycStatus,
         walletBalance: user.walletBalance ?? 0,
-        buyingPower: user.buyingPower,
-        status: user.status,
+        buyingPower: needsUpgrade ? updatedBuyingPower : user.buyingPower,
+        status: needsUpgrade ? updatedStatus : user.status,
         role: user.role,
         vendorCompany: user.vendorCompany,
         vendorLicense: user.vendorLicense,
-        verificationFeeStatus: user.verificationFeeStatus,
+        verificationFeeStatus: needsUpgrade ? updatedFeeStatus : user.verificationFeeStatus,
       },
     };
   },

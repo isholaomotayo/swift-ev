@@ -417,7 +417,7 @@ export default function RegisterPage() {
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                After signing up, check your email to verify your account. Identity verification (KYC) is required before bidding.
+                Immediate free access is included with all accounts. You can sign in and start exploring right away.
               </p>
             </form>
           )}

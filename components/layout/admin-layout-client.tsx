@@ -17,6 +17,7 @@ import {
   LogOut,
   CheckCircle,
   CreditCard,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,11 @@ const adminNavItems = [
     label: "Vehicles",
     href: "/admin/vehicles",
     icon: Car,
+  },
+  {
+    label: "Catalog & Models",
+    href: "/admin/catalog",
+    icon: Layers,
   },
   {
     label: "Approvals",

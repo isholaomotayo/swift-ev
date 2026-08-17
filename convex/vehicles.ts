@@ -20,7 +20,7 @@ import {
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
 import { isAuctionLotHoldingVehicleForPurchase, resolveBuyNowPrice } from "./lib/purchaseFlow";
-import { assertValidVehicleMakeModel } from "./lib/vehicleCatalog";
+import { assertValidVehicleMakeModel, ensureMakeModelInCatalog } from "./lib/vehicleCatalog";
 import {
   createInAppNotification,
   paymentDeadlineFrom,
@@ -894,6 +894,9 @@ export const createVehicle = mutation({
       assertValidVehicleMakeModel(resolvedMake, resolvedModel);
     }
 
+    // Ensure make and model are registered in vehicleCatalog database
+    await ensureMakeModelInCatalog(ctx, resolvedMake, resolvedModel, user._id, user.role);
+
     // Auto-generate a unique lot number
     const lotNumber = await generateUniqueLotNumber(ctx);
 
@@ -1256,6 +1259,7 @@ export const updateVehicle = mutation({
 
     if (vehicleUpdates.make !== undefined || vehicleUpdates.model !== undefined) {
       assertValidVehicleMakeModel(make, model);
+      await ensureMakeModelInCatalog(ctx, make, model, user?._id, user?.role || "seller");
     }
 
     const nextStartingBid =

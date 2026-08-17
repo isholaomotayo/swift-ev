@@ -36,14 +36,10 @@ export default function LoginPage() {
   const isJustRegistered = searchParams.get("registered") === "true";
   const redirectParam = searchParams.get("redirect");
 
-  // Prefer safe return URL (e.g. after Buy Now), else role home. Non-active users go to /pending-verification.
+  // Prefer safe return URL (e.g. after Buy Now), else role home.
   useEffect(() => {
     if (authLoading) return;
     if (isAuthenticated && user) {
-      if (user.status !== "active") {
-        router.replace("/pending-verification");
-        return;
-      }
       const target = getSafeRedirectPath(redirectParam, getRoleHomePath(user.role));
       router.replace(target);
     }

@@ -36,8 +36,8 @@ export const placeBid = mutation({
     }
 
     // Check user status
-    if (user.status !== "active") {
-      throw new Error("Your account is not active. Please complete verification.");
+    if (user.status === "suspended" || user.status === "banned") {
+      throw new Error(`Your account is ${user.status}. Please contact support.`);
     }
 
     requireKycApproved(user as any);
@@ -342,8 +342,8 @@ export const setMaxBid = mutation({
       throw new Error("User not found");
     }
 
-    if (user.status !== "active") {
-      throw new Error("Your account is not active. Please complete verification.");
+    if (user.status === "suspended" || user.status === "banned") {
+      throw new Error(`Your account is ${user.status}. Please contact support.`);
     }
 
     requireKycApproved(user as any);

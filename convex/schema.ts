@@ -1130,5 +1130,40 @@ export default defineSchema({
     .index("by_order", ["orderId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
+
+  // ============================================
+  // VEHICLE CATALOG (Makes & Models)
+  // ============================================
+
+  vehicleCatalog: defineTable({
+    make: v.string(),
+    normalizedMake: v.string(),
+    models: v.array(v.string()),
+    normalizedModels: v.array(v.string()),
+    aliases: v.optional(v.array(v.string())),
+    createdBy: v.optional(v.id("users")),
+    creatorRole: v.optional(
+      v.union(
+        v.literal("system"),
+        v.literal("admin"),
+        v.literal("superadmin"),
+        v.literal("buyer"),
+        v.literal("seller")
+      )
+    ),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("pending_review"),
+        v.literal("archived")
+      )
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_normalized_make", ["normalizedMake"])
+    .index("by_make", ["make"])
+    .index("by_status", ["status"]),
 });
+
 

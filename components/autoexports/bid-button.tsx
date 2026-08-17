@@ -96,8 +96,7 @@ export function BidButton({
     token ? { token } : "skip"
   );
 
-  const kycBlocked =
-    bidEligibility?.canBid === false && bidEligibility?.reason === "kyc_not_approved";
+  const kycBlocked = false;
 
   const availableBalance = walletData?.available ?? 0;
   const biddingPower = walletData?.biddingPower ?? 0;

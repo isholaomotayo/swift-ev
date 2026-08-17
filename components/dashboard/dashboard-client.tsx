@@ -52,17 +52,9 @@ export function DashboardClient({ initialOverview, token, user }: DashboardClien
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
               Buyer Dashboard
             </h1>
-            {user.kycStatus === "approved" ? (
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] uppercase tracking-wider">
-                <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-              </Badge>
-            ) : (
-              <Link href="/verify">
-                <Badge variant="outline" className="border-warning-amber/50 text-warning-amber cursor-pointer hover:bg-warning-amber/10 text-[10px] uppercase tracking-wider animate-pulse">
-                  <AlertCircle className="h-3 w-3 mr-1" /> KYC Required
-                </Badge>
-              </Link>
-            )}
+            <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] uppercase tracking-wider">
+              <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+            </Badge>
           </div>
           <p className="text-muted-foreground text-sm max-w-2xl">
             Welcome back, <span className="font-semibold text-foreground">{user.firstName}</span>! Monitor your bids, orders, and wallet balance.

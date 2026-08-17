@@ -174,15 +174,21 @@ export const ADDITIONAL_FEES = {
 export const SHIPPING_METHODS = [
   {
     value: "container",
-    label: "Container Shipping",
-    costRange: [1_200, 2_500], // USD
-    duration: "35-40 days",
+    label: "Container Shipping (Min. 3 units dedicated / Shared Container available)",
+    costRange: [1_200, 2_500], // USD - Ocean freight rates fluctuate and must be confirmed per shipment
+    duration: "35-70 days (Expedited 35-45 days)",
+    minUnits: 3,
+    sharedContainerAvailable: true,
+    note: "Ocean freight rates fluctuate and need to be confirmed for each shipment. Dedicated container shipping requires a minimum of 3 units; shared container consolidation service is available in Shanghai for smaller orders.",
   },
   {
     value: "roro",
     label: "RoRo Shipping",
     costRange: [800, 1_500], // USD
-    duration: "40-45 days",
+    duration: "35-70 days",
+    minUnits: 1,
+    sharedContainerAvailable: false,
+    note: "Ocean freight rates fluctuate and must be confirmed per shipment based on liner availability.",
   },
 ] as const;
 
@@ -192,19 +198,22 @@ export const SHIPPING_ROUTES = [
     origin: "Shanghai",
     destination: "Lagos",
     ports: ["Shanghai Port", "Apapa Port", "Tin Can Island Port"],
-    duration: "35-40 days",
+    duration: "35-70 days (Currently 35-45 days)",
+    consolidationHub: "Shanghai Containerization Facility",
   },
   {
     origin: "Shenzhen",
     destination: "Lagos",
     ports: ["Shenzhen Port", "Apapa Port", "Tin Can Island Port"],
-    duration: "35-40 days",
+    duration: "35-70 days (Currently 35-45 days)",
+    consolidationHub: "Shanghai Containerization Facility",
   },
   {
     origin: "Ningbo",
     destination: "Lagos",
     ports: ["Ningbo Port", "Apapa Port", "Tin Can Island Port"],
-    duration: "38-42 days",
+    duration: "35-70 days (Currently 35-45 days)",
+    consolidationHub: "Shanghai Containerization Facility",
   },
 ] as const;
 

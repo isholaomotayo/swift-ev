@@ -864,7 +864,7 @@ export const getBuyerDashboardOverview = query({
         recentOrders,
       },
       actionRequired: {
-        missingKyc: user.kycStatus !== "approved",
+        missingKyc: false,
         pendingPayments: pendingPaymentOrders.length,
       },
     };

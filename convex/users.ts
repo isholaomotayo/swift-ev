@@ -571,8 +571,7 @@ export const updatePreferredCurrency = mutation({
 });
 
 /**
- * Auto-approve all pending user accounts
- * Used to unlock existing users stuck in pending verification loop.
+ * Auto-approve all pending user accounts and grant free platform access
  * Admin/Superadmin only.
  */
 export const autoApproveAllPendingUsers = mutation({
@@ -584,19 +583,28 @@ export const autoApproveAllPendingUsers = mutation({
     requireAdmin(currentUser);
 
     const allUsers = await ctx.db.query("users").collect();
-    const pendingUsers = allUsers.filter(
-      (u) => u.status === "pending" || u.kycStatus === "pending"
+    const eligibleUsers = allUsers.filter(
+      (u) =>
+        u.status !== "suspended" &&
+        u.status !== "banned" &&
+        (u.status !== "active" ||
+          u.kycStatus !== "approved" ||
+          u.verificationFeeStatus !== "waived" ||
+          u.membershipTier === "guest")
     );
 
     let approvedCount = 0;
     const now = Date.now();
 
-    for (const u of pendingUsers) {
+    for (const u of eligibleUsers) {
       await ctx.db.patch(u._id, {
         status: "active",
         kycStatus: "approved",
+        kycApprovedAt: u.kycApprovedAt || now,
+        verificationFeeStatus: "waived",
+        membershipTier: u.membershipTier === "guest" ? "premier" : u.membershipTier,
+        buyingPower: Math.max(u.buyingPower || 0, 10000000),
         emailVerified: true,
-        kycApprovedAt: now,
         updatedAt: now,
       });
       approvedCount++;
@@ -615,8 +623,59 @@ export const autoApproveAllPendingUsers = mutation({
     return {
       success: true,
       approvedCount,
-      message: `Successfully auto-approved ${approvedCount} pending user account(s).`,
+      message: `Successfully unlocked and granted free access to ${approvedCount} user account(s).`,
     };
   },
 });
+
+/**
+ * Grant Free Access to all users across the platform (buyers & sellers)
+ * Sets status: active, kycStatus: approved, fee: waived, tier: premier
+ */
+export const grantFreeAccessToAllUsers = mutation({
+  args: {
+    token: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.token) {
+      const currentUser = await requireAuth(ctx, args.token);
+      requireAdmin(currentUser);
+    }
+
+    const allUsers = await ctx.db.query("users").collect();
+    const now = Date.now();
+    let updatedCount = 0;
+
+    for (const u of allUsers) {
+      if (u.status === "suspended" || u.status === "banned") continue;
+
+      const needsUpdate =
+        u.status !== "active" ||
+        u.kycStatus !== "approved" ||
+        u.verificationFeeStatus !== "waived" ||
+        u.membershipTier === "guest";
+
+      if (needsUpdate) {
+        await ctx.db.patch(u._id, {
+          status: "active",
+          kycStatus: "approved",
+          kycApprovedAt: u.kycApprovedAt || now,
+          verificationFeeStatus: "waived",
+          membershipTier: u.membershipTier === "guest" ? "premier" : u.membershipTier,
+          buyingPower: Math.max(u.buyingPower || 0, 10000000),
+          updatedAt: now,
+        });
+        updatedCount++;
+      }
+    }
+
+    return {
+      success: true,
+      updatedCount,
+      totalUsers: allUsers.length,
+      message: `Free platform access applied to ${updatedCount} user(s).`,
+    };
+  },
+});
+
 

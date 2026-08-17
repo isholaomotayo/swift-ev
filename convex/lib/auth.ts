@@ -127,24 +127,20 @@ export function requireSeller(user: AuthenticatedUser): void {
  * Throws error if user is suspended or banned
  */
 export function requireActiveStatus(user: AuthenticatedUser): void {
-  if (user.status !== "active") {
+  if (user.status === "suspended" || user.status === "banned") {
     throw new Error(
-      `Account is ${user.status}. Please contact support or complete verification.`
+      `Account is ${user.status}. Please contact support.`
     );
   }
 }
 
 /**
- * Require user to have approved KYC before bidding or purchasing
+ * Require user to have approved KYC before bidding or purchasing.
+ * KYC blocking is completely disabled for free platform access.
  */
-export function requireKycApproved(user: AuthenticatedUser): void {
-  if (user.kycStatus !== "approved") {
-    throw new Error(
-      user.kycStatus === "pending"
-        ? "Your identity verification is under review. You'll be able to bid once approved."
-        : "Please complete identity verification before bidding."
-    );
-  }
+export function requireKycApproved(_user: AuthenticatedUser): void {
+  // Free platform access — KYC blocking is disabled.
+  return;
 }
 
 /**

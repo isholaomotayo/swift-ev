@@ -249,6 +249,25 @@ pnpm dev
 
 ---
 
+## Shipping & Knowledge Base Specifications (Updated)
+
+| Stage | Process & Rules | Timeframe (Working Days) |
+|---|---|---|
+| **1. Vehicle Inspection & Purchase Decision** | Inspection report provided. Proforma Invoice (PI) issued, legally binding contract executed (plus Payment Agreement for 3rd-party payers). | **4–5 days** remittance to China |
+| **2. Fund Reception & Verification** | Funds verified against contract, converted to domestic USD/EUR in China, and exchanged to local RMB. | **1–2 days** |
+| **3. Vehicle Purchase & Registration** | Vehicle purchased and registered under **AutoCango** (licensed car exporter). | **2–3 days** |
+| **4. Export License & Transfer** | Vehicle transferred to Shanghai while export license is processed (concurrent with purchase/registration). | **4–7 days** |
+| **5. Containerization in Shanghai** | Dedicated container (**minimum 3 units**) or **Shared Container Service** for <3 units. | **4–7 days** prep |
+| **6. Customs Declaration & DHL Dispatch** | Export declaration completed in Shanghai. Clearance documents provided **after vessel departure** and sent via **DHL 20–10 days before ship arrival**. | DHL dispatched 20–10d pre-arrival |
+| **7. Ocean Transit & Port Clearance** | Ocean shipping across Asia-West Africa routes (Maersk, MSC, COSCO). Ocean freight rates fluctuate and are confirmed per shipment. | **35–70 days** (currently **35–45 days**) |
+
+### Core Shipping Policies
+1. **Ocean freight rate fluctuation:** Freight rates fluctuate with global liner markets and must be confirmed for each shipment.
+2. **Container minimum & shared container:** Dedicated container requires $\ge 3$ units; shared container consolidation service is available for orders under 3 units.
+3. **Customs clearance document timing:** Documents are released strictly **after the vessel has departed** and sent via DHL express **20–10 days before the ship arrives**.
+
+---
+
 ## Contacts for questions
 
 - **Content source of truth:** `docs/updated-content.md`

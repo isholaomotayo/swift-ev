@@ -6,6 +6,7 @@ import {
   isValidVehicleMakeModel,
   normalizeMake,
   resolveMakeModelForForm,
+  mergeCatalog,
 } from "@/lib/vehicle-catalog";
 
 describe("vehicle-catalog", () => {
@@ -56,5 +57,21 @@ describe("vehicle-catalog", () => {
       model: "CS55",
       isOtherMake: true,
     });
+  });
+
+  test("mergeCatalog merges dynamic DB entries seamlessly", () => {
+    const dynamicEntries = [
+      { make: "Lucid", models: ["Air", "Gravity"] },
+      { make: "BYD", models: ["Shark", "Seal 06"] },
+    ];
+    const catalog = mergeCatalog(dynamicEntries);
+
+    expect(catalog.makes).toContain("Lucid");
+    expect(catalog.makes).toContain("BYD");
+    expect(catalog.isMake("lucid")).toBe(true);
+    expect(catalog.isMake("Lucid")).toBe(true);
+    expect(catalog.getModels("Lucid")).toEqual(["Air", "Gravity"]);
+    expect(catalog.getModels("BYD")).toContain("Shark");
+    expect(catalog.getModels("BYD")).toContain("Seal");
   });
 });

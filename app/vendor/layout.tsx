@@ -46,8 +46,8 @@ export default async function VendorLayout({
     redirect("/");
   }
 
-  if (user.status !== "active") {
-    redirect("/pending-verification");
+  if (user.status === "banned" || user.status === "suspended") {
+    redirect("/login?error=account_suspended");
   }
 
   return (

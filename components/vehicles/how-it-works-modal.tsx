@@ -97,92 +97,155 @@ export function HowItWorksModal({
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6 p-1 bg-muted/60 rounded-full">
               <TabsTrigger value="process" className="rounded-full text-xs md:text-sm font-semibold py-2">
-                How It Works (4 Steps)
+                How It Works (7 Steps)
               </TabsTrigger>
               <TabsTrigger value="guarantee" className="rounded-full text-xs md:text-sm font-semibold py-2">
                 🛡️ Money-Back Guarantee
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: 4-STEP PLATFORM PROCESS */}
+            {/* TAB 1: 7-STEP PLATFORM PROCESS */}
             <TabsContent value="process" className="space-y-6 mt-0">
+              {/* Important Notices Banner */}
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-400/20 text-xs text-blue-900 dark:text-blue-200 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-sm text-electric-blue">
+                  <Info className="w-4 h-4 shrink-0" />
+                  Key Shipping & Documentation Facts
+                </div>
+                <p>
+                  • <strong>Ocean Freight:</strong> Rates fluctuate with global carrier markets and are confirmed for each shipment.
+                </p>
+                <p>
+                  • <strong>Container Shipping:</strong> Requires a minimum of <strong>3 units</strong> for a dedicated container. We offer a <strong>Shared Container Service</strong> for orders under 3 units.
+                </p>
+                <p>
+                  • <strong>Customs Documents:</strong> Clearance documents are issued strictly <strong>after the vessel has departed</strong> and sent to you via <strong>DHL 20–10 days before the ship arrives</strong>.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Step 1 */}
-                <div className="p-5 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-electric-blue/40 transition-all">
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-full bg-electric-blue/10 text-electric-blue flex items-center justify-center font-bold text-lg shrink-0 border border-electric-blue/20">
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-electric-blue/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-electric-blue/10 text-electric-blue flex items-center justify-center font-bold text-sm shrink-0 border border-electric-blue/20">
                       1
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                        Select & Reserve / Bid
-                      </h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Browse verified EVs with full inspection history. Purchase instantly via <strong>Buy Now</strong> or place a bid in live auctions.
-                      </p>
-                      <div className="pt-2 flex items-center gap-2 text-[11px] text-electric-blue font-medium">
-                        <Search className="w-3.5 h-3.5" /> Complete VIN & Battery SoH Transparency
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Inspection & Purchase Decision</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">4–5d Remittance</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Comprehensive inspection report provided. Upon decision, a Proforma Invoice (PI) is issued, contract signed (Payment Agreement for 3rd parties), and payment remitted to China (4–5 working days).
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Step 2 */}
-                <div className="p-5 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-volt-green/40 transition-all">
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-full bg-volt-green/10 text-volt-green flex items-center justify-center font-bold text-lg shrink-0 border border-volt-green/20">
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-volt-green/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-volt-green/10 text-volt-green flex items-center justify-center font-bold text-sm shrink-0 border border-volt-green/20">
                       2
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                        Escrow Safeguard Payment
-                      </h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Your deposit and purchase funds are locked in an audited third-party <strong>Escrow Account</strong>. Funds are never released to sellers upfront.
-                      </p>
-                      <div className="pt-2 flex items-center gap-2 text-[11px] text-volt-green font-medium">
-                        <Lock className="w-3.5 h-3.5" /> 100% Risk-Free Payment Vault
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Fund Reception & Verification</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">1–2 Days</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Upon receiving payment, funds are verified against contract, converted into domestic USD/EUR in China, and exchanged into local RMB to fund purchase.
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Step 3 */}
-                <div className="p-5 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-lg shrink-0 border border-amber-500/20">
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-amber-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0 border border-amber-500/20">
                       3
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                        180-Point Inspection & Customs
-                      </h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Independent engineers perform a pre-shipment 180-point check (battery degradation, chassis, electronics) and handle official export documentation.
-                      </p>
-                      <div className="pt-2 flex items-center gap-2 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                        <FileCheck className="w-3.5 h-3.5" /> Detailed Digital Inspection Certificate
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Purchase & AutoCango Registration</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">2–3 Days</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Vehicle purchased and officially registered under <strong>AutoCango</strong> (licensed car exporter) to initiate export licensing.
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Step 4 */}
-                <div className="p-5 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-purple-500/40 transition-all">
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg shrink-0 border border-purple-500/20">
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-purple-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-sm shrink-0 border border-purple-500/20">
                       4
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                        Insured Shipping & Delivery
-                      </h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Track live maritime logistics. Inspect your vehicle upon arrival before authorizing escrow release to the seller.
-                      </p>
-                      <div className="pt-2 flex items-center gap-2 text-[11px] text-purple-600 dark:text-purple-400 font-medium">
-                        <Truck className="w-3.5 h-3.5" /> Full Marine Insurance Coverage Included
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Export License & Shanghai Transfer</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">4–7 Days</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        While the export license is processed, the vehicle is transferred to Shanghai in preparation for containerization (happens concurrently).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-blue-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-500/20">
+                      5
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Containerization in Shanghai</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">4–7 Days Prep</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Dedicated container (min. 3 units, loaded immediately) or consolidated in our Shared Container Service awaiting vessel arrival.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 6 */}
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-teal-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-sm shrink-0 border border-teal-500/20">
+                      6
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Customs Declaration & DHL Docs</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">DHL 20–10d Pre-Arrival</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Export customs declaration completed before departure. Original clearance documents issued after ship departs and sent via DHL 20–10 days before ship arrives.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 7 */}
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/20 relative overflow-hidden group hover:border-emerald-500/40 transition-all md:col-span-2">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-500/20">
+                      7
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-foreground">Ocean Transit & Customs Clearance</h4>
+                        <Badge variant="outline" className="text-[10px] py-0">35–70 Days (Expected 35–45d)</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Full marine insurance coverage during ocean transit. Upon arrival at destination port, use the provided original DHL documents for immediate customs clearance and final handover.
+                      </p>
                     </div>
                   </div>
                 </div>

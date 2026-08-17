@@ -35,8 +35,12 @@ export default async function PendingVerificationPage() {
     redirect("/login");
   }
 
-  // If the user's status is already active, send them straight to dashboard
-  if (user.status === "active") {
+  // Auto-redirect to appropriate portal for instant free access
+  if (user.role === "seller") {
+    redirect("/vendor");
+  } else if (user.role === "admin" || user.role === "superadmin") {
+    redirect("/admin");
+  } else {
     redirect("/dashboard");
   }
 

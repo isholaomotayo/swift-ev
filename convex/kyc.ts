@@ -90,10 +90,6 @@ export const submitDocument = mutation({
             throw new Error("User not found");
         }
 
-        if (user.verificationFeeStatus !== "paid") {
-            throw new Error("Please pay the verification fee before uploading documents");
-        }
-
         const metadata = await ctx.storage.getMetadata(args.storageId);
         if (!metadata) {
             throw new Error("Uploaded file not found");
@@ -363,11 +359,6 @@ export const generateSumsubToken = mutation({
             throw new Error("User not found");
         }
 
-        // Check if verification fee is paid
-        if (user.verificationFeeStatus !== "paid") {
-            throw new Error("Please pay the verification fee first");
-        }
-
         // Generate or get Sumsub applicant ID
         let applicantId = user.sumsubApplicantId;
         if (!applicantId) {
@@ -597,18 +588,6 @@ export const canUserBid = query({
                 canBid: false,
                 reason: "user_not_found",
                 message: "User not found",
-            };
-        }
-
-        // Check KYC status
-        if (user.kycStatus !== "approved") {
-            return {
-                canBid: false,
-                reason: "kyc_not_approved",
-                message: user.kycStatus === "pending"
-                    ? "Your verification is in progress. You'll be able to bid once approved."
-                    : "Please complete identity verification to bid",
-                kycStatus: user.kycStatus,
             };
         }
 
