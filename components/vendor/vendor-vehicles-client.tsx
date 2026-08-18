@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
@@ -44,9 +43,7 @@ interface VendorVehiclesClientProps {
 
 export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesClientProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const formatPrice = useFormatPrice();
-  const preferredCurrency = user?.preferredCurrency ?? "NGN";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [withdrawingVehicle, setWithdrawingVehicle] = useState<any | null>(null);

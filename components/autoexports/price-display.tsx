@@ -3,14 +3,14 @@
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 
 interface PriceDisplayProps {
   amount: number;
   label?: string;
   variant?: "default" | "large" | "compact";
   className?: string;
-  /** Override the display currency. Defaults to the user's preferred currency from the store. */
+  /** Override the display currency. Defaults to settings unless overridden on-page. */
   currency?: string;
 }
 
@@ -21,7 +21,7 @@ export function PriceDisplay({
   className,
   currency,
 }: PriceDisplayProps) {
-  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const storeCurrency = useEffectiveCurrency();
   const activeCurrency = currency ?? storeCurrency;
   const exchangeRates = useExchangeRates();
 

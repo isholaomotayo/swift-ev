@@ -26,7 +26,7 @@ import {
   type VehicleFormData,
   type VehicleSubmitData,
 } from "@/lib/vehicle-form-payload";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
@@ -121,7 +121,7 @@ export function VehicleForm({
   const [inspectionReport, setInspectionReport] = useState<File | null>(null);
   const [videoWalkthrough, setVideoWalkthrough] = useState<File | null>(null);
   const isEditMode = initialImages.length > 0;
-  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const storeCurrency = useEffectiveCurrency();
   const formatPrice = useFormatPrice();
   const currencySymbols: Record<string, string> = { NGN: "₦", USD: "$", CNY: "¥", GBP: "£" };
   const currencySymbol = currencySymbols[storeCurrency] || "₦";

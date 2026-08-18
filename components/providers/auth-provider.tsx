@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { normalizeCurrency, useCurrencyStore } from "@/store/currency";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
@@ -91,6 +92,21 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
   // Mutations (no bcrypt — safe in Convex V8 isolate)
   const logoutMutation = useMutation(api.auth.logout);
   const updateProfileMutation = useMutation(api.auth.updateProfile);
+
+  // Sync profile preferred currency into the display store (settings source of truth).
+  // Session overrides from the header CurrencySelector take precedence at render time.
+  useEffect(() => {
+    if (user?.preferredCurrency) {
+      useCurrencyStore.getState().setSettingsCurrency(normalizeCurrency(user.preferredCurrency));
+    }
+  }, [user?.preferredCurrency]);
+
+  useEffect(() => {
+    if (!token) {
+      useCurrencyStore.getState().setSettingsCurrency("NGN");
+      useCurrencyStore.getState().clearSessionOverride();
+    }
+  }, [token]);
 
   // ── Login ──────────────────────────────────────────────────────────────────
   const login = async (email: string, password: string): Promise<void> => {

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -77,7 +77,7 @@ export function BidButton({
   const { toast } = useToast();
   const router = useRouter();
   const { isAuthenticated, token } = useAuth();
-  const currency = useCurrencyStore((s) => s.currency);
+  const currency = useEffectiveCurrency();
   const exchangeRates = useExchangeRates();
 
   const placeBidMutation = useMutation(api.bids.placeBid);
