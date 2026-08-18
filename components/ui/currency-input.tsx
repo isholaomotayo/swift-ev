@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Input } from "@/components/ui/input";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useExchangeRates, type ExchangeRates } from "@/hooks/use-exchange-rates";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     },
     ref
   ) => {
-    const storeCurrency = useCurrencyStore((s) => s.currency);
+    const storeCurrency = useEffectiveCurrency();
     const exchangeRates = useExchangeRates();
     const activeCurrency = overrideCurrency ?? storeCurrency;
     const symbol = CURRENCY_SYMBOLS[activeCurrency] || "₦";

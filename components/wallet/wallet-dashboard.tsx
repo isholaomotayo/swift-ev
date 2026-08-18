@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useFormatPrice } from "@/hooks/use-format-price";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 import { formatCompactCurrency } from "@/lib/utils";
@@ -49,7 +49,7 @@ export function WalletDashboard() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   
   const [loading, setLoading] = useState(false);
-  const storeCurrency = useCurrencyStore((s) => s.currency);
+  const storeCurrency = useEffectiveCurrency();
   const currencySymbols: Record<string, string> = { NGN: "₦", USD: "$", CNY: "¥", GBP: "£" };
   const currencySymbol = currencySymbols[storeCurrency] || "₦";
   const { ready: flutterwaveReady, error: flutterwaveError, openCheckout } =

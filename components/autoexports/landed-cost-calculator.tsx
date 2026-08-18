@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { Calculator, Plane, FileText, ShieldCheck } from "lucide-react";
 import {
@@ -25,7 +25,7 @@ interface LandedCostCalculatorProps {
 
 export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) {
   const [destination, setDestination] = useState<DestinationPort>("lagos");
-  const currency = useCurrencyStore((s) => s.currency);
+  const currency = useEffectiveCurrency();
   const exchangeRates = useExchangeRates();
 
   const pricing = calculateBuyNowPricing(currentBid, destination);

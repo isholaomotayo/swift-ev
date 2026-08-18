@@ -1,6 +1,10 @@
 "use client";
 
-import { useCurrencyStore, type SupportedCurrency } from "@/store/currency";
+import {
+  useCurrencyStore,
+  useEffectiveCurrency,
+  type SupportedCurrency,
+} from "@/store/currency";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +21,8 @@ const currencyNames: Record<SupportedCurrency, { name: string; flag: string; sym
 };
 
 export function CurrencySelector() {
-  const { currency, setCurrency } = useCurrencyStore();
+  const currency = useEffectiveCurrency();
+  const setSessionOverride = useCurrencyStore((s) => s.setSessionOverride);
 
   const activeCurrencyInfo = currencyNames[currency] || { name: currency, flag: "", symbol: "" };
 
@@ -40,7 +45,7 @@ export function CurrencySelector() {
           return (
             <DropdownMenuItem
               key={cur}
-              onClick={() => setCurrency(cur)}
+              onClick={() => setSessionOverride(cur)}
               className={`cursor-pointer flex items-center justify-between gap-2 text-xs px-3 py-2 ${
                 currency === cur
                   ? "bg-accent font-bold text-accent-foreground"

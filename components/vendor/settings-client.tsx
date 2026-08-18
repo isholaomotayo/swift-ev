@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeCurrency, useCurrencyStore } from "@/store/currency";
 
 interface VendorSettingsClientProps {
   initialUser: any;
@@ -140,7 +141,6 @@ export function VendorSettingsClient({
     }
     setPayoutLoading(true);
     try {
-      const token = localStorage.getItem("autoexports_token");
       if (!token) throw new Error("Not authenticated");
       await updateBankDetails({
         token,
@@ -157,9 +157,13 @@ export function VendorSettingsClient({
   const handleCurrencyUpdate = async () => {
     setCurrencyLoading(true);
     try {
-      const token = localStorage.getItem("autoexports_token");
       if (!token) throw new Error("Not authenticated");
-      await updatePreferredCurrency({ token, preferredCurrency });
+      const normalized = normalizeCurrency(preferredCurrency);
+      await updatePreferredCurrency({ token, preferredCurrency: normalized });
+      const { setSettingsCurrency, clearSessionOverride } = useCurrencyStore.getState();
+      setSettingsCurrency(normalized);
+      clearSessionOverride();
+      setPreferredCurrency(normalized);
       toast({ title: "Success", description: "Currency preference saved" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

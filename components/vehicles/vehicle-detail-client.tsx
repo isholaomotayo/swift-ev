@@ -49,7 +49,7 @@ import {
   formatRelativeTime,
   cn,
 } from "@/lib/utils";
-import { useCurrencyStore } from "@/store/currency";
+import { useEffectiveCurrency } from "@/store/currency";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import Link from "next/link";
 import { RemoteImage } from "@/components/ui/remote-image";
@@ -145,7 +145,7 @@ export function VehicleDetailClient({
   const { token, user } = useAuth();
   const { isWatchlisted, handleToggle: toggleWatchlist } = useWatchlistToggle(vehicleId);
 
-  const currency = useCurrencyStore((s) => s.currency);
+  const currency = useEffectiveCurrency();
   const exchangeRates = useExchangeRates();
 
   // Use real-time data if available, otherwise use initial data.
