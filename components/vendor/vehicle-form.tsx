@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +19,6 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
-import { isValidVehicleMakeModel } from "@/lib/vehicle-catalog";
 import { revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
 import {
   sanitizeVehicleFormDataForSubmit,
@@ -30,6 +27,7 @@ import {
 } from "@/lib/vehicle-form-payload";
 import { useEffectiveCurrency } from "@/store/currency";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { useMergedVehicleCatalog } from "@/hooks/use-merged-vehicle-catalog";
 
 export type UploadStep = "basic" | "specs" | "condition" | "pricing" | "images";
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
@@ -103,17 +101,10 @@ export function VehicleForm({
   showSteps = true,
 }: VehicleFormProps) {
   const { toast } = useToast();
-  const catalogEntries = useQuery((api as any).vehicleCatalog.getCatalog, {}) as
-    | Array<{ make: string; models: string[] }>
-    | undefined;
-  const dynamicCatalogEntries = useMemo(
-    () =>
-      catalogEntries?.map((entry) => ({
-        make: entry.make,
-        models: entry.models,
-      })),
-    [catalogEntries]
-  );
+  const {
+    registerCatalogEntry,
+    validateVehicleFormMakeModel,
+  } = useMergedVehicleCatalog();
   const [currentStep, setCurrentStep] = useState<UploadStep>("basic");
   const [formData, setFormData] = useState<VehicleFormData>(initialData);
   
@@ -231,7 +222,22 @@ export function VehicleForm({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const showInvalidMakeModelError = () => {
+    setCurrentStep("basic");
+    toast({
+      title: "Invalid make or model",
+      description:
+        "Please select a make and model from the catalog, or enter a custom make and model.",
+      variant: "destructive",
+    });
+  };
+
   const handleNext = () => {
+    if (currentStep === "basic" && !validateVehicleFormMakeModel(formData)) {
+      showInvalidMakeModelError();
+      return;
+    }
+
     if (!isLastStep) {
       setCurrentStep(steps[currentStepIndex + 1]);
     }
@@ -295,29 +301,8 @@ export function VehicleForm({
 
     const resolvedData = sanitizeVehicleFormDataForSubmit(formData);
 
-    if (!resolvedData.make.trim() || !resolvedData.model.trim()) {
-      setCurrentStep("basic");
-      toast({
-        title: "Invalid make or model",
-        description: "Please select a make and model from the catalog, or enter a custom make and model.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      catalogEntries !== undefined &&
-      !isValidVehicleMakeModel(resolvedData.make, resolvedData.model, {
-        allowOtherMake: true,
-        dynamicEntries: dynamicCatalogEntries,
-      })
-    ) {
-      setCurrentStep("basic");
-      toast({
-        title: "Invalid make or model",
-        description: "Please select a make and model from the catalog, or enter a custom make and model.",
-        variant: "destructive",
-      });
+    if (!validateVehicleFormMakeModel(formData)) {
+      showInvalidMakeModelError();
       return;
     }
 
@@ -326,6 +311,11 @@ export function VehicleForm({
 
   const handleSaveDraft = () => {
     if (!onSaveDraft) return;
+
+    if (!validateVehicleFormMakeModel(formData)) {
+      showInvalidMakeModelError();
+      return;
+    }
 
     if (!allRequiredUploaded) {
       setCurrentStep("images");
@@ -428,6 +418,7 @@ export function VehicleForm({
                 onMakeChange={(value) => updateFormData("make", value)}
                 onModelChange={(value) => updateFormData("model", value)}
                 onMakeCustomChange={(value) => updateFormData("makeCustom", value)}
+                onCatalogEntryAdded={registerCatalogEntry}
               />
 
               <div>

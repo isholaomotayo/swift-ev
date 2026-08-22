@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -37,7 +37,8 @@ import { Loader2, Car, Battery, MapPin, Gavel, FileText, ImageIcon, X, Upload } 
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
 import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS } from "@/lib/constants";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
-import { isValidVehicleMakeModel, resolveMakeModelForForm } from "@/lib/vehicle-catalog";
+import { resolveMakeModelForForm } from "@/lib/vehicle-catalog";
+import { useMergedVehicleCatalog } from "@/hooks/use-merged-vehicle-catalog";
 import { ImageGallery } from "@/components/autoexports/image-gallery";
 
 interface VehicleImageRef {
@@ -76,17 +77,12 @@ export function VehicleActionsModal({
             ? { vehicleId: vehicle._id as Id<"vehicles">, token }
             : "skip"
     );
-    const catalogEntries = useQuery((api as any).vehicleCatalog.getCatalog, {}) as
-        | Array<{ make: string; models: string[] }>
-        | undefined;
-    const dynamicCatalogEntries = useMemo(
-        () =>
-            catalogEntries?.map((entry) => ({
-                make: entry.make,
-                models: entry.models,
-            })),
-        [catalogEntries]
-    );
+    const {
+        catalogReady,
+        registerCatalogEntry,
+        validateResolvedMakeModel,
+        validationCatalogEntries,
+    } = useMergedVehicleCatalog();
 
     // Form State
     const [formData, setFormData] = useState<any>({});
@@ -105,11 +101,12 @@ export function VehicleActionsModal({
 
     // Initialize form data when vehicle changes
     useEffect(() => {
-        if (!sourceVehicle) return;
+        if (!sourceVehicle || !catalogReady) return;
 
         const { make, model, isOtherMake } = resolveMakeModelForForm(
             sourceVehicle.make,
-            sourceVehicle.model
+            sourceVehicle.model,
+            validationCatalogEntries
         );
 
         setFormData({
@@ -170,7 +167,7 @@ export function VehicleActionsModal({
             setDocRefs([]);
         }
         setDocsDirty(false);
-    }, [sourceVehicle]);
+    }, [sourceVehicle, catalogReady, validationCatalogEntries]);
 
     const handleInputChange = (field: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -332,23 +329,7 @@ export function VehicleActionsModal({
                     : String(formData.make || "").trim();
             const resolvedModel = String(formData.model || "").trim();
 
-            if (!resolvedMake || !resolvedModel) {
-                toast({
-                    title: "Invalid make or model",
-                    description:
-                        "Please select a make and model from the catalog, or enter a custom make and model.",
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            if (
-                catalogEntries !== undefined &&
-                !isValidVehicleMakeModel(resolvedMake, resolvedModel, {
-                    allowOtherMake: true,
-                    dynamicEntries: dynamicCatalogEntries,
-                })
-            ) {
+            if (!validateResolvedMakeModel(resolvedMake, resolvedModel)) {
                 toast({
                     title: "Invalid make or model",
                     description:
@@ -585,6 +566,7 @@ export function VehicleActionsModal({
                                 formData={formData}
                                 handleInputChange={handleInputChange}
                                 activeTab={activeTab}
+                                onCatalogEntryAdded={registerCatalogEntry}
                                 imageRefs={imageRefs}
                                 handleRemoveImage={handleRemoveImage}
                                 handleAddImage={handleAddImage}
@@ -842,6 +824,7 @@ function EditModeContent({
     formData,
     handleInputChange,
     activeTab,
+    onCatalogEntryAdded,
     imageRefs,
     handleRemoveImage,
     handleAddImage,
@@ -864,6 +847,7 @@ function EditModeContent({
     formData: any;
     handleInputChange: any;
     activeTab: string;
+    onCatalogEntryAdded: (entry: { make: string; model: string }) => void;
     imageRefs: VehicleImageRef[];
     handleRemoveImage: (index: number) => void;
     handleAddImage: () => void;
@@ -896,6 +880,7 @@ function EditModeContent({
                         onMakeChange={(v) => handleInputChange("make", v)}
                         onModelChange={(v) => handleInputChange("model", v)}
                         onMakeCustomChange={(v) => handleInputChange("makeCustom", v)}
+                        onCatalogEntryAdded={onCatalogEntryAdded}
                     />
                     <div className="space-y-2">
                         <Label htmlFor="year">Year</Label>

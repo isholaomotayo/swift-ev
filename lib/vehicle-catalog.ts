@@ -119,7 +119,7 @@ export const isValidVehicleMakeModel = (
     return trimmedModel.length > 0;
   }
 
-  if (options?.dynamicEntries) {
+  if (options?.dynamicEntries !== undefined) {
     return isValidMakeModelInMergedCatalog(trimmedMake, trimmedModel, options.dynamicEntries);
   }
 
@@ -128,16 +128,28 @@ export const isValidVehicleMakeModel = (
 
 export const resolveMakeModelForForm = (
   make: string,
-  model: string
+  model: string,
+  dynamicEntries?: DynamicCatalogEntry[]
 ): { make: string; model: string; isOtherMake: boolean } => {
   const normalizedMake = normalizeMake(make);
-  if (isCatalogMake(normalizedMake)) {
-    const models = getModelsForMake(normalizedMake);
+  const merged = mergeCatalog(dynamicEntries);
+  const isKnownMake =
+    merged.isMake(normalizedMake) ||
+    merged.isMake(make) ||
+    isCatalogMake(normalizedMake);
+
+  if (isKnownMake) {
+    const canonicalMake = isCatalogMake(normalizedMake)
+      ? normalizedMake
+      : merged.makes.find((entry) => toNormalizedKey(entry) === toNormalizedKey(normalizedMake)) ||
+        normalizedMake;
+    const models = merged.getModels(canonicalMake);
     const matchedModel = models.includes(model)
       ? model
       : models.find((m) => toNormalizedKey(m) === toNormalizedKey(model)) || model;
-    return { make: normalizedMake, model: matchedModel, isOtherMake: false };
+    return { make: canonicalMake, model: matchedModel, isOtherMake: false };
   }
+
   return { make: OTHER_MAKE_VALUE, model, isOtherMake: true };
 };
 
@@ -145,6 +157,38 @@ export const resolveMakeModelForForm = (
  * Merges static catalog with dynamic database entries into a unified lookup structure.
  */
 export function mergeCatalog(
+  dynamicEntries?: Array<{ make: string; models: string[]; aliases?: string[] }>
+): {
+  makes: string[];
+  getModels: (make: string) => string[];
+  isMake: (make: string) => boolean;
+} {
+  return buildMergedCatalog(dynamicEntries);
+}
+
+export function appendCatalogPatch(
+  entries: DynamicCatalogEntry[] | undefined,
+  patch: { make: string; model: string }
+): DynamicCatalogEntry[] {
+  const base = entries ? entries.map((entry) => ({ ...entry, models: [...entry.models] })) : [];
+  const normalizedMake = toNormalizedKey(normalizeMake(patch.make));
+  const normalizedModel = toNormalizedKey(patch.model);
+  const existing = base.find((entry) => toNormalizedKey(entry.make) === normalizedMake);
+
+  if (existing) {
+    if (!existing.models.some((model) => toNormalizedKey(model) === normalizedModel)) {
+      existing.models.push(patch.model);
+      existing.models.sort((a, b) => a.localeCompare(b));
+    }
+    return base;
+  }
+
+  base.push({ make: normalizeMake(patch.make), models: [patch.model] });
+  base.sort((a, b) => a.make.localeCompare(b.make));
+  return base;
+}
+
+function buildMergedCatalog(
   dynamicEntries?: Array<{ make: string; models: string[]; aliases?: string[] }>
 ): {
   makes: string[];
@@ -168,12 +212,13 @@ export function mergeCatalog(
       const key = toNormalizedKey(entry.make);
       const existing = makeMap.get(key);
       if (existing) {
-        // Merge models uniquely
-        const modelSet = new Set(existing.models);
         for (const m of entry.models) {
-          if (!modelSet.has(m)) modelSet.add(m);
+          const normalizedModel = toNormalizedKey(m);
+          if (!existing.models.some((existingModel) => toNormalizedKey(existingModel) === normalizedModel)) {
+            existing.models.push(m);
+          }
         }
-        existing.models = Array.from(modelSet).sort((a, b) => a.localeCompare(b));
+        existing.models.sort((a, b) => a.localeCompare(b));
       } else {
         makeMap.set(key, {
           canonical: entry.make,

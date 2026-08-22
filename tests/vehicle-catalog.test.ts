@@ -8,6 +8,7 @@ import {
   normalizeMake,
   resolveMakeModelForForm,
   mergeCatalog,
+  appendCatalogPatch,
 } from "@/lib/vehicle-catalog";
 
 describe("vehicle-catalog", () => {
@@ -72,6 +73,30 @@ describe("vehicle-catalog", () => {
       model: "CS55",
       isOtherMake: true,
     });
+  });
+
+  test("resolveMakeModelForForm recognizes dynamic catalog models", () => {
+    const dynamicEntries = [{ make: "Volkswagen", models: ["Magotan"] }];
+
+    expect(resolveMakeModelForForm("Volkswagen", "Magotan", dynamicEntries)).toEqual({
+      make: "Volkswagen",
+      model: "Magotan",
+      isOtherMake: false,
+    });
+  });
+
+  test("appendCatalogPatch adds newly created models for immediate validation", () => {
+    const patched = appendCatalogPatch(
+      [{ make: "Volkswagen", models: ["Passat"] }],
+      { make: "Volkswagen", model: "Magotan" }
+    );
+
+    expect(
+      isValidVehicleMakeModel("Volkswagen", "Magotan", {
+        allowOtherMake: true,
+        dynamicEntries: patched,
+      })
+    ).toBe(true);
   });
 
   test("mergeCatalog merges dynamic DB entries seamlessly", () => {
