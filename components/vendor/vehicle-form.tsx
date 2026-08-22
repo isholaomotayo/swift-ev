@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ArrowLeft, ArrowRight, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +103,17 @@ export function VehicleForm({
   showSteps = true,
 }: VehicleFormProps) {
   const { toast } = useToast();
+  const catalogEntries = useQuery((api as any).vehicleCatalog.getCatalog, {}) as
+    | Array<{ make: string; models: string[] }>
+    | undefined;
+  const dynamicCatalogEntries = useMemo(
+    () =>
+      catalogEntries?.map((entry) => ({
+        make: entry.make,
+        models: entry.models,
+      })),
+    [catalogEntries]
+  );
   const [currentStep, setCurrentStep] = useState<UploadStep>("basic");
   const [formData, setFormData] = useState<VehicleFormData>(initialData);
   
@@ -282,7 +295,23 @@ export function VehicleForm({
 
     const resolvedData = sanitizeVehicleFormDataForSubmit(formData);
 
-    if (!isValidVehicleMakeModel(resolvedData.make, resolvedData.model, { allowOtherMake: true })) {
+    if (!resolvedData.make.trim() || !resolvedData.model.trim()) {
+      setCurrentStep("basic");
+      toast({
+        title: "Invalid make or model",
+        description: "Please select a make and model from the catalog, or enter a custom make and model.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      catalogEntries !== undefined &&
+      !isValidVehicleMakeModel(resolvedData.make, resolvedData.model, {
+        allowOtherMake: true,
+        dynamicEntries: dynamicCatalogEntries,
+      })
+    ) {
       setCurrentStep("basic");
       toast({
         title: "Invalid make or model",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -75,6 +75,17 @@ export function VehicleActionsModal({
         mode === "edit" && isOpen && vehicle?._id && token
             ? { vehicleId: vehicle._id as Id<"vehicles">, token }
             : "skip"
+    );
+    const catalogEntries = useQuery((api as any).vehicleCatalog.getCatalog, {}) as
+        | Array<{ make: string; models: string[] }>
+        | undefined;
+    const dynamicCatalogEntries = useMemo(
+        () =>
+            catalogEntries?.map((entry) => ({
+                make: entry.make,
+                models: entry.models,
+            })),
+        [catalogEntries]
     );
 
     // Form State
@@ -321,7 +332,23 @@ export function VehicleActionsModal({
                     : String(formData.make || "").trim();
             const resolvedModel = String(formData.model || "").trim();
 
-            if (!isValidVehicleMakeModel(resolvedMake, resolvedModel, { allowOtherMake: true })) {
+            if (!resolvedMake || !resolvedModel) {
+                toast({
+                    title: "Invalid make or model",
+                    description:
+                        "Please select a make and model from the catalog, or enter a custom make and model.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            if (
+                catalogEntries !== undefined &&
+                !isValidVehicleMakeModel(resolvedMake, resolvedModel, {
+                    allowOtherMake: true,
+                    dynamicEntries: dynamicCatalogEntries,
+                })
+            ) {
                 toast({
                     title: "Invalid make or model",
                     description:

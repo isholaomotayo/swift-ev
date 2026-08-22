@@ -3,6 +3,7 @@ import {
   CAR_MAKES,
   getModelsForMake,
   isValidMakeModel,
+  isValidMakeModelInMergedCatalog,
   isValidVehicleMakeModel,
   normalizeMake,
   resolveMakeModelForForm,
@@ -41,6 +42,20 @@ describe("vehicle-catalog", () => {
     ).toBe(true);
     expect(isValidVehicleMakeModel("BYD", "Seal", { allowOtherMake: true })).toBe(true);
     expect(isValidVehicleMakeModel("BYD", "", { allowOtherMake: true })).toBe(false);
+  });
+
+  test("isValidMakeModelInMergedCatalog accepts dynamic models for catalog makes", () => {
+    const dynamicEntries = [{ make: "Volkswagen", models: ["Magotan", "Lavida"] }];
+
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Magotan", dynamicEntries)).toBe(true);
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Passat")).toBe(true);
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Magotan")).toBe(false);
+    expect(
+      isValidVehicleMakeModel("Volkswagen", "Magotan", {
+        allowOtherMake: true,
+        dynamicEntries,
+      })
+    ).toBe(true);
   });
 
   test("resolveMakeModelForForm maps legacy make to catalog", () => {

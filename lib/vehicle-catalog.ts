@@ -53,12 +53,15 @@ export const isCatalogMake = (make: string): boolean => {
   return makeToModels.has(normalized) || normalizedMakeToEntry.has(toNormalizedKey(make));
 };
 
-export const isValidMakeModel = (make: string, model: string): boolean => {
-  const normalizedMake = normalizeMake(make);
+export type DynamicCatalogEntry = {
+  make: string;
+  models: string[];
+  aliases?: string[];
+};
+
+const isModelInList = (model: string, models: string[]): boolean => {
   const trimmedModel = model.trim();
-  if (!normalizedMake || !trimmedModel) return false;
-  const models = makeToModels.get(normalizedMake);
-  if (!models) return true; // Custom dynamic make
+  if (!trimmedModel) return false;
   const normModelKey = toNormalizedKey(trimmedModel);
   return (
     models.includes(trimmedModel) ||
@@ -66,10 +69,47 @@ export const isValidMakeModel = (make: string, model: string): boolean => {
   );
 };
 
+export const isValidMakeModel = (make: string, model: string): boolean => {
+  const normalizedMake = normalizeMake(make);
+  const trimmedModel = model.trim();
+  if (!normalizedMake || !trimmedModel) return false;
+  const models = makeToModels.get(normalizedMake);
+  if (!models) return true; // Custom dynamic make
+  return isModelInList(trimmedModel, models);
+};
+
+export const isValidMakeModelInMergedCatalog = (
+  make: string,
+  model: string,
+  dynamicEntries?: DynamicCatalogEntry[]
+): boolean => {
+  const trimmedMake = make.trim();
+  const trimmedModel = model.trim();
+  if (!trimmedMake || !trimmedModel) return false;
+
+  const merged = mergeCatalog(dynamicEntries);
+  const normalizedMake = normalizeMake(trimmedMake);
+  const isKnownMake =
+    merged.isMake(normalizedMake) ||
+    merged.isMake(trimmedMake) ||
+    isCatalogMake(normalizedMake);
+
+  if (!isKnownMake) {
+    return true;
+  }
+
+  const models = merged.getModels(normalizedMake);
+  if (models.length === 0) {
+    return true;
+  }
+
+  return isModelInList(trimmedModel, models);
+};
+
 export const isValidVehicleMakeModel = (
   make: string,
   model: string,
-  options?: { allowOtherMake?: boolean }
+  options?: { allowOtherMake?: boolean; dynamicEntries?: DynamicCatalogEntry[] }
 ): boolean => {
   const trimmedMake = make.trim();
   const trimmedModel = model.trim();
@@ -77,6 +117,10 @@ export const isValidVehicleMakeModel = (
 
   if (options?.allowOtherMake && trimmedMake === OTHER_MAKE_VALUE) {
     return trimmedModel.length > 0;
+  }
+
+  if (options?.dynamicEntries) {
+    return isValidMakeModelInMergedCatalog(trimmedMake, trimmedModel, options.dynamicEntries);
   }
 
   return isValidMakeModel(trimmedMake, trimmedModel);
