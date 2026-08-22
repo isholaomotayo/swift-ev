@@ -53,33 +53,31 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
       vehicle.model,
       validationCatalogEntries
     );
-      // Map vehicle data to form data
-      setInitialData({
-        make: isOtherMake ? "Other" : make,
-        makeCustom: isOtherMake ? vehicle.make : "",
-        model,
-        year: vehicle.year,
-        vin: vehicle.vin,
-        fuelType: (vehicle as { fuelType?: string }).fuelType ?? "EV (Electric)",
-        batteryCapacity: vehicle.batteryCapacity,
-        batteryHealthPercent: vehicle.batteryHealthPercent || 100,
-        range: vehicle.estimatedRange, // Map estimatedRange to range
-        batteryType: (vehicle as any).batteryType ?? "",
-        chargingTypes: vehicle.chargingType ?? [], // Map chargingType (array) to chargingTypes
-        motorPower: vehicle.motorPower ?? 0,
-        condition: vehicle.condition,
-        odometer: vehicle.odometer,
-        exteriorColor: vehicle.exteriorColor,
-        interiorColor: vehicle.interiorColor || "",
-        damageDescription: vehicle.damageDescription || "",
-        startingBid: vehicle.startingBid ?? 0,
-        reservePrice: vehicle.reservePrice ?? 0,
-        buyItNowPrice: vehicle.buyItNowPrice ?? 0,
-        locationCity: vehicle.currentLocation?.city || "",
-        locationState: "", // Not stored explicitly, might need to extract or leave blank
-        locationCountry: vehicle.currentLocation?.country || "Nigeria",
-      });
-    }
+    setInitialData({
+      make: isOtherMake ? "Other" : make,
+      makeCustom: isOtherMake ? vehicle.make : "",
+      model,
+      year: vehicle.year,
+      vin: vehicle.vin,
+      fuelType: (vehicle as { fuelType?: string }).fuelType ?? "EV (Electric)",
+      batteryCapacity: vehicle.batteryCapacity,
+      batteryHealthPercent: vehicle.batteryHealthPercent || 100,
+      range: vehicle.estimatedRange,
+      batteryType: (vehicle as any).batteryType ?? "",
+      chargingTypes: vehicle.chargingType ?? [],
+      motorPower: vehicle.motorPower ?? 0,
+      condition: vehicle.condition,
+      odometer: vehicle.odometer,
+      exteriorColor: vehicle.exteriorColor,
+      interiorColor: vehicle.interiorColor || "",
+      damageDescription: vehicle.damageDescription || "",
+      startingBid: vehicle.startingBid ?? 0,
+      reservePrice: vehicle.reservePrice ?? 0,
+      buyItNowPrice: vehicle.buyItNowPrice ?? 0,
+      locationCity: vehicle.currentLocation?.city || "",
+      locationState: "",
+      locationCountry: vehicle.currentLocation?.country || "Nigeria",
+    });
   }, [vehicle, catalogReady, validationCatalogEntries]);
 
   const uploadFileToStorage = async (token: string, file: File): Promise<string> => {
