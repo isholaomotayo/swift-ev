@@ -16,11 +16,16 @@ type CatalogQueryEntry = {
   models: string[];
 };
 
+type CatalogPatch = {
+  make: string;
+  model: string;
+};
+
 export function useMergedVehicleCatalog() {
   const catalogEntries = useQuery((api as any).vehicleCatalog.getCatalog, {}) as
     | CatalogQueryEntry[]
     | undefined;
-  const [catalogPatches, setCatalogPatches] = useState<DynamicCatalogEntry[]>([]);
+  const [catalogPatches, setCatalogPatches] = useState<CatalogPatch[]>([]);
 
   const remoteCatalogEntries = useMemo(
     () =>
@@ -47,22 +52,21 @@ export function useMergedVehicleCatalog() {
     [validationCatalogEntries]
   );
 
-  const registerCatalogEntry = useCallback((patch: { make: string; model: string }) => {
+  const registerCatalogEntry = useCallback((patch: CatalogPatch) => {
     setCatalogPatches((prev) => {
-      const nextEntries = appendCatalogPatch(remoteCatalogEntries, patch);
       const normalizedMake = patch.make.trim().toLowerCase();
       const normalizedModel = patch.model.trim().toLowerCase();
       const alreadyTracked = prev.some(
         (entry) =>
           entry.make.trim().toLowerCase() === normalizedMake &&
-          entry.models.some((model) => model.trim().toLowerCase() === normalizedModel)
+          entry.model.trim().toLowerCase() === normalizedModel
       );
       if (alreadyTracked) {
         return prev;
       }
-      return appendCatalogPatch(prev, patch);
+      return [...prev, patch];
     });
-  }, [remoteCatalogEntries]);
+  }, []);
 
   const validateResolvedMakeModel = useCallback(
     (make: string, model: string): boolean => {
