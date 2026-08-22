@@ -12,6 +12,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { getMutationErrorMessage, isValidVehicleCondition } from "@/lib/auth-errors";
 import { isPersistableImageRef } from "@/lib/vehicle-image-refs";
 import { resolveMakeModelForForm } from "@/lib/vehicle-catalog";
+import { useMergedVehicleCatalog } from "@/hooks/use-merged-vehicle-catalog";
 
 interface EditVehiclePageProps {
   params: Promise<{ id: string }>;
@@ -40,12 +41,18 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
   const updateVehicle = useMutation(api.vehicles.updateVehicle);
   const submitVehicleForApproval = useMutation(api.vehicles.submitVehicleForApproval);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const { catalogReady, validationCatalogEntries } = useMergedVehicleCatalog();
 
   const [initialData, setInitialData] = useState<VehicleFormData | null>(null);
 
   useEffect(() => {
-    if (vehicle) {
-      const { make, model, isOtherMake } = resolveMakeModelForForm(vehicle.make, vehicle.model);
+    if (!vehicle || !catalogReady) return;
+
+    const { make, model, isOtherMake } = resolveMakeModelForForm(
+      vehicle.make,
+      vehicle.model,
+      validationCatalogEntries
+    );
       // Map vehicle data to form data
       setInitialData({
         make: isOtherMake ? "Other" : make,
@@ -73,7 +80,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
         locationCountry: vehicle.currentLocation?.country || "Nigeria",
       });
     }
-  }, [vehicle]);
+  }, [vehicle, catalogReady, validationCatalogEntries]);
 
   const uploadFileToStorage = async (token: string, file: File): Promise<string> => {
     const uploadUrl = await generateUploadUrl({ token });

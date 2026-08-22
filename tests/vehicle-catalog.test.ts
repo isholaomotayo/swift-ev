@@ -3,10 +3,12 @@ import {
   CAR_MAKES,
   getModelsForMake,
   isValidMakeModel,
+  isValidMakeModelInMergedCatalog,
   isValidVehicleMakeModel,
   normalizeMake,
   resolveMakeModelForForm,
   mergeCatalog,
+  appendCatalogPatch,
 } from "@/lib/vehicle-catalog";
 
 describe("vehicle-catalog", () => {
@@ -43,6 +45,20 @@ describe("vehicle-catalog", () => {
     expect(isValidVehicleMakeModel("BYD", "", { allowOtherMake: true })).toBe(false);
   });
 
+  test("isValidMakeModelInMergedCatalog accepts dynamic models for catalog makes", () => {
+    const dynamicEntries = [{ make: "Volkswagen", models: ["Magotan", "Lavida"] }];
+
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Magotan", dynamicEntries)).toBe(true);
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Passat")).toBe(true);
+    expect(isValidMakeModelInMergedCatalog("Volkswagen", "Magotan")).toBe(false);
+    expect(
+      isValidVehicleMakeModel("Volkswagen", "Magotan", {
+        allowOtherMake: true,
+        dynamicEntries,
+      })
+    ).toBe(true);
+  });
+
   test("resolveMakeModelForForm maps legacy make to catalog", () => {
     expect(resolveMakeModelForForm("XPeng", "P7")).toEqual({
       make: "XPENG",
@@ -57,6 +73,30 @@ describe("vehicle-catalog", () => {
       model: "CS55",
       isOtherMake: true,
     });
+  });
+
+  test("resolveMakeModelForForm recognizes dynamic catalog models", () => {
+    const dynamicEntries = [{ make: "Volkswagen", models: ["Magotan"] }];
+
+    expect(resolveMakeModelForForm("Volkswagen", "Magotan", dynamicEntries)).toEqual({
+      make: "Volkswagen",
+      model: "Magotan",
+      isOtherMake: false,
+    });
+  });
+
+  test("appendCatalogPatch adds newly created models for immediate validation", () => {
+    const patched = appendCatalogPatch(
+      [{ make: "Volkswagen", models: ["Passat"] }],
+      { make: "Volkswagen", model: "Magotan" }
+    );
+
+    expect(
+      isValidVehicleMakeModel("Volkswagen", "Magotan", {
+        allowOtherMake: true,
+        dynamicEntries: patched,
+      })
+    ).toBe(true);
   });
 
   test("mergeCatalog merges dynamic DB entries seamlessly", () => {

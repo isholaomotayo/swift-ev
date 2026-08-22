@@ -235,6 +235,7 @@ export interface MakeModelSelectProps {
   onMakeChange: (make: string) => void;
   onModelChange: (model: string) => void;
   onMakeCustomChange?: (makeCustom: string) => void;
+  onCatalogEntryAdded?: (entry: { make: string; model: string }) => void;
   allowOtherMake?: boolean;
   makeLabel?: string;
   modelLabel?: string;
@@ -248,6 +249,7 @@ export const MakeModelSelect = ({
   onMakeChange,
   onModelChange,
   onMakeCustomChange,
+  onCatalogEntryAdded,
   allowOtherMake = false,
   makeLabel = "Make / Manufacturer",
   modelLabel = "Model",
@@ -365,7 +367,12 @@ export const MakeModelSelect = ({
 
       handleMakeChange(res.make);
       if (initialModel.trim()) {
-        onModelChange(formatCanonicalName(initialModel.trim()));
+        const canonicalInitialModel = formatCanonicalName(initialModel.trim());
+        onModelChange(canonicalInitialModel);
+        onCatalogEntryAdded?.({ make: res.make, model: canonicalInitialModel });
+      }
+      for (const modelName of res.models ?? []) {
+        onCatalogEntryAdded?.({ make: res.make, model: modelName });
       }
       setCreateMakeDialogOpen(false);
       setCandidateMake("");
@@ -444,6 +451,7 @@ export const MakeModelSelect = ({
       });
 
       onModelChange(res.model);
+      onCatalogEntryAdded?.({ make: catalogMake, model: res.model });
       setCreateModelDialogOpen(false);
       setCandidateModel("");
       setModelDuplicateWarning(null);
