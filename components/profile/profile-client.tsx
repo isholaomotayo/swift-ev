@@ -15,6 +15,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { KycVerification } from "@/components/kyc/kyc-verification";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface ProfileClientProps {
   initialUser: any;
