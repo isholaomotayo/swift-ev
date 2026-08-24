@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountdownClock, formatCurrency, formatDate } from "@/lib/utils";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 const getFormattedLotStatus = (status: string, hasBidder: boolean) => {
   if (status === "no_sale") return hasBidder ? "Reserve Not Met" : "No Sale";
@@ -222,7 +223,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Failed to start auction",
+        description: getMutationErrorMessage(err, "Failed to start auction"),
         variant: "destructive",
       });
     } finally {
@@ -239,7 +240,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Failed to pause auction",
+        description: getMutationErrorMessage(err, "Failed to pause auction"),
         variant: "destructive",
       });
     } finally {
@@ -258,7 +259,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Failed to advance lot",
+        description: getMutationErrorMessage(err, "Failed to advance lot"),
         variant: "destructive",
       });
     } finally {
@@ -280,7 +281,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Could not set active lot",
+        description: getMutationErrorMessage(err, "Could not set active lot"),
         variant: "destructive",
       });
     } finally {
@@ -301,7 +302,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Failed to extend lot time",
+        description: getMutationErrorMessage(err, "Failed to extend lot time"),
         variant: "destructive",
       });
     } finally {
@@ -326,7 +327,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
     } catch (err) {
       toast({
         title: "Action Failed",
-        description: err instanceof Error ? err.message : "Failed to close lot",
+        description: getMutationErrorMessage(err, "Failed to close lot"),
         variant: "destructive",
       });
     } finally {

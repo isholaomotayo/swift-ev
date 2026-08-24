@@ -103,7 +103,7 @@ export function ProfileClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to change password"),
         variant: "destructive",
       });
     } finally {

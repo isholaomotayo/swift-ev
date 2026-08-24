@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
@@ -47,7 +47,7 @@ const vehicleStatusValidator = v.union(
 
 function vehicleStatusOf(status: string): VehicleStatus {
   if (!isVehicleStatus(status)) {
-    throw new Error(`Unknown vehicle status: ${status}`);
+    throw new ConvexError(`Unknown vehicle status: ${status}`);
   }
   return status;
 }
@@ -679,7 +679,7 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
     attempts++;
   } while (attempts < 10);
   if (attempts >= 10) {
-    throw new Error("Unable to generate unique lot number after 10 attempts");
+    throw new ConvexError("Unable to generate unique lot number after 10 attempts");
   }
   return lotNumber;
 }
@@ -688,7 +688,7 @@ async function generateUniqueLotNumber(ctx: MutationCtx): Promise<string> {
 function normalizeImageRefForStorage(ref: string): string {
   const trimmed = ref.trim();
   if (trimmed.startsWith("blob:")) {
-    throw new Error(
+    throw new ConvexError(
       "An image was not uploaded to storage. Remove it and upload again before saving."
     );
   }
@@ -704,7 +704,7 @@ async function checkDuplicateVin(ctx: MutationCtx, vin?: string, excludeVehicleI
 
   if (existingVIN && existingVIN._id !== excludeVehicleId) {
     console.warn(`Duplicate VIN attempt: ${vin}`);
-    throw new Error(`A vehicle with VIN ${vin} already exists`);
+    throw new ConvexError(`A vehicle with VIN ${vin} already exists`);
   }
 }
 
@@ -785,27 +785,27 @@ export const createVehicle = mutation({
       .first();
 
     if (!session) {
-      throw new Error("Invalid session. Please log in again.");
+      throw new ConvexError("Invalid session. Please log in again.");
     }
 
     if (session.expiresAt < Date.now()) {
-      throw new Error("Session expired. Please log in again.");
+      throw new ConvexError("Session expired. Please log in again.");
     }
 
     const user = await ctx.db.get(session.userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     // Check role permissions
     if (user.role !== "seller" && user.role !== "admin" && user.role !== "superadmin") {
-      throw new Error("Only vendors or admins can upload vehicles");
+      throw new ConvexError("Only vendors or admins can upload vehicles");
     }
 
     const { vehicleData } = args;
     const initialStatus = vehicleData.initialStatus ?? "pending_approval";
     if (initialStatus === "approved" && user.role !== "admin" && user.role !== "superadmin") {
-      throw new Error("Only admins can create pre-approved vehicles");
+      throw new ConvexError("Only admins can create pre-approved vehicles");
     }
 
     const resolvedMake =
@@ -825,19 +825,19 @@ export const createVehicle = mutation({
     // Hard validation to prevent client-side bypass
     const nextYear = new Date().getFullYear() + 1;
     if (vehicleData.year < 2014 || vehicleData.year > nextYear) {
-      throw new Error(`Vehicle year must be between 2014 and ${nextYear}.`);
+      throw new ConvexError(`Vehicle year must be between 2014 and ${nextYear}.`);
     }
 
     if (vehicleData.odometer < 0) {
-      throw new Error("Odometer cannot be negative.");
+      throw new ConvexError("Odometer cannot be negative.");
     }
 
     if (vehicleData.startingBid < 0 || vehicleData.reservePrice < 0) {
-      throw new Error("Pricing values cannot be negative.");
+      throw new ConvexError("Pricing values cannot be negative.");
     }
 
     if (vehicleData.reservePrice < vehicleData.startingBid) {
-      throw new Error("Reserve price must be greater than or equal to the starting bid.");
+      throw new ConvexError("Reserve price must be greater than or equal to the starting bid.");
     }
 
     if (
@@ -846,20 +846,20 @@ export const createVehicle = mutation({
       !Number.isFinite(vehicleData.buyItNowPrice) ||
       vehicleData.buyItNowPrice <= 0
     ) {
-      throw new Error("Buy It Now price is required for all listings.");
+      throw new ConvexError("Buy It Now price is required for all listings.");
     }
 
     if (vehicleData.buyItNowPrice < vehicleData.reservePrice) {
-      throw new Error("Buy it now price must be greater than or equal to the reserve price.");
+      throw new ConvexError("Buy it now price must be greater than or equal to the reserve price.");
     }
 
     const allowedFuelTypes = new Set(["EV (Electric)", "Hybrid", "Gas/Petrol", "Solar"]);
     if (vehicleData.fuelType && !allowedFuelTypes.has(vehicleData.fuelType)) {
-      throw new Error("Invalid fuel type.");
+      throw new ConvexError("Invalid fuel type.");
     }
 
     if (vehicleData.mediaUploads.length > 30) {
-      throw new Error("Exceeded maximum allowed media uploads (30).");
+      throw new ConvexError("Exceeded maximum allowed media uploads (30).");
     }
 
     const requiredCategorySet = new Set(
@@ -871,7 +871,7 @@ export const createVehicle = mutation({
       (category) => !requiredCategorySet.has(category)
     );
     if (missingRequiredCategories.length > 0) {
-      throw new Error(
+      throw new ConvexError(
         `Missing required media categories: ${missingRequiredCategories.join(", ")}`
       );
     }
@@ -880,7 +880,7 @@ export const createVehicle = mutation({
       (item) => !item.storageId || !item.category
     );
     if (invalidMedia) {
-      throw new Error("Invalid media upload payload.");
+      throw new ConvexError("Invalid media upload payload.");
     }
 
     // Check for duplicate VIN
@@ -888,7 +888,7 @@ export const createVehicle = mutation({
 
     if (vehicleData.make === "Other") {
       if (!resolvedMake || !resolvedModel) {
-        throw new Error("Custom make and model are required.");
+        throw new ConvexError("Custom make and model are required.");
       }
     } else {
       assertValidVehicleMakeModel(resolvedMake, resolvedModel);
@@ -1087,7 +1087,7 @@ export const updateVehicle = mutation({
     // 2. Get vehicle to check ownership
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     // 3. Verify ownership (only seller or admin can update)
@@ -1096,7 +1096,7 @@ export const updateVehicle = mutation({
     const isOwner = vehicle.sellerId === user._id;
 
     if (!isOwner && !isAdmin) {
-      throw new Error("You do not have permission to update this vehicle");
+      throw new ConvexError("You do not have permission to update this vehicle");
     }
 
     let resetToPendingApproval = false;
@@ -1104,7 +1104,7 @@ export const updateVehicle = mutation({
       // 1. Active auction lock
       const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
       if (vehicle.status === "in_auction" || activeLot) {
-        throw new Error(
+        throw new ConvexError(
           "Cannot edit a vehicle while it is in an active live auction. Please wait until the auction finishes."
         );
       }
@@ -1118,7 +1118,7 @@ export const updateVehicle = mutation({
         "cancelled",
       ];
       if (postAvailableStatuses.includes(vehicle.status)) {
-        throw new Error(
+        throw new ConvexError(
           `Cannot edit a vehicle that is ${vehicle.status.replace("_", " ")} or has transitioned from an available state.`
         );
       }
@@ -1135,7 +1135,7 @@ export const updateVehicle = mutation({
     if (typeof updates.year === "number") {
       const nextYear = new Date().getFullYear() + 1;
       if (updates.year < 2014 || updates.year > nextYear) {
-        throw new Error(`Vehicle year must be between 2014 and ${nextYear}.`);
+        throw new ConvexError(`Vehicle year must be between 2014 and ${nextYear}.`);
       }
     }
 
@@ -1162,7 +1162,7 @@ export const updateVehicle = mutation({
     } = updates;
 
     if (requestedStatus !== undefined && requestedStatus !== vehicle.status) {
-      throw new Error(
+      throw new ConvexError(
         "Vehicle status changes must use lifecycle mutations or admin override with a reason."
       );
     }
@@ -1181,7 +1181,7 @@ export const updateVehicle = mutation({
     if (rawVehicleUpdates.make === "Other") {
       const resolvedMake = makeCustom?.trim();
       if (!resolvedMake) {
-        throw new Error("Custom make is required.");
+        throw new ConvexError("Custom make is required.");
       }
       normalizedRawUpdates.make = resolvedMake;
     } else if (rawVehicleUpdates.make !== undefined) {
@@ -1274,17 +1274,17 @@ export const updateVehicle = mutation({
         typeof vehicleUpdates.buyItNowPrice !== "number" ||
         vehicleUpdates.buyItNowPrice <= 0
       ) {
-        throw new Error("Buy It Now price is required and must be greater than zero.");
+        throw new ConvexError("Buy It Now price is required and must be greater than zero.");
       }
     }
     if (nextBuyItNow === undefined || nextBuyItNow <= 0) {
-      throw new Error("Buy It Now price is required for all listings.");
+      throw new ConvexError("Buy It Now price is required for all listings.");
     }
     if (nextBuyItNow < nextReserve) {
-      throw new Error("Buy It Now price must be greater than or equal to the reserve price.");
+      throw new ConvexError("Buy It Now price must be greater than or equal to the reserve price.");
     }
     if (nextReserve < nextStartingBid) {
-      throw new Error("Reserve price must be greater than or equal to the starting bid.");
+      throw new ConvexError("Reserve price must be greater than or equal to the starting bid.");
     }
 
     // Always keep Buy Now enabled when a valid price is set
@@ -1385,15 +1385,15 @@ export const submitVehicleForApproval = mutation({
     const vehicle = await ctx.db.get(args.vehicleId);
     
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     if (vehicle.sellerId !== user._id) {
-      throw new Error("You do not have permission to submit this vehicle");
+      throw new ConvexError("You do not have permission to submit this vehicle");
     }
 
     if (vehicle.status !== "draft" && vehicle.status !== "rejected") {
-      throw new Error(`Vehicle cannot be submitted from status: ${vehicle.status}`);
+      throw new ConvexError(`Vehicle cannot be submitted from status: ${vehicle.status}`);
     }
 
     await ctx.db.patch(args.vehicleId, {
@@ -1427,11 +1427,11 @@ export const approveVehicle = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     if (vehicle.status !== "pending_approval") {
-      throw new Error("Only pending approval vehicles can be approved");
+      throw new ConvexError("Only pending approval vehicles can be approved");
     }
 
     if (
@@ -1439,13 +1439,13 @@ export const approveVehicle = mutation({
       !Number.isFinite(vehicle.buyItNowPrice) ||
       vehicle.buyItNowPrice <= 0
     ) {
-      throw new Error("Cannot approve a listing without a Buy Now price");
+      throw new ConvexError("Cannot approve a listing without a Buy Now price");
     }
     if (
       typeof vehicle.reservePrice === "number" &&
       vehicle.buyItNowPrice < vehicle.reservePrice
     ) {
-      throw new Error("Buy Now price must be at least the reserve price");
+      throw new ConvexError("Buy Now price must be at least the reserve price");
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
@@ -1482,7 +1482,7 @@ export const rejectVehicle = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "rejected");
@@ -1515,21 +1515,21 @@ export const withdrawVehicle = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     const isAdmin = authIsAdmin(user);
     const isOwner = vehicle.sellerId !== undefined && vehicle.sellerId === user._id;
 
     if (!isAdmin && !isOwner) {
-      throw new Error("You do not have permission to withdraw this vehicle");
+      throw new ConvexError("You do not have permission to withdraw this vehicle");
     }
 
     if (!isAdmin && isOwner) {
       // Active auction lock
       const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
       if (vehicle.status === "in_auction" || activeLot) {
-        throw new Error("Cannot withdraw a vehicle while it is in an active live auction.");
+        throw new ConvexError("Cannot withdraw a vehicle while it is in an active live auction.");
       }
 
       // Sold / post-available lock
@@ -1541,7 +1541,7 @@ export const withdrawVehicle = mutation({
         "cancelled",
       ];
       if (postAvailableStatuses.includes(vehicle.status)) {
-        throw new Error(
+        throw new ConvexError(
           `Cannot withdraw a vehicle that is ${vehicle.status.replace("_", " ")} or has transitioned from an available state.`
         );
       }
@@ -1551,7 +1551,7 @@ export const withdrawVehicle = mutation({
 
     const activeLot = await getActiveAuctionLot(ctx, args.vehicleId);
     if (activeLot) {
-      throw new Error("Cannot withdraw a vehicle while its auction lot is active");
+      throw new ConvexError("Cannot withdraw a vehicle while its auction lot is active");
     }
 
     const pendingLots = await ctx.db
@@ -1590,7 +1590,7 @@ export const relistVehicle = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     if (
@@ -1598,13 +1598,13 @@ export const relistVehicle = mutation({
       !Number.isFinite(vehicle.buyItNowPrice) ||
       vehicle.buyItNowPrice <= 0
     ) {
-      throw new Error("Cannot relist a vehicle without a Buy Now price");
+      throw new ConvexError("Cannot relist a vehicle without a Buy Now price");
     }
     if (
       typeof vehicle.reservePrice === "number" &&
       vehicle.buyItNowPrice < vehicle.reservePrice
     ) {
-      throw new Error("Buy Now price must be at least the reserve price");
+      throw new ConvexError("Buy Now price must be at least the reserve price");
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "approved");
@@ -1639,7 +1639,7 @@ export const markVehicleUnsold = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");
@@ -1674,12 +1674,12 @@ export const overrideVehicleStatus = mutation({
 
     const reason = args.reason.trim();
     if (reason.length < 5) {
-      throw new Error("A clear override reason is required");
+      throw new ConvexError("A clear override reason is required");
     }
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     if (args.status === "approved") {
@@ -1688,13 +1688,13 @@ export const overrideVehicleStatus = mutation({
         !Number.isFinite(vehicle.buyItNowPrice) ||
         vehicle.buyItNowPrice <= 0
       ) {
-        throw new Error("Cannot set status to approved without a Buy Now price");
+        throw new ConvexError("Cannot set status to approved without a Buy Now price");
       }
       if (
         typeof vehicle.reservePrice === "number" &&
         vehicle.buyItNowPrice < vehicle.reservePrice
       ) {
-        throw new Error("Buy Now price must be at least the reserve price");
+        throw new ConvexError("Buy Now price must be at least the reserve price");
       }
     }
 
@@ -1732,11 +1732,11 @@ export const purchaseVehicleDirectly = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     if (vehicle.sellerId && vehicle.sellerId === user._id) {
-      throw new Error("You cannot purchase your own listing");
+      throw new ConvexError("You cannot purchase your own listing");
     }
 
     if (vehicle.status === "payment_pending") {
@@ -1760,18 +1760,18 @@ export const purchaseVehicleDirectly = mutation({
           };
         }
       }
-      throw new Error("This vehicle is reserved pending payment by another buyer");
+      throw new ConvexError("This vehicle is reserved pending payment by another buyer");
     }
 
     if (vehicle.status !== "approved" && vehicle.status !== "unsold") {
-      throw new Error(
+      throw new ConvexError(
         `Vehicle cannot be purchased directly because it is in status: ${vehicle.status}`
       );
     }
 
     const buyItNowPrice = resolveBuyNowPrice(vehicle);
     if (!buyItNowPrice) {
-      throw new Error("Direct purchase is not available for this vehicle");
+      throw new ConvexError("Direct purchase is not available for this vehicle");
     }
 
     const activeOrPendingLot = await ctx.db
@@ -1786,7 +1786,7 @@ export const purchaseVehicleDirectly = mutation({
       activeOrPendingLot &&
       isAuctionLotHoldingVehicleForPurchase(activeOrPendingLot.status)
     ) {
-      throw new Error(
+      throw new ConvexError(
         "Vehicle is assigned to an auction lot. Please purchase through the auction lot."
       );
     }
@@ -1801,7 +1801,7 @@ export const purchaseVehicleDirectly = mutation({
     ).find((order) => order.status !== "cancelled" && order.status !== "refunded");
 
     if (existingOrder) {
-      throw new Error("Vehicle already has an active purchase order");
+      throw new ConvexError("Vehicle already has an active purchase order");
     }
 
     const pricing = calculateBuyNowPricing(buyItNowPrice, args.destination);
@@ -2035,7 +2035,7 @@ export const deleteVehicle = mutation({
 
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      throw new ConvexError("Vehicle not found");
     }
 
     // Check if vehicle is attached to active orders
@@ -2046,7 +2046,7 @@ export const deleteVehicle = mutation({
 
     const activeOrders = orders.filter((o) => o.status !== "cancelled");
     if (activeOrders.length > 0) {
-      throw new Error(
+      throw new ConvexError(
         `Cannot delete vehicle: Linked to active order(s) [${activeOrders.map((o) => o.orderNumber).join(", ")}]`
       );
     }

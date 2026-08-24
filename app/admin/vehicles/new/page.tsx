@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
 type TaggedUploadFile = File & {
@@ -133,11 +134,10 @@ export default function AdminVehicleUploadPage() {
 
       router.push("/admin/vehicles");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to upload vehicle.";
       console.error("Error uploading vehicle:", error);
       toast({
         title: "Upload failed",
-        description: message,
+        description: getMutationErrorMessage(error, "Failed to upload vehicle."),
         variant: "destructive",
       });
     } finally {

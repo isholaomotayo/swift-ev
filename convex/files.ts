@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -18,13 +18,13 @@ export const generateUploadUrl = mutation({
       .first();
 
     if (!session || session.expiresAt < Date.now()) {
-      throw new Error("Unauthorized - please log in");
+      throw new ConvexError("Unauthorized - please log in");
     }
 
     // Get user
     const user = await ctx.db.get(session.userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     // Generate upload URL
@@ -101,13 +101,13 @@ export const deleteFile = mutation({
       .first();
 
     if (!session || session.expiresAt < Date.now()) {
-      throw new Error("Unauthorized - please log in");
+      throw new ConvexError("Unauthorized - please log in");
     }
 
     // Get user
     const user = await ctx.db.get(session.userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     // Validate ownership based on resource type
@@ -128,7 +128,7 @@ export const deleteFile = mutation({
     }
 
     if (!authorized) {
-      throw new Error("Unauthorized to delete this file");
+      throw new ConvexError("Unauthorized to delete this file");
     }
 
     // Delete from storage

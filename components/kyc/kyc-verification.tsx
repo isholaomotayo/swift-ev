@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MockSumsubModal } from "@/components/shared/mock-sumsub-modal";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 import { ACCEPTED_KYC_DOCUMENT_TYPES, MAX_KYC_DOCUMENT_SIZE_MB } from "@/lib/constants";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 type VerificationStep = "fee" | "documents" | "review" | "complete";
 
@@ -129,8 +130,7 @@ export function KycVerification() {
           } catch (error) {
             toast({
               title: "Payment Verification Failed",
-              description:
-                error instanceof Error ? error.message : "Please try again",
+              description: getMutationErrorMessage(error, "Please try again"),
               variant: "destructive",
             });
           } finally {
@@ -144,8 +144,7 @@ export function KycVerification() {
     } catch (error) {
       toast({
         title: "Payment Initialization Failed",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Please try again"),
         variant: "destructive",
       });
       setLoading(false);
@@ -169,8 +168,7 @@ export function KycVerification() {
     } catch (error) {
       toast({
         title: "Submission Failed",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Please try again"),
         variant: "destructive",
       });
     }
@@ -240,7 +238,7 @@ export function KycVerification() {
     } catch (error) {
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Please try again"),
         variant: "destructive",
       });
     } finally {
@@ -261,8 +259,7 @@ export function KycVerification() {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Please try again"),
         variant: "destructive",
       });
     } finally {

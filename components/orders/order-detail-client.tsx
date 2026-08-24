@@ -19,6 +19,7 @@ import { GuaranteeCertificateCard } from "@/components/orders/guarantee-certific
 import { VehicleRegistrationForm } from "@/components/orders/vehicle-registration-form";
 import { ShipmentTracker } from "@/components/orders/shipment-tracker";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface OrderDetailClientProps {
   initialOrderDetails: any;
@@ -302,7 +303,7 @@ export function OrderDetailClient({
                     await confirmDeliveryMutation({ token, orderId });
                     toast({ title: "Success", description: "Delivery Confirmed. Guarantee Fulfilled!" });
                   } catch (e: any) {
-                    toast({ title: "Error", description: e.message, variant: "destructive" });
+                    toast({ title: "Error", description: getMutationErrorMessage(e, "Failed to confirm delivery"), variant: "destructive" });
                   } finally {
                     setIsConfirmingDelivery(false);
                   }

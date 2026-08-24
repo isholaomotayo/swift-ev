@@ -38,6 +38,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, ExternalLink, CreditCard, Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface AdminPaymentsClientProps {
   token: string;
@@ -87,7 +88,7 @@ export function AdminPaymentsClient({ token }: AdminPaymentsClientProps) {
     } catch (error) {
       toast({
         title: "Verification failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: getMutationErrorMessage(error, "Unknown error"),
         variant: "destructive",
       });
     } finally {
@@ -115,7 +116,7 @@ export function AdminPaymentsClient({ token }: AdminPaymentsClientProps) {
     } catch (error) {
       toast({
         title: "Rejection failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: getMutationErrorMessage(error, "Unknown error"),
         variant: "destructive",
       });
     } finally {

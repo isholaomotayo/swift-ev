@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import carMakeCatalogJson from "../../store/car-make.json";
 import { toNormalizedKey, formatCanonicalName } from "./vehicleDedup";
 
@@ -52,19 +53,19 @@ export const assertValidVehicleMakeModel = (make: string, model: string): void =
   const trimmedModel = model.trim();
 
   if (!trimmedMake || !trimmedModel) {
-    throw new Error("Make and model are required.");
+    throw new ConvexError("Make and model are required.");
   }
 
   if (trimmedMake === OTHER_MAKE_VALUE) {
     if (trimmedModel.length < 1) {
-      throw new Error("Model is required when using a custom make.");
+      throw new ConvexError("Model is required when using a custom make.");
     }
     return;
   }
 
   // Non-empty custom or catalog make & model is allowed
   if (trimmedMake.length < 1 || trimmedModel.length < 1) {
-    throw new Error("Invalid make and model combination.");
+    throw new ConvexError("Invalid make and model combination.");
   }
 };
 

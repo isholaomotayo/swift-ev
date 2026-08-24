@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 import { cn } from "@/lib/utils";
 
 interface EmailTemplateManagerProps {
@@ -113,7 +114,7 @@ export function EmailTemplateManager({ token }: EmailTemplateManagerProps) {
     } catch (err: any) {
       toast({
         title: "Seed Failed",
-        description: err?.message || "An error occurred",
+        description: getMutationErrorMessage(err, "An error occurred"),
         variant: "destructive",
       });
     } finally {
@@ -139,7 +140,7 @@ export function EmailTemplateManager({ token }: EmailTemplateManagerProps) {
       } catch (err: any) {
         toast({
           title: "Save Failed",
-          description: err?.message || "An error occurred",
+          description: getMutationErrorMessage(err, "An error occurred"),
           variant: "destructive",
         });
       }
@@ -158,7 +159,7 @@ export function EmailTemplateManager({ token }: EmailTemplateManagerProps) {
       } catch (err: any) {
         toast({
           title: "Revert Failed",
-          description: err?.message || "An error occurred",
+          description: getMutationErrorMessage(err, "An error occurred"),
           variant: "destructive",
         });
       }

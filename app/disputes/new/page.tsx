@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 const disputeTypes = [
     { value: "not_as_described", label: "Vehicle Not As Described" },
@@ -71,7 +72,7 @@ export default function NewDisputePage() {
         } catch (error) {
             toast({
                 title: "Error",
-                description: error instanceof Error ? error.message : "Failed to file dispute",
+                description: getMutationErrorMessage(error, "Failed to file dispute"),
                 variant: "destructive",
             });
         } finally {

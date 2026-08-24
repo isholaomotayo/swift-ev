@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Id } from "@/convex/_generated/dataModel";
 import { WatchlistItem } from "@/lib/types";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface WatchlistClientProps {
   initialWatchlist: any;
@@ -48,10 +49,9 @@ export function WatchlistClient({
         description: "Vehicle has been removed from your saved list.",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to remove item";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: getMutationErrorMessage(error, "Failed to remove item"),
         variant: "destructive",
       });
     }

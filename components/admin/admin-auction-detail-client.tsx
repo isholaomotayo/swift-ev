@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { LiveControlCenter } from "@/components/admin/auctions/live-control-center";
 import { DeleteAuctionDialog } from "@/components/admin/auctions/delete-auction-dialog";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 type AuctionLotWithVehicle = {
   lot: Doc<"auctionLots">;
@@ -174,11 +175,9 @@ export function AdminAuctionDetailClient({
       });
       router.refresh();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not update auction.";
       toast({
         title: "Action failed",
-        description: message,
+        description: getMutationErrorMessage(error, "Could not update auction."),
         variant: "destructive",
       });
     } finally {
@@ -221,7 +220,7 @@ export function AdminAuctionDetailClient({
     } catch (error) {
       toast({
         title: "Could not update format",
-        description: error instanceof Error ? error.message : "Update failed",
+        description: getMutationErrorMessage(error, "Update failed"),
         variant: "destructive",
       });
     } finally {
@@ -245,7 +244,7 @@ export function AdminAuctionDetailClient({
     } catch (error) {
       toast({
         title: "Could not update auto-advance",
-        description: error instanceof Error ? error.message : "Update failed",
+        description: getMutationErrorMessage(error, "Update failed"),
         variant: "destructive",
       });
     } finally {

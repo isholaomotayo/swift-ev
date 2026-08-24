@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 import {
   AlertTriangle,
   Building2,
@@ -125,7 +126,7 @@ export function OrderPaymentPanel({
     } catch (error) {
       toast({
         title: "Could not start bank transfer",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: getMutationErrorMessage(error, "Failed to start bank transfer. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -141,7 +142,7 @@ export function OrderPaymentPanel({
     } catch (error) {
       toast({
         title: "Wallet payment failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: getMutationErrorMessage(error, "Failed to process wallet payment."),
         variant: "destructive",
       });
     } finally {
@@ -186,8 +187,7 @@ export function OrderPaymentPanel({
           } catch (error) {
             toast({
               title: "Confirmation failed",
-              description:
-                error instanceof Error ? error.message : "Payment may still be processing",
+              description: getMutationErrorMessage(error, "Payment may still be processing"),
               variant: "destructive",
             });
           } finally {
@@ -199,7 +199,7 @@ export function OrderPaymentPanel({
     } catch (error) {
       toast({
         title: "Could not start card payment",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: getMutationErrorMessage(error, "Failed to initialize card payment."),
         variant: "destructive",
       });
       setLoading(null);

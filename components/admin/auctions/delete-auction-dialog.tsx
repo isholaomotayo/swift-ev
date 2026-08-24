@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface DeleteAuctionDialogProps {
   auctionId: Id<"auctions">;
@@ -96,7 +97,7 @@ export function DeleteAuctionDialog({
     } catch (error: any) {
       toast({
         title: "Deletion failed",
-        description: error?.message || "Failed to delete auction",
+        description: getMutationErrorMessage(error, "Failed to delete auction"),
         variant: "destructive",
       });
     } finally {

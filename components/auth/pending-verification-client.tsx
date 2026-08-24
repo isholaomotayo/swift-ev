@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { KycVerification } from "@/components/kyc/kyc-verification";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 export function PendingVerificationClient() {
   const router = useRouter();
@@ -81,7 +82,7 @@ export function PendingVerificationClient() {
     } catch (error: any) {
       toast({
         title: "Resend Failed",
-        description: error.message || "Unable to send verification email.",
+        description: getMutationErrorMessage(error, "Unable to send verification email."),
         variant: "destructive",
       });
     } finally {

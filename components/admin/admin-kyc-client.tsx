@@ -23,6 +23,7 @@ import {
   FileCheck,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 export function AdminKycClient({ token }: { token: string }) {
   const { toast } = useToast();
@@ -54,7 +55,7 @@ export function AdminKycClient({ token }: { token: string }) {
     } catch (error: any) {
       toast({
         title: "Auto-Approval Failed",
-        description: error.message || "Unable to batch auto-approve users.",
+        description: getMutationErrorMessage(error, "Unable to batch auto-approve users."),
         variant: "destructive",
       });
     } finally {
@@ -235,7 +236,7 @@ function ReviewDialog({ token, userId, isOpen, onClose }: { token: string; userI
       toast({ title: "Success", description: `KYC application ${status}.` });
       onClose();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: getMutationErrorMessage(error, "Failed to update KYC status"), variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }

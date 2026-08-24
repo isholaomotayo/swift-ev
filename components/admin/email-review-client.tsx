@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface EmailReviewClientProps {
   token: string;
@@ -103,7 +104,7 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
     } catch (err: any) {
       toast({
         title: "Failed to update review setting",
-        description: err?.message || "An error occurred",
+        description: getMutationErrorMessage(err, "An error occurred"),
         variant: "destructive",
       });
     }
@@ -127,7 +128,7 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
     } catch (err: any) {
       toast({
         title: "Failed to save email edits",
-        description: err?.message || "An error occurred",
+        description: getMutationErrorMessage(err, "An error occurred"),
         variant: "destructive",
       });
     }
@@ -166,7 +167,7 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
       } catch (err: any) {
         toast({
           title: "Approval Error",
-          description: err?.message || "Failed to approve email.",
+          description: getMutationErrorMessage(err, "Failed to approve email."),
           variant: "destructive",
         });
       }
@@ -189,7 +190,7 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
     } catch (err: any) {
       toast({
         title: "Failed to reject email",
-        description: err?.message || "An error occurred",
+        description: getMutationErrorMessage(err, "An error occurred"),
         variant: "destructive",
       });
     }

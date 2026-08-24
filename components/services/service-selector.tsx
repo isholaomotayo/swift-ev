@@ -11,6 +11,7 @@ import { Check, Plus, Loader2, Info, ChevronRight, Truck, ShieldCheck, Settings,
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 import {
     Dialog,
     DialogContent,
@@ -56,7 +57,7 @@ export function ServiceSelector({ orderId, token }: ServiceSelectorProps) {
         } catch (error) {
             toast({
                 title: "Error",
-                description: error instanceof Error ? error.message : "Failed to add service",
+                description: getMutationErrorMessage(error, "Failed to add service"),
                 variant: "destructive",
             });
         } finally {

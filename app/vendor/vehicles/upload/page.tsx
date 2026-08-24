@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { VehicleForm } from "@/components/vendor/vehicle-form";
 import type { VehicleSubmitData } from "@/lib/vehicle-form-payload";
 
+import { getMutationErrorMessage } from "@/lib/auth-errors";
+
 type UploadRole = "required_image" | "optional_image" | "inspection_report" | "video_walkthrough";
 type TaggedUploadFile = File & {
   __mediaRole?: UploadRole;
@@ -125,7 +127,7 @@ export default function VehicleUploadPage() {
       console.error("Error uploading vehicle:", error);
       toast({
         title: "Error",
-        description: error?.message || "Failed to upload vehicle. Please try again.",
+        description: getMutationErrorMessage(error, "Failed to upload vehicle. Please try again."),
         variant: "destructive",
       });
     } finally {

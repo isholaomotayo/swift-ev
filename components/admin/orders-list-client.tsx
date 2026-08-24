@@ -53,6 +53,7 @@ import {
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { exportToCSV } from "@/lib/csv-export";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 import { Id } from "@/convex/_generated/dataModel";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -249,7 +250,7 @@ function OrderDetailDrawer({ order, token, onClose }: { order: EnrichedOrder | n
       setStatusValue("");
       setNotes("");
     } catch (err) {
-      toast({ title: "Update failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+      toast({ title: "Update failed", description: getMutationErrorMessage(err, "Unknown error"), variant: "destructive" });
     } finally {
       setUpdatingStatus(false);
     }
@@ -269,7 +270,7 @@ function OrderDetailDrawer({ order, token, onClose }: { order: EnrichedOrder | n
       });
       onClose();
     } catch (err) {
-      toast({ title: "Revoke failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+      toast({ title: "Revoke failed", description: getMutationErrorMessage(err, "Unknown error"), variant: "destructive" });
     } finally {
       setRevoking(false);
     }

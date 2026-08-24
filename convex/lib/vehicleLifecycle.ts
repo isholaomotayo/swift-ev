@@ -1,3 +1,5 @@
+import { ConvexError } from "convex/values";
+
 export const VEHICLE_STATUSES = [
   "draft",
   "pending_inspection",
@@ -101,7 +103,7 @@ export function assertVehicleStatusTransition(
 ): void {
   if (canTransitionVehicleStatus(from, to)) return;
 
-  throw new Error(`Invalid vehicle status transition: ${from} -> ${to}`);
+  throw new ConvexError(`Invalid vehicle status transition: ${from} -> ${to}`);
 }
 
 export function getVehicleStatusForOrderStatus(status: OrderStatus): VehicleStatus {

@@ -8,6 +8,7 @@ import { Upload, FileText, X, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Id } from "@/convex/_generated/dataModel";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface DocumentUploadProps {
   onUploadComplete: (storageId: Id<"_storage">) => void;
@@ -117,9 +118,10 @@ export function DocumentUpload({
           setIsUploading(false);
         }, 2000);
       } catch (error: any) {
+        const errorMsg = getMutationErrorMessage(error, "Failed to upload document. Please try again.");
         toast({
           title: "Error",
-          description: `Failed to upload: ${error.message}`,
+          description: `Failed to upload: ${errorMsg}`,
           variant: "destructive",
         });
         console.error("Upload error:", error);
@@ -127,7 +129,7 @@ export function DocumentUpload({
           prev
             ? {
                 ...prev,
-                error: error.message,
+                error: errorMsg,
               }
             : null
         );

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { normalizeCurrency, useCurrencyStore } from "@/store/currency";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface VendorSettingsClientProps {
   initialUser: any;
@@ -126,7 +127,7 @@ export function VendorSettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to change password"),
         variant: "destructive",
       });
     } finally {
@@ -148,7 +149,7 @@ export function VendorSettingsClient({
       });
       toast({ title: "Success", description: "Payout details saved successfully" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: getMutationErrorMessage(error, "Failed to save payout details"), variant: "destructive" });
     } finally {
       setPayoutLoading(false);
     }
@@ -166,7 +167,7 @@ export function VendorSettingsClient({
       setPreferredCurrency(normalized);
       toast({ title: "Success", description: "Currency preference saved" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: getMutationErrorMessage(error, "Failed to save currency preference"), variant: "destructive" });
     } finally {
       setCurrencyLoading(false);
     }

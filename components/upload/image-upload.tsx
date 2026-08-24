@@ -8,6 +8,7 @@ import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Id } from "@/convex/_generated/dataModel";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface ImageUploadProps {
   onUploadComplete: (storageIds: Id<"_storage">[]) => void;
@@ -146,7 +147,7 @@ export function ImageUpload({
         } catch (error: any) {
           toast({
             title: "Error",
-            description: `Failed to upload ${file.name}: ${error.message}`,
+            description: `Failed to upload ${file.name}: ${getMutationErrorMessage(error, "Upload failed. Please try again.")}`,
             variant: "destructive",
           });
           console.error("Upload error:", error);

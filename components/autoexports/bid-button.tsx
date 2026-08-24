@@ -31,6 +31,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useEffectiveCurrency } from "@/store/currency";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 import {
   calculateBuyNowPricing,
   DESTINATION_LABELS,
@@ -187,7 +188,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Bid Failed",
-        description: error instanceof Error ? error.message : "There was an error placing your bid",
+        description: getMutationErrorMessage(error, "There was an error placing your bid"),
         variant: "destructive",
       });
     } finally {
@@ -255,7 +256,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Bid Failed",
-        description: error instanceof Error ? error.message : "There was an error placing your bid",
+        description: getMutationErrorMessage(error, "There was an error placing your bid"),
         variant: "destructive",
       });
     } finally {
@@ -323,7 +324,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Failed to Set Max Bid",
-        description: error instanceof Error ? error.message : "There was an error setting your max bid",
+        description: getMutationErrorMessage(error, "There was an error setting your max bid"),
         variant: "destructive",
       });
     } finally {
@@ -379,7 +380,7 @@ export function BidButton({
     } catch (error) {
       toast({
         title: "Could not create order",
-        description: error instanceof Error ? error.message : "Error processing purchase",
+        description: getMutationErrorMessage(error, "Error processing purchase"),
         variant: "destructive",
       });
     } finally {

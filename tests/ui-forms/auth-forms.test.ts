@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { getSafeRedirectPath, getRoleHomePath } from "../../lib/safe-redirect";
-import { getAuthErrorMessage } from "../../lib/auth-errors";
+import { getAuthErrorMessage, getMutationErrorMessage } from "../../lib/auth-errors";
 import { validateUserRole, validateUserStatus, validateKYCStatus } from "../../lib/validation";
 
 describe("UI Form Actions & Auth Validation (Client-Side Logic)", () => {
@@ -29,9 +29,28 @@ describe("UI Form Actions & Auth Validation (Client-Side Logic)", () => {
     expect(getRoleHomePath(undefined)).toBe("/");
   });
 
-  test("getAuthErrorMessage formats system errors into user-friendly notices", () => {
+  test("getAuthErrorMessage and getMutationErrorMessage format system errors into user-friendly notices", () => {
     expect(getAuthErrorMessage(new Error("Invalid credentials"), "An authentication error occurred")).toContain("Invalid");
     expect(getAuthErrorMessage("User not found", "An authentication error occurred")).toBe("User not found");
+
+    // Masked Convex server error should trigger fallback
+    const maskedConvexError = new Error("[CONVEX M(vehicles:createVehicle)] [Request ID: b2dca90bb7a176f9] Server Error Called by client");
+    expect(getMutationErrorMessage(maskedConvexError, "Failed to upload vehicle")).toBe("Failed to upload vehicle");
+
+    // Convex error with business message and stack trace
+    const stackConvexError = new Error("[CONVEX M(vehicles:createVehicle)] [Request ID: b2dca90bb7a176f9] Vehicle year must be between 2014 and 2027.\n  at handler (convex/vehicles.ts:828)");
+    expect(getMutationErrorMessage(stackConvexError, "Failed to upload vehicle")).toBe("Vehicle year must be between 2014 and 2027.");
+
+    // ConvexError with string payload in data field
+    const convexDataString = { data: "Reserve price must be greater than or equal to the starting bid." };
+    expect(getMutationErrorMessage(convexDataString, "Fallback")).toBe("Reserve price must be greater than or equal to the starting bid.");
+
+    // ConvexError with object payload in data field
+    const convexDataObject = { data: { message: "Only vendors or admins can upload vehicles" } };
+    expect(getMutationErrorMessage(convexDataObject, "Fallback")).toBe("Only vendors or admins can upload vehicles");
+
+    // Generic error string
+    expect(getMutationErrorMessage("Session expired - please log in again", "Fallback")).toBe("Session expired - please log in again");
   });
 
   test("enum validators filter out illegitimate payloads", () => {

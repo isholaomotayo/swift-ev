@@ -35,6 +35,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
 import { useFormatPrice } from "@/hooks/use-format-price";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface VendorVehiclesClientProps {
   initialVehicles: any[];
@@ -63,7 +64,7 @@ export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesC
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to submit vehicle",
+        description: getMutationErrorMessage(error, "Failed to submit vehicle"),
         variant: "destructive",
       });
     }
@@ -82,7 +83,7 @@ export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesC
     } catch (error: any) {
       toast({
         title: "Withdrawal Failed",
-        description: error.message || "Failed to withdraw vehicle",
+        description: getMutationErrorMessage(error, "Failed to withdraw vehicle"),
         variant: "destructive",
       });
     } finally {

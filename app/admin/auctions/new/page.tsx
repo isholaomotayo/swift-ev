@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface LotConfig {
   vehicleId: Id<"vehicles">;
@@ -200,7 +201,7 @@ export default function CreateAuctionPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to create auction"),
         variant: "destructive",
       });
     } finally {

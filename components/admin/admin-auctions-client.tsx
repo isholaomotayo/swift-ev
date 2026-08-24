@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface AdminAuctionsClientProps {
   initialAuctions: any[];
@@ -101,7 +102,7 @@ export function AdminAuctionsClient({
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update setting.",
+        description: getMutationErrorMessage(error, "Failed to update setting."),
       });
     }
   };

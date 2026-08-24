@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 export default function Error({
   error,
@@ -17,16 +18,16 @@ export default function Error({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Admin route error:", error);
+    console.error("Application error:", error);
   }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md p-8 text-center">
         <AlertCircle className="h-16 w-16 mx-auto mb-4 text-error-red" />
-        <h2 className="text-2xl font-bold mb-2">Something went wrong!</h2>
+        <h2 className="text-2xl font-bold mb-2">Admin Portal Error</h2>
         <p className="text-muted-foreground mb-6">
-          {error.message || "An unexpected error occurred. Please try again."}
+          {getMutationErrorMessage(error, "An unexpected error occurred. Please try again.")}
         </p>
         <div className="flex gap-4 justify-center">
           <Button onClick={() => reset()} variant="default">

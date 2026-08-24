@@ -35,6 +35,7 @@ import { useEffectiveCurrency } from "@/store/currency";
 import { useFormatPrice } from "@/hooks/use-format-price";
 import { useFlutterwaveCheckout } from "@/hooks/use-flutterwave";
 import { formatCompactCurrency } from "@/lib/utils";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 export function WalletDashboard() {
   const { token, isAuthenticated, user } = useAuth();
@@ -141,8 +142,7 @@ export function WalletDashboard() {
           } catch (error) {
             toast({
               title: "Funding Verification Failed",
-              description:
-                error instanceof Error ? error.message : "Please try again",
+              description: getMutationErrorMessage(error, "Failed to verify funding. Please try again."),
               variant: "destructive",
             });
           } finally {
@@ -156,8 +156,7 @@ export function WalletDashboard() {
     } catch (error) {
       toast({
         title: "Funding Initialization Failed",
-        description:
-          error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Failed to initialize funding. Please try again."),
         variant: "destructive",
       });
       setLoading(false);
@@ -208,7 +207,7 @@ export function WalletDashboard() {
     } catch (error) {
       toast({
         title: "Withdrawal Failed",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: getMutationErrorMessage(error, "Failed to process withdrawal. Please try again."),
         variant: "destructive",
       });
     } finally {

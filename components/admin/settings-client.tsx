@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Settings, Users, Gavel } from "lucide-react";
+import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 interface SettingsClientProps {
   initialSettings: any;
@@ -152,7 +153,7 @@ export function SettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to save auction settings"),
         variant: "destructive",
       });
     } finally {
@@ -237,7 +238,7 @@ export function SettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to save platform settings"),
         variant: "destructive",
       });
     } finally {
@@ -288,7 +289,7 @@ export function SettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to save membership settings"),
         variant: "destructive",
       });
     } finally {
@@ -309,7 +310,7 @@ export function SettingsClient({
       });
       toast({ title: "Success", description: "Registration settings saved" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: getMutationErrorMessage(error, "Failed to save registration settings"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -338,7 +339,7 @@ export function SettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to save development settings"),
         variant: "destructive",
       });
     } finally {
@@ -359,7 +360,7 @@ export function SettingsClient({
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getMutationErrorMessage(error, "Failed to initialize defaults"),
         variant: "destructive",
       });
     } finally {

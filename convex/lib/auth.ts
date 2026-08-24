@@ -128,7 +128,7 @@ export function requireSeller(user: AuthenticatedUser): void {
  */
 export function requireActiveStatus(user: AuthenticatedUser): void {
   if (user.status === "suspended" || user.status === "banned") {
-    throw new Error(
+    throw new ConvexError(
       `Account is ${user.status}. Please contact support.`
     );
   }
@@ -155,7 +155,7 @@ export function requireOwnership(
   const isAdmin = user.role === "admin" || user.role === "superadmin";
 
   if (!isOwner && !isAdmin) {
-    throw new Error("You don't have permission to access this resource");
+    throw new ConvexError("You don't have permission to access this resource");
   }
 }
 
