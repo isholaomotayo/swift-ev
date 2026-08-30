@@ -13,6 +13,7 @@ import { getMutationErrorMessage, isValidVehicleCondition } from "@/lib/auth-err
 import { isPersistableImageRef } from "@/lib/vehicle-image-refs";
 import { resolveMakeModelForForm } from "@/lib/vehicle-catalog";
 import { useMergedVehicleCatalog } from "@/hooks/use-merged-vehicle-catalog";
+import { normalizeFuelType } from "@/lib/constants";
 
 interface EditVehiclePageProps {
   params: Promise<{ id: string }>;
@@ -59,7 +60,7 @@ export default function EditVehiclePage({ params }: EditVehiclePageProps) {
       model,
       year: vehicle.year,
       vin: vehicle.vin,
-      fuelType: (vehicle as { fuelType?: string }).fuelType ?? "EV (Electric)",
+      fuelType: normalizeFuelType((vehicle as { fuelType?: string }).fuelType),
       batteryCapacity: vehicle.batteryCapacity,
       batteryHealthPercent: vehicle.batteryHealthPercent || 100,
       range: vehicle.estimatedRange,

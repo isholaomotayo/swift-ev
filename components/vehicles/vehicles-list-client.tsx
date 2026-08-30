@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
 import { cn } from "@/lib/utils";
+import { FUEL_TYPES } from "@/lib/constants";
 
 const CONDITIONS = [
   { value: "excellent", label: "Excellent" },
@@ -250,10 +251,9 @@ export function VehiclesListClient({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Fuel Types</SelectItem>
-                <SelectItem value="EV (Electric)">EV (Electric)</SelectItem>
-                <SelectItem value="Hybrid">Hybrid</SelectItem>
-                <SelectItem value="Gas/Petrol">Gas/Petrol</SelectItem>
-                <SelectItem value="Solar">Solar</SelectItem>
+                {FUEL_TYPES.map((fuelType) => (
+                  <SelectItem key={fuelType} value={fuelType}>{fuelType}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

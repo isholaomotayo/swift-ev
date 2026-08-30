@@ -35,7 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Car, Battery, MapPin, Gavel, FileText, ImageIcon, X, Upload } from "lucide-react";
 import { formatCurrency, formatLotNumber } from "@/lib/utils";
-import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS } from "@/lib/constants";
+import { BATTERY_TYPES, CHARGING_TYPES, CONDITION_OPTIONS, FUEL_TYPES, normalizeFuelType } from "@/lib/constants";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
 import { resolveMakeModelForForm } from "@/lib/vehicle-catalog";
 import { useMergedVehicleCatalog } from "@/hooks/use-merged-vehicle-catalog";
@@ -957,8 +957,22 @@ function EditModeContent({
         return (
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="fuelType">Fuel Type</Label>
-                    <Input id="fuelType" value={formData.fuelType || ""} onChange={(e) => handleInputChange("fuelType", e.target.value)} />
+                    <Label htmlFor="fuelType">Fuel / Engine Type</Label>
+                    <Select
+                        value={normalizeFuelType(formData.fuelType)}
+                        onValueChange={(val) => handleInputChange("fuelType", val)}
+                    >
+                        <SelectTrigger id="fuelType">
+                            <SelectValue placeholder="Select fuel type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {FUEL_TYPES.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                    {type}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="batteryType">Battery Type</Label>

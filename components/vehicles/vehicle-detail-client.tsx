@@ -528,7 +528,7 @@ export function VehicleDetailClient({
                             </div>
                             <div className="flex justify-between py-2 border-b border-dashed">
                               <span className="text-muted-foreground font-medium">Fuel Type</span>
-                              <span className="font-semibold capitalize">{vehicle.fuelType || "Gas/Petrol"}</span>
+                              <span className="font-semibold capitalize">{vehicle.fuelType || "Internal Combustion Engine (ICE)"}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b border-dashed">
                               <span className="text-muted-foreground font-medium">Transmission</span>

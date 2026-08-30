@@ -26,6 +26,11 @@ import {
   paymentDeadlineFrom,
 } from "./lib/payments";
 import { calculateBuyNowPricing } from "./lib/buyNowPricing";
+import {
+  ALL_ALLOWED_FUEL_TYPES,
+  getFuelTypeSearchValues,
+  normalizeFuelType,
+} from "./lib/fuelTypes";
 
 const vehicleStatusValidator = v.union(
   v.literal("draft"),
@@ -274,7 +279,19 @@ export const listVehicles = query({
       const conditions = [];
       if (make) conditions.push(q.eq(q.field("make"), make));
       if (model) conditions.push(q.eq(q.field("model"), model));
-      if (fuelType) conditions.push(q.eq(q.field("fuelType"), fuelType));
+      if (fuelType) {
+        const searchValues = getFuelTypeSearchValues(fuelType);
+        if (searchValues.length === 1) {
+          conditions.push(q.eq(q.field("fuelType"), searchValues[0]));
+        } else {
+          const orConditions = searchValues.map((val) => q.eq(q.field("fuelType"), val));
+          let fuelExpr = orConditions[0];
+          for (let i = 1; i < orConditions.length; i++) {
+            fuelExpr = q.or(fuelExpr, orConditions[i]);
+          }
+          conditions.push(fuelExpr);
+        }
+      }
       if (yearMin) conditions.push(q.gte(q.field("year"), yearMin));
       if (yearMax) conditions.push(q.lte(q.field("year"), yearMax));
       if (batteryHealthMin) conditions.push(q.gte(q.field("batteryHealthPercent"), batteryHealthMin));
@@ -853,9 +870,15 @@ export const createVehicle = mutation({
       throw new ConvexError("Buy it now price must be greater than or equal to the reserve price.");
     }
 
-    const allowedFuelTypes = new Set(["EV (Electric)", "Hybrid", "Gas/Petrol", "Solar"]);
-    if (vehicleData.fuelType && !allowedFuelTypes.has(vehicleData.fuelType)) {
-      throw new ConvexError("Invalid fuel type.");
+    if (vehicleData.fuelType) {
+      const trimmed = vehicleData.fuelType.trim();
+      if (
+        !ALL_ALLOWED_FUEL_TYPES.has(trimmed.toLowerCase()) &&
+        !ALL_ALLOWED_FUEL_TYPES.has(normalizeFuelType(trimmed).toLowerCase())
+      ) {
+        throw new ConvexError("Invalid fuel type.");
+      }
+      vehicleData.fuelType = normalizeFuelType(vehicleData.fuelType);
     }
 
     if (vehicleData.mediaUploads.length > 30) {
@@ -1177,6 +1200,10 @@ export const updateVehicle = mutation({
     ]);
 
     const normalizedRawUpdates: Record<string, unknown> = { ...rawVehicleUpdates };
+
+    if (rawVehicleUpdates.fuelType !== undefined) {
+      normalizedRawUpdates.fuelType = normalizeFuelType(rawVehicleUpdates.fuelType as string);
+    }
 
     if (rawVehicleUpdates.make === "Other") {
       const resolvedMake = makeCustom?.trim();

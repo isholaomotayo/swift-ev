@@ -17,7 +17,15 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { CONDITION_OPTIONS, BATTERY_TYPES, CHARGING_TYPES, FUEL_TYPES, COUNTRIES } from "@/lib/constants";
+import {
+  CONDITION_OPTIONS,
+  BATTERY_TYPES,
+  CHARGING_TYPES,
+  FUEL_TYPES,
+  COUNTRIES,
+  normalizeFuelType,
+  isEVFuelType,
+} from "@/lib/constants";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
 import { revokeBlobPreviewUrl } from "@/lib/vehicle-image-refs";
 import {
@@ -59,7 +67,7 @@ export const initialFormData: VehicleFormData = {
   model: "",
   year: new Date().getFullYear(),
   vin: "",
-  fuelType: "EV (Electric)",
+  fuelType: "Battery Electric Vehicle (BEV / EV)",
   batteryCapacity: 0,
   batteryHealthPercent: 100,
   range: 0,
@@ -341,7 +349,7 @@ export function VehicleForm({
     onSaveDraft(resolvedData, newImages, deletedImageIds);
   };
 
-  const isEV = formData.fuelType === "EV (Electric)" || formData.fuelType === "Hybrid";
+  const isEV = isEVFuelType(formData.fuelType);
   const regionLabel = getRegionLabel(formData.locationCountry);
 
   return (
@@ -393,7 +401,7 @@ export function VehicleForm({
               <div>
                 <Label htmlFor="fuelType">Fuel / Engine Type</Label>
                 <Select
-                  value={formData.fuelType}
+                  value={normalizeFuelType(formData.fuelType)}
                   onValueChange={(value) => updateFormData("fuelType", value)}
                 >
                   <SelectTrigger id="fuelType">

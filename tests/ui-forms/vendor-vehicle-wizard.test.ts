@@ -17,7 +17,7 @@ describe("Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic)", () =>
       model: " Model Y Long Range ",
       year: 2023,
       vin: " 5YJ3E1EB8NF123456 ",
-      fuelType: "EV (Electric)",
+      fuelType: "Battery Electric Vehicle (BEV / EV)",
       batteryCapacity: 75,
       batteryHealthPercent: 96,
       range: 533,
@@ -43,7 +43,7 @@ describe("Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic)", () =>
     expect(sanitized.model).toBe("Model Y Long Range");
     expect(sanitized.batteryCapacity).toBe(75);
     expect(sanitized.batteryHealthPercent).toBe(96);
-    expect(sanitized.fuelType).toBe("EV (Electric)");
+    expect(sanitized.fuelType).toBe("Battery Electric Vehicle (BEV / EV)");
     expect(sanitized.reservePrice).toBe(32_000_000);
     expect(sanitized.buyItNowPrice).toBe(38_000_000);
   });
@@ -54,7 +54,7 @@ describe("Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic)", () =>
       makeCustom: " Apex Motors ",
       model: " Photon GT ",
       year: 2025,
-      fuelType: "EV (Electric)",
+      fuelType: "Battery Electric Vehicle (BEV / EV)",
       batteryType: "Other",
       batteryTypeCustom: " Solid-State Lithium ",
       condition: "mint",

@@ -48,7 +48,7 @@ describe("E2E Journey: Seller Listing to Live Auction Bidding to Checkout & Gate
       odometer: 4500,
       exteriorColor: "Frozen Blue Metallic",
       interiorColor: "Black / Chalk",
-      fuelType: "EV (Electric)",
+      fuelType: "Battery Electric Vehicle (BEV / EV)",
       batteryCapacity: 93.4,
       batteryHealthPercent: 98,
       range: 460,

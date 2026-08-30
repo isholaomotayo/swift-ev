@@ -10,7 +10,7 @@ describe("vehicle form payload sanitizer", () => {
       model: "YU7",
       year: 2025,
       vin: "",
-      fuelType: "EV (Electric)",
+      fuelType: "Battery Electric Vehicle (BEV / EV)",
       batteryCapacity: 96,
       batteryHealthPercent: 100,
       range: 760,
