@@ -33,7 +33,22 @@ test('compileHaltHandoff renders REGRESSION_BLOCKED as not extendable', () => {
 test('compileHaltHandoff tolerates missing history and git info', () => {
   const doc = compileHaltHandoff({ status: haltedStatus('AGENT_ERROR') });
   assert.match(doc, /No checker runs recorded/);
-  assert.match(doc, /Not a git repository/);
+  assert.match(doc, /run root is not a git repository/);
+});
+
+test('compileHaltHandoff lists every repo in scope when the run spans several', () => {
+  // A run rooted at a container folder of clones has no git state at the root,
+  // so without this the handoff would claim there is no repository at all.
+  const s = haltedStatus('AGENT_ERROR', {
+    repos: [
+      { label: 'web', root: '/x/web', enclosing: false, baseRef: 'a'.repeat(40) },
+      { label: 'api', root: '/x/api', enclosing: false, baseRef: null },
+    ],
+  });
+  const doc = compileHaltHandoff({ status: s });
+  assert.match(doc, /Repositories in diff scope \(2\)/);
+  assert.match(doc, /`web` — base commit aaaaaaaaaaaa/);
+  assert.match(doc, /`api` — base commit \(none captured\)/);
 });
 
 test('compileHaltHandoff includes the stage table and git state', () => {
@@ -55,6 +70,34 @@ test('compileHaltHandoff renders an approved-run fallback without claiming a hal
   assert.match(doc, /no resume needed/i);
   assert.match(doc, /# Pipeline Handoff \(auto-generated\)/);
   assert.match(doc, /## 1\. Summary of Final State/);
+});
+
+test('compileHaltHandoff names the run, feature and ticket so a pool-mode handoff is not anonymous', () => {
+  const s = haltedStatus('AGENT_ERROR', { runId: 'r1', featureId: 'F1', ticketId: 'T2' });
+  const doc = compileHaltHandoff({ status: s });
+  assert.match(doc, /run `r1`, feature `F1`, ticket `T2`/);
+});
+
+test('compileHaltHandoff flags a transient halt reason as likely resumable as-is', () => {
+  const s = haltedStatus('MAX_CYCLES', { haltTransient: true });
+  const doc = compileHaltHandoff({ status: s });
+  assert.match(doc, /classified as transient/);
+});
+
+test('compileHaltHandoff surfaces every stage’s own detail, not only the failing one', () => {
+  const s = haltedStatus('MAX_CYCLES', { haltedPhase: 'coder' });
+  s.stages.find((x) => x.name === 'planner').detail = 'wrote a thinner spec than usual';
+  s.stages.find((x) => x.name === 'coder').status = 'failed';
+  s.stages.find((x) => x.name === 'coder').detail = 'exceeded max cycles';
+  const doc = compileHaltHandoff({ status: s });
+  assert.match(doc, /\| planner \| pending \| 0 \| — \| wrote a thinner spec than usual \|/);
+  assert.match(doc, /\| coder \| failed \|.*\| exceeded max cycles \|/);
+});
+
+test('compileHaltHandoff points to test_suite.md and diff.patch, not just changes.md', () => {
+  const doc = compileHaltHandoff({ status: haltedStatus('AGENT_ERROR') });
+  assert.match(doc, /test_suite\.md/);
+  assert.match(doc, /diff\.patch/);
 });
 
 test('collectGitInfo returns branch/dirty inside a repo and null outside', () => {

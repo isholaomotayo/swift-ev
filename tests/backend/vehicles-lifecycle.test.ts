@@ -266,5 +266,96 @@ describe("Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic)"
     expect(invalidError).not.toBeNull();
     expect(invalidError.message).toContain("Invalid fuel type");
   });
+
+  test("vendor can update vehicle fuel type with normalization and invalid values are rejected", async () => {
+    const t = createTestHarness();
+    const seller = await seedTestUser(t, { role: "seller", accountType: "seller_individual" });
+
+    const createRes = await t.mutation(api.vehicles.createVehicle, {
+      token: seller.token,
+      vehicleData: {
+        make: "Toyota",
+        model: "RAV4",
+        year: 2023,
+        odometer: 10000,
+        exteriorColor: "Blue",
+        interiorColor: "Black",
+        condition: "good",
+        damageDescription: "Clean condition",
+        locationCity: "Ikeja",
+        locationState: "Lagos",
+        locationCountry: "Nigeria",
+        startingBid: 20_000_000,
+        reservePrice: 22_000_000,
+        buyItNowPrice: 25_000_000,
+        buyItNowEnabled: true,
+        initialStatus: "draft",
+        vin: "4T1B11HK5NU999001",
+        fuelType: "Gas/Petrol",
+        mediaUploads: [
+          { storageId: "s1", category: "Front View", isRequired: true },
+          { storageId: "s2", category: "Rear View", isRequired: true },
+          { storageId: "s3", category: "Driver Side", isRequired: true },
+          { storageId: "s4", category: "Interior (Dashboard)", isRequired: true },
+          { storageId: "s5", category: "Engine Bay", isRequired: true },
+        ],
+      },
+    });
+
+    // Verify initial normalized fuelType
+    let doc = await t.run(async (ctx) => ctx.db.get(createRes.vehicleId));
+    expect(doc?.fuelType).toBe("Internal Combustion Engine (ICE)");
+
+    // Update to PHEV alias
+    await t.mutation(api.vehicles.updateVehicle, {
+      token: seller.token,
+      vehicleId: createRes.vehicleId,
+      updates: {
+        fuelType: "Plug-in Hybrid",
+      },
+    });
+    doc = await t.run(async (ctx) => ctx.db.get(createRes.vehicleId));
+    expect(doc?.fuelType).toBe("Plug-in Hybrid (PHEV)");
+
+    // Update to empty string defaults to BEV
+    await t.mutation(api.vehicles.updateVehicle, {
+      token: seller.token,
+      vehicleId: createRes.vehicleId,
+      updates: {
+        fuelType: "",
+      },
+    });
+    doc = await t.run(async (ctx) => ctx.db.get(createRes.vehicleId));
+    expect(doc?.fuelType).toBe("Battery Electric Vehicle (BEV / EV)");
+
+    // Invalid fuel type rejected
+    let updateError: any = null;
+    try {
+      await t.mutation(api.vehicles.updateVehicle, {
+        token: seller.token,
+        vehicleId: createRes.vehicleId,
+        updates: {
+          fuelType: "Dark Matter Propulsion",
+        },
+      });
+    } catch (e: any) {
+      updateError = e;
+    }
+    expect(updateError).not.toBeNull();
+    expect(updateError.message).toContain("Invalid fuel type");
+
+    // E2: Updating other fields without fuelType preserves existing fuelType
+    await t.mutation(api.vehicles.updateVehicle, {
+      token: seller.token,
+      vehicleId: createRes.vehicleId,
+      updates: {
+        buyItNowPrice: 26_000_000,
+        damageDescription: "Minor scratch on bumper",
+      },
+    });
+    doc = await t.run(async (ctx) => ctx.db.get(createRes.vehicleId));
+    expect(doc?.fuelType).toBe("Battery Electric Vehicle (BEV / EV)");
+  });
 });
+
 

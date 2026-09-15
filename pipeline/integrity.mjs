@@ -1,7 +1,7 @@
 // Runner-independent integrity checks.
 //
 // buildInvocation can only constrain runners whose CLI exposes a permission
-// model (claude, codex). cursor-agent and gemini get a best-effort constraint at
+// model (claude, codex). cursor-agent and agy (Antigravity) get a best-effort constraint at
 // most, and a custom runner gets none. These checks close that gap after the
 // fact: hash what a stage was not supposed to touch, compare once it exits, and
 // invalidate the stage if the bytes moved. That covers every runner, including
@@ -11,7 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { CONTROL_PLANE_FILES } from './adapters.mjs';
-import { STAGE_ARTIFACT_FILES } from './state.mjs';
+import { STAGE_ARTIFACT_FILES, resolvePipelineRel } from './state.mjs';
 
 export function hashFile(file) {
   try {
@@ -28,7 +28,10 @@ export function hashFile(file) {
 export function snapshotControlPlane(paths) {
   const snap = {};
   for (const rel of CONTROL_PLANE_FILES) {
-    snap[rel] = hashFile(path.join(paths.root, rel));
+    // Resolve against THIS run, not the repo root: in a pooled run the control
+    // plane lives in .pipeline/runs/<runId>/, and hashing the repo-root copy
+    // would compare a file the stage never had access to.
+    snap[rel] = hashFile(resolvePipelineRel(paths, rel));
   }
   let prompts = [];
   try { prompts = fs.readdirSync(paths.prompts).filter((f) => f.endsWith('.txt')); } catch {}
@@ -38,11 +41,26 @@ export function snapshotControlPlane(paths) {
   return snap;
 }
 
-// Files the ORCHESTRATOR itself rewrites across a chat handoff, plus the one the
-// chat host is explicitly asked to annotate with `actualModel`. In chat mode the
-// snapshot spans two process invocations, so these always differ and would
-// otherwise flag every single continue as a violation.
-export const HANDOFF_OWNED_FILES = ['.pipeline/status.json', '.pipeline/stage-handoff.json'];
+/**
+ * Files the ORCHESTRATOR itself writes while a stage is in flight, plus the one
+ * a chat host is explicitly asked to annotate with `actualModel`.
+ *
+ * These can never be compared by hash. The engine persists the integrity
+ * baseline INTO status.json and updates stage state during the stage, so
+ * status.json always differs between the baseline and the check — by the
+ * engine's own hand, not the agent's. Comparing them anyway made every CLI-mode
+ * run halt with INTEGRITY_VIOLATION on its first stage; chat mode escaped only
+ * because it passed this exclusion list and CLI mode did not.
+ *
+ * These two files are still protected, just by a different mechanism:
+ * `pipelineWriteDeny` denies every stage `Write`/`Edit` access to them, and a
+ * read-only stage's allowlist never includes them.
+ */
+export const ORCHESTRATOR_OWNED_FILES = ['.pipeline/status.json', '.pipeline/stage-handoff.json'];
+
+// Back-compat alias for the name this list had when it was used only on the
+// chat-handoff path.
+export const HANDOFF_OWNED_FILES = ORCHESTRATOR_OWNED_FILES;
 
 /**
  * Which control-plane files changed while `stage` was running, excluding the

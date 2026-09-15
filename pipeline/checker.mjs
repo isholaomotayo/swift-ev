@@ -4,7 +4,14 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { appendEvent } from './state.mjs';
 
+// Trust boundary: `cmd` comes from config.checks.{lint,typecheck,test} in
+// .pipeline/config.json, a project-level file the repo owner controls — never
+// from agent output, PR content, or any other runtime/untrusted input. shell:true
+// is required so config authors can write real shell (`npm test && npm run x`).
+// Treat .pipeline/config.json with the same care as CI workflow files.
 function runCommand(cmd, cwd, timeoutMs) {
+  const started = Date.now();
+  const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd, encoding:'utf8'}).stdout?.trim() || null;
   const res = spawnSync(cmd, {
     cwd,
     shell: true,
@@ -15,6 +22,7 @@ function runCommand(cmd, cwd, timeoutMs) {
   });
   const output = [res.stdout || '', res.stderr || ''].filter(Boolean).join('\n').trim();
   return {
+    command: cmd, cwd, revision, startedAt: new Date(started).toISOString(), durationMs: Date.now() - started, skipped: false,
     ok: res.status === 0 && !res.error,
     exitCode: res.status,
     timedOut: res.error?.code === 'ETIMEDOUT',
@@ -57,7 +65,7 @@ function fence(text, limit = 12000) {
   return '```\n' + (body || '(no output)') + '\n```';
 }
 
-export function runChecks({ cwd, config, paths }) {
+export function runChecks({ cwd, config, paths, stage = 'coder' }) {
   const results = {};
   for (const name of ['lint', 'typecheck', 'test']) {
     const cmd = config.checks[name];
@@ -65,14 +73,14 @@ export function runChecks({ cwd, config, paths }) {
       results[name] = { skipped: true, ok: true, output: '' };
       continue;
     }
-    appendEvent(paths, { stage: 'checker', type: 'check_start', check: name, cmd });
+    appendEvent(paths, { stage, type: 'check_start', check: name, cmd });
     results[name] = runCommand(cmd, cwd, config.checkTimeoutMs);
     appendEvent(paths, {
-      stage: 'checker',
+      stage,
       type: 'check_end',
       check: name,
       ok: results[name].ok,
-      exitCode: results[name].exitCode,
+      exitCode: results[name].exitCode, durationMs: results[name].durationMs, cwd, revision: results[name].revision,
     });
   }
 
@@ -80,14 +88,14 @@ export function runChecks({ cwd, config, paths }) {
   const isPassed = results.lint.ok && results.typecheck.ok && results.test.ok;
   // If the runner didn't emit counts, fall back to a binary signal so the
   // regression guardrail still has something monotonic to compare.
-  const passedCount = counts.passedCount ?? (results.test.ok ? 1 : 0);
-  const failedCount = counts.failedCount ?? (results.test.ok ? 0 : 1);
+  const passedCount = counts.passedCount;
+  const failedCount = counts.failedCount;
 
   const report = [
     '## Verification Status',
     `- Overall Status: ${isPassed ? 'PASS' : 'FAIL'}`,
-    `- Total Tests Passed: ${passedCount}`,
-    `- Total Tests Failed: ${failedCount}`,
+    `- Total Tests Passed: ${passedCount ?? 'unknown'}`,
+    `- Total Tests Failed: ${failedCount ?? 'unknown'}`,
     '',
     '## Test Executions',
     '### Linter Output',

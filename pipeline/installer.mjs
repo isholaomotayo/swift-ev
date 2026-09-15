@@ -26,10 +26,45 @@ import { fileURLToPath } from 'node:url';
 import { hashFile } from './integrity.mjs';
 import { atomicWrite, pidAlive, readLock, pipelinePaths } from './state.mjs';
 import { isOrchestratorSourceRepo } from './self-guard.mjs';
+import { HOSTS as HOOK_HOSTS, installHooks, uninstallHooks, hookStatus } from './hook-install.mjs';
 
 export const INSTALL_FILE = '.pipeline/install.json';
 export const CHECK_FILE = '.pipeline/update-check.json';
 export const DEFAULT_SOURCE = 'https://github.com/isholaomotayo/orchestrator.git';
+// Default fetch ref is master for zero-friction continuous updates from the official repository.
+export const DEFAULT_REF = 'master';
+// Relative to the consumer project: the manifest and verifier delivered by the
+// skill install. `.agents/…` is where bootstrap.sh puts them (the source path
+// `skills/…` is deliberately never written into a consumer — it is the
+// self-target guard's marker).
+// Cursor Skill Manager installs to ~/.cursor/skills/ (global) or
+// .cursor/skills/ (project). Bootstrap and the first bootstrap copy live under
+// .agents/skills/. All of these are valid out-of-band trust anchors; we try
+// each until one verifies the fetched release.
+export const TRUST_ANCHOR_RELS = [
+  {
+    manifest: '.agents/skills/orchestrate/scripts/scaffold.sha256',
+    verifier: '.agents/skills/orchestrate/scripts/scaffold-manifest.mjs',
+  },
+  {
+    manifest: '.cursor/skills/orchestrate/scripts/scaffold.sha256',
+    verifier: '.cursor/skills/orchestrate/scripts/scaffold-manifest.mjs',
+  },
+  {
+    manifest: '.gemini/skills/orchestrate/scripts/scaffold.sha256',
+    verifier: '.gemini/skills/orchestrate/scripts/scaffold-manifest.mjs',
+  },
+];
+export const GLOBAL_TRUST_ANCHOR_RELS = [
+  {
+    manifest: '.cursor/skills/orchestrate/scripts/scaffold.sha256',
+    verifier: '.cursor/skills/orchestrate/scripts/scaffold-manifest.mjs',
+  },
+];
+export const VERIFIER_RELS = TRUST_ANCHOR_RELS.map((a) => a.verifier);
+export const MANIFEST_RELS = TRUST_ANCHOR_RELS.map((a) => a.manifest);
+export const RELEASE_MANIFEST_REL = 'skills/orchestrate/scripts/scaffold.sha256';
+export const RELEASE_VERIFIER_REL = 'skills/orchestrate/scripts/scaffold-manifest.mjs';
 export const CHECK_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -52,9 +87,25 @@ export const MANAGED = [
   { src: '.pipeline/spawn.sh', dest: '.pipeline/spawn.sh', cls: 'engine' },
   { src: '.pipeline/skill.json', dest: '.pipeline/skill.json', cls: 'engine' },
   { src: '.pipeline/prompts', dest: '.pipeline/prompts', cls: 'tunable', tree: true },
+  // The integrity manifest and its verifier are the trust anchor for every
+  // future fetch, so they are engine-class (always overwritten, never treated
+  // as a local edit to preserve). Listed before the tree entry below because
+  // listManaged is first-wins per destination.
+  { src: 'skills/orchestrate/scripts/scaffold-manifest.mjs', dest: '.agents/skills/orchestrate/scripts/scaffold-manifest.mjs', cls: 'engine' },
+  { src: 'skills/orchestrate/scripts/scaffold.sha256', dest: '.agents/skills/orchestrate/scripts/scaffold.sha256', cls: 'engine' },
+  { src: 'skills/orchestrate/scripts/bootstrap.sh', dest: '.agents/skills/orchestrate/scripts/bootstrap.sh', cls: 'engine' },
   { src: 'skills/orchestrate', dest: '.agents/skills/orchestrate', cls: 'tunable', tree: true },
   { src: 'skills/orchestrate', dest: '.gemini/skills/orchestrate', cls: 'tunable', tree: true, only: ['SKILL.md', 'REFERENCE.md'] },
-  { src: '.agents/workflows/orchestrate.md', dest: '.agents/workflows/orchestrate.md', cls: 'tunable' },
+  // The coordinator's own skills: how a chat session reads and steers a roadmap
+  // run. Tunable, because a team will want to phrase them their own way.
+  { src: 'skills/digest', dest: '.agents/skills/digest', cls: 'tunable', tree: true },
+  { src: 'skills/catchup', dest: '.agents/skills/catchup', cls: 'tunable', tree: true },
+  { src: 'skills/unattended', dest: '.agents/skills/unattended', cls: 'tunable', tree: true },
+  { src: 'skills/notes', dest: '.agents/skills/notes', cls: 'tunable', tree: true },
+  { src: 'skills/digest', dest: '.gemini/skills/digest', cls: 'tunable', tree: true, only: ['SKILL.md'] },
+  { src: 'skills/catchup', dest: '.gemini/skills/catchup', cls: 'tunable', tree: true, only: ['SKILL.md'] },
+  { src: 'skills/unattended', dest: '.gemini/skills/unattended', cls: 'tunable', tree: true, only: ['SKILL.md'] },
+  { src: 'skills/notes', dest: '.gemini/skills/notes', cls: 'tunable', tree: true, only: ['SKILL.md'] },
   { src: '.agent/rules/orchestrate.md', dest: '.agent/rules/orchestrate.md', cls: 'tunable' },
   { src: '.cursor/commands/orchestrate.md', dest: '.cursor/commands/orchestrate.md', cls: 'tunable' },
   { src: '.cursorrules', dest: '.cursorrules', cls: 'tunable' },
@@ -233,6 +284,22 @@ export function remoteHead(source, { timeoutMs = 5000 } = {}) {
   return SHA_RE.test(sha) ? sha : null;
 }
 
+/** Upstream latest release tag (highest semver v*), or null on any failure. */
+export function remoteLatestTag(source, { timeoutMs = 5000 } = {}) {
+  const res = spawnSync('git', ['ls-remote', '--tags', '--refs', source, 'refs/tags/v*'], { encoding: 'utf8', timeout: timeoutMs });
+  if (res.status !== 0 || !res.stdout) return null;
+  const lines = res.stdout.trim().split('\n').filter(Boolean);
+  const tags = lines.map((l) => l.split(/\s+/)[1]?.replace(/^refs\/tags\//, '')).filter(Boolean);
+  if (!tags.length) return null;
+  tags.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+  return tags[tags.length - 1] || null;
+}
+
+/** Resolve the target ref for an update: defaults to master for automatic continuous updates. */
+export function resolveTargetRef(repoRoot, source, { homeDir = os.homedir(), timeoutMs = 4000 } = {}) {
+  return DEFAULT_REF;
+}
+
 export function gitHead(dir) {
   const res = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8', timeout: 5000 });
   if (res.status !== 0) return null;
@@ -282,14 +349,127 @@ function flagValue(argv, name, fallback = null) {
   return i >= 0 && argv[i + 1] ? argv[i + 1] : fallback;
 }
 
-function cloneSource(source) {
+// A ref is required, never optional: an unpinned clone would fetch whatever the
+// default branch happens to point at.
+function cloneSource(source, ref) {
+  if (!ref) throw new Error('cloneSource requires a pinned ref');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'orchestrator-update-'));
-  const res = spawnSync('git', ['clone', '--depth', '1', source, tmp], { encoding: 'utf8', timeout: 120000 });
+  const args = ['-c', 'advice.detachedHead=false', 'clone', '--quiet', '--depth', '1', '--branch', ref, source, tmp];
+  const res = spawnSync('git', args, { encoding: 'utf8', timeout: 120000 });
   if (res.status !== 0) {
     try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
     return null;
   }
   return tmp;
+}
+
+/** First existing candidate under repoRoot, or null. */
+export function firstExisting(repoRoot, rels, exists = fs.existsSync) {
+  for (const rel of rels) {
+    const abs = path.join(repoRoot, rel);
+    if (exists(abs)) return abs;
+  }
+  return null;
+}
+
+/** Every trust-anchor pair present in the project or the user's global skills dir. */
+export function listTrustAnchors(repoRoot, { homeDir = os.homedir(), exists = fs.existsSync } = {}) {
+  const out = [];
+  const seen = new Set();
+  for (const anchor of GLOBAL_TRUST_ANCHOR_RELS) {
+    const manifest = path.join(homeDir, anchor.manifest);
+    const verifier = path.join(homeDir, anchor.verifier);
+    if (!exists(manifest) || !exists(verifier)) continue;
+    const key = `${manifest}\0${verifier}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ manifest, verifier, scope: 'global-cursor' });
+  }
+  for (const anchor of TRUST_ANCHOR_RELS) {
+    const manifest = path.join(repoRoot, anchor.manifest);
+    const verifier = path.join(repoRoot, anchor.verifier);
+    if (!exists(manifest) || !exists(verifier)) continue;
+    const key = `${manifest}\0${verifier}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ manifest, verifier, scope: anchor.manifest.startsWith('.agents/') ? 'project-agents' : 'project' });
+  }
+  return out;
+}
+
+function runManifestVerify(runner, verifier, srcRoot, manifest) {
+  const res = spawnSync(runner, [verifier, '--verify', srcRoot, '--manifest', manifest], { encoding: 'utf8', timeout: 120000 });
+  if (res.status === 0) return { ok: true };
+  return { ok: false, detail: (res.stderr || res.stdout || '').trim() };
+}
+
+/** Copy the release tag's trust anchor into the consumer before applying an update. */
+export function refreshInstalledTrustAnchor(repoRoot, srcRoot) {
+  const manifestSrc = path.join(srcRoot, RELEASE_MANIFEST_REL);
+  const verifierSrc = path.join(srcRoot, RELEASE_VERIFIER_REL);
+  if (!fs.existsSync(manifestSrc) || !fs.existsSync(verifierSrc)) return false;
+  for (const rel of MANIFEST_RELS) {
+    const dest = path.join(repoRoot, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(manifestSrc, dest);
+  }
+  for (const rel of VERIFIER_RELS) {
+    const dest = path.join(repoRoot, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(verifierSrc, dest);
+  }
+  return true;
+}
+
+/**
+ * Verify a freshly fetched tree before anything in it is copied or executed.
+ *
+ * First try the manifest already installed in this project (out-of-band from
+ * the clone). When that fails — typical on a release upgrade where the local
+ * manifest still describes the previous tag — self-verify the fetched tree
+ * against the manifest bundled *inside* that tag, then refresh the local
+ * trust anchor and proceed. A tampered fetch fails both checks.
+ *
+ * @returns {{ok: boolean, reason?: string, detail?: string}} `ok:true` with
+ *   `reason:'unverifiable'` when this project predates the manifest (installed
+ *   by an older bootstrap): there is no trusted hash to compare against, so
+ *   the caller decides whether to proceed rather than hard-failing an existing
+ *   working install.
+ */
+export function verifyFetchedTree({ repoRoot, srcRoot, runner = process.execPath, homeDir = os.homedir() }) {
+  const anchors = listTrustAnchors(repoRoot, { homeDir });
+  if (!anchors.length) {
+    return { ok: true, reason: 'unverifiable', detail: 'no scaffold manifest is installed in this project (installed before manifests existed)' };
+  }
+
+  let lastDetail = '';
+  for (const anchor of anchors) {
+    const local = runManifestVerify(runner, anchor.verifier, srcRoot, anchor.manifest);
+    if (local.ok) {
+      if (anchor.scope === 'global-cursor' || anchor.scope === 'project') {
+        refreshInstalledTrustAnchor(repoRoot, srcRoot);
+      }
+      return {
+        ok: true,
+        reason: anchor.scope === 'global-cursor' ? 'verified-global-skill' : 'verified',
+      };
+    }
+    lastDetail = local.detail || lastDetail;
+  }
+
+  const releaseManifest = path.join(srcRoot, RELEASE_MANIFEST_REL);
+  const releaseVerifier = path.join(srcRoot, RELEASE_VERIFIER_REL);
+  if (fs.existsSync(releaseManifest) && fs.existsSync(releaseVerifier)) {
+    const release = runManifestVerify(runner, releaseVerifier, srcRoot, releaseManifest);
+    if (release.ok && refreshInstalledTrustAnchor(repoRoot, srcRoot)) {
+      return { ok: true, reason: 'verified-release-manifest' };
+    }
+    if (!release.ok) {
+      return { ok: false, reason: 'mismatch', detail: release.detail || lastDetail };
+    }
+  }
+
+  return { ok: false, reason: 'mismatch', detail: lastDetail };
 }
 
 function doApply({ repoRoot, srcRoot, force, source }) {
@@ -316,6 +496,22 @@ function main(argv) {
   if (isOrchestratorSourceRepo(repoRoot) && process.env.ORCH_ALLOW_SELF !== '1' && !argv.includes('--check')) {
     console.error('[installer] Refusing to modify the orchestrator SOURCE repository. Run this from a consumer project (maintainers: ORCH_ALLOW_SELF=1).');
     return 3;
+  }
+
+  if (argv.includes('--hooks')) {
+    const action = flagValue(argv, '--hooks', '');
+    const hosts = argv.includes('--host') ? [flagValue(argv, '--host', '')] : HOOK_HOSTS;
+    if (!['install', 'uninstall', 'status'].includes(action)) {
+      console.error('Usage: node pipeline/installer.mjs --hooks install|uninstall|status [--host claude|codex|cursor|antigravity]');
+      return 2;
+    }
+    for (const host of hosts) {
+      if (!HOOK_HOSTS.includes(host)) { console.error(`[installer] Unknown host: ${host}`); return 1; }
+      if (action === 'install') console.log(`[installer] ${host}: ${JSON.stringify(installHooks(repoRoot, host))}`);
+      else if (action === 'uninstall') console.log(`[installer] ${host}: ${JSON.stringify(uninstallHooks(repoRoot, host))}`);
+      else console.log(`[installer] ${host}: ${hookStatus(repoRoot, host)}`);
+    }
+    return 0;
   }
 
   if (argv.includes('--write-manifest')) {
@@ -369,11 +565,27 @@ function main(argv) {
     let cloned = null;
     const source = flagValue(argv, '--source', readInstall(repoRoot)?.source || DEFAULT_SOURCE);
     if (!srcRoot) {
-      cloned = cloneSource(source);
-      if (!cloned) { console.error(`[installer] Could not fetch ${source}.`); return 1; }
+      const ref = flagValue(argv, '--ref', null) || resolveTargetRef(repoRoot, source);
+      cloned = cloneSource(source, ref);
+      if (!cloned) { console.error(`[installer] Could not fetch ${source}@${ref}.`); return 1; }
+      const check = argv.includes('--skip-verify')
+        ? { ok: true, reason: 'skipped' }
+        : verifyFetchedTree({ repoRoot, srcRoot: cloned });
+      if (!check.ok) {
+        console.error(`[installer] Integrity check failed for ${source}@${ref}:`);
+        if (check.detail) console.error(check.detail);
+        console.error('[installer] Refusing to update from a tree that does not match a reviewed release. Reinstall the skill (npx skills add …) so its manifest matches, update to a release whose bundled manifest self-verifies, or pass --skip-verify to accept an unverified tree.');
+        try { fs.rmSync(cloned, { recursive: true, force: true }); } catch {}
+        return 1;
+      }
+      if (check.reason === 'unverifiable') console.error(`[installer] Warning: ${check.detail} — proceeding unverified.`);
+      if (check.reason === 'verified-release-manifest') console.error('[installer] Local scaffold manifest was stale; refreshed the trust anchor from the fetched release before applying.');
+      if (check.reason === 'verified-global-skill') console.error('[installer] Verified via Cursor Skill Manager (~/.cursor/skills/orchestrate); synced the trust anchor into this project.');
+      if (check.reason === 'skipped') console.error('[installer] Warning: --skip-verify given; the fetched tree was NOT integrity-checked.');
       srcRoot = cloned;
       // Hand off to the freshly fetched installer so an update is always
-      // applied by the NEW logic, never by the stale local copy.
+      // applied by the NEW logic, never by the stale local copy. Integrity is
+      // already verified above, before any code from `cloned` has run.
       const fresh = path.join(cloned, 'pipeline', 'installer.mjs');
       if (fs.existsSync(fresh) && !argv.includes('--no-rexec')) {
         const res = spawnSync(process.execPath, [fresh, '--apply', '--src', cloned, '--repo', repoRoot, '--no-rexec', ...(force ? ['--force'] : [])], { stdio: 'inherit' });
@@ -394,7 +606,7 @@ function main(argv) {
     return 0;
   }
 
-  console.error('Usage: node pipeline/installer.mjs --check | --plan --src <dir> | --apply [--src <dir>] [--force] | --self-update | --write-manifest --src <dir>');
+  console.error('Usage: node pipeline/installer.mjs --check | --plan --src <dir> | --apply [--src <dir>] [--ref <tag>] [--skip-verify] [--force] | --self-update | --write-manifest --src <dir> | --hooks install|uninstall|status [--host claude|codex|cursor|antigravity]');
   return 2;
 }
 

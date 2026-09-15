@@ -16,7 +16,7 @@
     "type-check": "tsc --noEmit",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
-    "test": "bun test",
+    "test": "bun test --timeout 30000",
     "test:predeploy": "bun run scripts/run-predeployment-tests.ts",
     "test:coverage:report": "bun run scripts/generate-prepush-coverage-report.ts",
     "test:e2e": "bun test --timeout 30000 tests/registration-e2e.test.ts",

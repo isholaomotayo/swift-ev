@@ -19,6 +19,8 @@ const CHAT_ENV_SIGNALS = [
 // Canonical host-client names plus the aliases instruction files might pass.
 const HOST_CLIENT_ALIASES = {
   agy: 'antigravity',
+  // Gemini CLI IDE was replaced by Antigravity.
+  gemini: 'antigravity',
   'claude-code': 'claude',
   'cursor-agent': 'cursor',
 };
@@ -51,7 +53,7 @@ export function detectHostClient({ env = process.env, argv = [] } = {}) {
   if (env.CURSOR_AGENT === '1' || env.CURSOR_TRACE_ID) return 'cursor';
   if (env.CLAUDE_CODE === '1' || env.CLAUDECODE) return 'claude';
   if (env.CODEX_IN_IDE === '1') return 'codex';
-  if (env.GEMINI_CLI_IDE === '1') return 'gemini';
+  if (env.GEMINI_CLI_IDE === '1') return 'antigravity';
   if (env.VSCODE_PID) return 'vscode';
   return null;
 }
@@ -116,13 +118,12 @@ function probeClaudeAuth() {
 function probeCursorAuth() {
   if (!binExists('cursor-agent')) return false;
   if (process.env.CURSOR_API_KEY) return true;
-  const res = spawnSync('cursor-agent', ['-p', 'ok', '--output-format', 'text'], {
+  const res = spawnSync('cursor-agent', ['status'], {
     encoding: 'utf8',
-    timeout: 8000,
-    input: '',
+    timeout: 3000,
   });
   const out = `${res.stdout}\n${res.stderr}`;
-  return res.status === 0 && !/authentication required/i.test(out);
+  return res.status === 0 && !/not logged in|authentication required|login required/i.test(out) && /logged in/i.test(out);
 }
 
 function probeCodexAuth() {
@@ -132,29 +133,39 @@ function probeCodexAuth() {
   return res.status === 0 && /logged in/i.test(out);
 }
 
-function probeGeminiAuth() {
-  if (!binExists('gemini')) return false;
-  const res = spawnSync('gemini', ['-p', 'ok'], { encoding: 'utf8', timeout: 8000, input: '' });
+function probeAntigravityAuth() {
+  if (!binExists('agy')) return false;
+  const res = spawnSync('agy', ['models'], { encoding: 'utf8', timeout: 2000 });
   const out = `${res.stdout}\n${res.stderr}`;
-  return res.status === 0 && !/not authenticated|login required|sign in/i.test(out);
+  return res.status === 0 && !/authentication required|not authenticated|login required|sign in/i.test(out) && out.length > 0;
 }
 
 const AUTH_PROBES = {
   claude: probeClaudeAuth,
   cursor: probeCursorAuth,
   codex: probeCodexAuth,
-  gemini: probeGeminiAuth,
+  antigravity: probeAntigravityAuth,
+  // Deprecated alias — same binary and credentials as antigravity.
+  gemini: probeAntigravityAuth,
 };
 
-/** First CLI runner on PATH that passes an auth probe (CLI mode only). */
-export function firstAuthenticatedRunner(order = ['claude', 'cursor', 'codex', 'gemini']) {
-  for (const name of order) {
-    const probe = AUTH_PROBES[name];
-    if (probe?.()) return name;
-  }
-  return null;
-}
+const authProbeCache = new Map();
+const AUTH_PROBE_TTL_MS = 60_000;
 
 export function probeRunnerAuth(runner) {
-  return AUTH_PROBES[runner]?.() ?? false;
+  const cached = authProbeCache.get(runner);
+  if (cached && Date.now() - cached.ts < AUTH_PROBE_TTL_MS) {
+    return cached.val;
+  }
+  const val = AUTH_PROBES[runner]?.() ?? false;
+  authProbeCache.set(runner, { val, ts: Date.now() });
+  return val;
+}
+
+/** First CLI runner on PATH that passes an auth probe (CLI mode only). */
+export function firstAuthenticatedRunner(order = ['claude', 'cursor', 'codex', 'antigravity']) {
+  for (const name of order) {
+    if (probeRunnerAuth(name)) return name;
+  }
+  return null;
 }

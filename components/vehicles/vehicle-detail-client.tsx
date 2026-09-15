@@ -58,6 +58,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useWatchlistToggle } from "@/hooks/use-watchlist-toggle";
 import { HowItWorksModal } from "@/components/vehicles/how-it-works-modal";
 import { MoneyBackGuaranteeCard } from "@/components/vehicles/money-back-guarantee-card";
+import { isEVFuelType } from "@/lib/constants";
 
 interface Bid {
   _id: string;
@@ -316,7 +317,7 @@ export function VehicleDetailClient({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Fuel Type</p>
-                  <p className="font-extrabold text-sm capitalize">{vehicle.fuelType || "Electric"}</p>
+                  <p className="font-extrabold text-sm">{vehicle.fuelType || "Battery Electric Vehicle (BEV / EV)"}</p>
                 </div>
               </div>
 
@@ -474,7 +475,7 @@ export function VehicleDetailClient({
 
                     {/* Powertrain specs (Adaptive EV vs ICE) */}
                     <div className="pt-2">
-                      {((vehicle.fuelType?.toLowerCase().includes("ev") || vehicle.fuelType?.toLowerCase().includes("electric")) || (vehicle.batteryCapacity && vehicle.batteryCapacity > 0)) ? (
+                      {(isEVFuelType(vehicle.fuelType) || (vehicle.batteryCapacity && vehicle.batteryCapacity > 0)) ? (
                         <div>
                           <h3 className="text-lg font-bold text-deep-navy mb-4 flex items-center gap-2">
                             <Zap className="h-5 w-5 text-warning-amber animate-pulse" />
@@ -528,7 +529,7 @@ export function VehicleDetailClient({
                             </div>
                             <div className="flex justify-between py-2 border-b border-dashed">
                               <span className="text-muted-foreground font-medium">Fuel Type</span>
-                              <span className="font-semibold capitalize">{vehicle.fuelType || "Internal Combustion Engine (ICE)"}</span>
+                              <span className="font-semibold">{vehicle.fuelType || "Battery Electric Vehicle (BEV / EV)"}</span>
                             </div>
                             <div className="flex justify-between py-2 border-b border-dashed">
                               <span className="text-muted-foreground font-medium">Transmission</span>

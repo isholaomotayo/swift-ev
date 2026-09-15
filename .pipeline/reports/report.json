@@ -1,0 +1,147 @@
+{
+  "runId": null,
+  "featureId": null,
+  "verdict": "APPROVED",
+  "generatedAt": "2026-09-15T06:46:41.317Z",
+  "planner": {
+    "model": "gemini-3.8-flash",
+    "actualModel": "gemini-3.8-flash",
+    "mode": "chat",
+    "execution": "chat (IDE host: antigravity)",
+    "modelSource": "host-reported"
+  },
+  "stages": [
+    {
+      "name": "planner",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    },
+    {
+      "name": "designer",
+      "status": "skipped",
+      "model": "gemini-3.1-pro",
+      "mode": null,
+      "execution": "chat (IDE host)"
+    },
+    {
+      "name": "coder",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    },
+    {
+      "name": "tester",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    },
+    {
+      "name": "reviewer",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    },
+    {
+      "name": "handoff",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    },
+    {
+      "name": "reporter",
+      "status": "passed",
+      "model": "gemini-3.8-flash",
+      "mode": "chat",
+      "execution": "chat (IDE host: antigravity)"
+    }
+  ],
+  "files": 145,
+  "coverage": [
+    {
+      "id": "E1",
+      "name": "Vendor updates fuelType",
+      "status": "missing",
+      "evidence": "`tests/backend/vehicles-lifecycle.test.ts:270`"
+    },
+    {
+      "id": "E2",
+      "name": "Admin edits vehicle without changing fuelType",
+      "status": "missing",
+      "evidence": "`tests/backend/vehicles-lifecycle.test.ts:348`"
+    },
+    {
+      "id": "E3",
+      "name": "Invalid fuelType in updateVehicle",
+      "status": "missing",
+      "evidence": "`tests/backend/vehicles-lifecycle.test.ts:331`"
+    },
+    {
+      "id": "E4",
+      "name": "Empty fuelType in updateVehicle",
+      "status": "missing",
+      "evidence": "`tests/backend/vehicles-lifecycle.test.ts:320`"
+    },
+    {
+      "id": "E5",
+      "name": "Fuel type display with acronyms",
+      "status": "missing",
+      "evidence": "`tests/fuel-types.test.ts:14`"
+    },
+    {
+      "id": "E6",
+      "name": "Non-EV vehicle detail page",
+      "status": "missing",
+      "evidence": "`tests/fuel-types.test.ts:23`"
+    },
+    {
+      "id": "E7",
+      "name": "Custom bid below minimum in foreign currency",
+      "status": "missing",
+      "evidence": "`tests/ui-forms/admin-live-controls.test.ts:18`"
+    },
+    {
+      "id": "E8",
+      "name": "Report diagram subpath request",
+      "status": "missing",
+      "evidence": "`pipeline/ui-server.test.mjs:167`"
+    },
+    {
+      "id": "E9",
+      "name": "Repeated resolvePoolRunner calls",
+      "status": "missing",
+      "evidence": "`pipeline/invocation.test.mjs:81`"
+    },
+    {
+      "id": "Ticket / Case",
+      "name": "",
+      "status": "missing",
+      "evidence": "Test at"
+    },
+    {
+      "id": "Ticket 1",
+      "name": "",
+      "status": "missing",
+      "evidence": "`tests/backend/vehicles-lifecycle.test.ts:270`"
+    },
+    {
+      "id": "Ticket 2",
+      "name": "",
+      "status": "missing",
+      "evidence": "`tests/ui-forms/admin-live-controls.test.ts:18`"
+    },
+    {
+      "id": "Ticket 3",
+      "name": "",
+      "status": "missing",
+      "evidence": "`pipeline/ui-server.test.mjs:167`"
+    }
+  ],
+  "diagrams": [],
+  "htmlSha256": "aae38304287f0eb46fa5004884d43c599b3fec05a1a4b087dd581f022e4c5aad"
+}

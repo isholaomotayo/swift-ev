@@ -202,7 +202,7 @@ export function BidButton({
     if (isNaN(bidAmount) || bidAmount < quickBidAmount) {
       toast({
         title: "Invalid Bid Amount",
-        description: `Your bid must be at least ${formatCurrency(quickBidAmount)}`,
+        description: `Your bid must be at least ${formatCurrency(quickBidAmount, { currency, exchangeRates })}`,
         variant: "destructive",
       });
       return;
@@ -270,7 +270,7 @@ export function BidButton({
     if (isNaN(maxBidAmount) || maxBidAmount < quickBidAmount) {
       toast({
         title: "Invalid Max Bid",
-        description: `Your max bid must be at least ${formatCurrency(quickBidAmount)}`,
+        description: `Your max bid must be at least ${formatCurrency(quickBidAmount, { currency, exchangeRates })}`,
         variant: "destructive",
       });
       return;

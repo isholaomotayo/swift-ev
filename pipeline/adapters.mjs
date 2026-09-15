@@ -1,13 +1,83 @@
-// Agent CLI adapters: invoke claude / cursor-agent / codex / gemini headlessly,
-// or hand off to the IDE chat session (host runner) when in chat mode.
+// Agent CLI adapters: invoke claude / cursor-agent / codex / agy (Antigravity)
+// headlessly, or hand off to the IDE chat session (host runner) in chat mode.
+// `gemini` remains a deprecated alias for the Antigravity CLI (`agy`).
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { appendEvent, STAGE_ARTIFACT_FILES } from './state.mjs';
 import { firstAuthenticatedRunner, probeRunnerAuth } from './invocation.mjs';
 import { modelNote, resolveModelId, normalizeEffort, fallbackModelId } from './models.mjs';
+import { createStreamParser, hostEventCommand } from './events.mjs';
 
-const RUNNER_BINS = { claude: 'claude', cursor: 'cursor-agent', codex: 'codex', gemini: 'gemini', host: null };
+export const RUNNER_BINS = {
+  claude: 'claude',
+  cursor: 'cursor-agent',
+  codex: 'codex',
+  antigravity: 'agy',
+  // Deprecated alias: Gemini CLI was replaced by Antigravity (`agy`).
+  gemini: 'agy',
+  host: null,
+};
+
+const GOOGLE_CLI_BIN = 'agy';
+const GOOGLE_CLI_RUNNERS = new Set(['antigravity', 'gemini']);
+
+/** agy accepts only low|medium|high; collapse our higher tiers. */
+function googleCliEffort(level) {
+  if (!level) return null;
+  if (level === 'low' || level === 'medium' || level === 'high') return level;
+  if (level === 'xhigh' || level === 'max') return 'high';
+  return null;
+}
+
+function buildGoogleCliInvocation({ combined, readOnly, modelId, level, runner }) {
+  // agy has no hard read-only flag. Pass --dangerously-skip-permissions so it
+  // doesn't hang on stdin prompts in non-interactive mode.
+  // Exception: the 'gemini' runner is a deprecated alias with stricter read-only
+  // semantics (consistent with how cursor/codex withhold write flags). When
+  // readOnly is true, omit the flag as best-effort enforcement — the caller's
+  // warning log will note that hard enforcement is unavailable for this runner.
+  const skipPerms = !readOnly || runner !== 'gemini';
+  const args = ['-p', combined, '--output-format', 'text'];
+  if (skipPerms) args.push('--dangerously-skip-permissions');
+  if (modelId) args.push('--model', modelId);
+  const effort = googleCliEffort(level);
+  if (effort) args.push('--effort', effort);
+  return { bin: GOOGLE_CLI_BIN, args, parse: 'text', readOnlyEnforced: false };
+}
+
+// Resolve a pool feature/ticket's declared runner ('auto'/null/a name) to the
+// runner the supervisor should actually use. 'auto' prefers an authenticated
+// CLI so real parallel automation keeps working unattended, but never throws —
+// falling back to 'host' keeps a roadmap runnable with zero CLI auth at all.
+export function resolvePoolRunner(requested) {
+  if (!requested || requested === 'auto') return firstAuthenticatedRunner() || 'host';
+  return requested;
+}
+
+/** How this run actually executes agent stages — independent of the CLI flag. */
+export function resolveExecutionSurface({ runner, invocationMode, executionSurface } = {}) {
+  if (executionSurface === 'host-handoff' || executionSurface === 'cli-subprocess') return executionSurface;
+  if (runner === 'host' || invocationMode === 'chat') return 'host-handoff';
+  return 'cli-subprocess';
+}
+
+export function isHostSurface(input = {}) {
+  return resolveExecutionSurface(input) === 'host-handoff';
+}
+
+// Preflight a resolved (non-auto) runner before the supervisor spawns anything
+// for it, so an unusable runner is a clean attention item instead of a crash
+// inside a detached child process. A configured custom runner has no auth
+// concept to probe (same reasoning as detectRunner's own forced-runner path).
+export function checkRunnerAvailable(runner, config = {}) {
+  if (runner === 'host') return { ok: true };
+  if (config.customRunners?.[runner]) return { ok: true };
+  if (!RUNNER_BINS[runner]) return { ok: false, reason: `Unknown runner "${runner}".` };
+  if (!binExists(RUNNER_BINS[runner])) return { ok: false, reason: `"${runner}" is not installed on PATH.` };
+  if (!probeRunnerAuth(runner)) return { ok: false, reason: `"${runner}" is on PATH but not authenticated.` };
+  return { ok: true };
+}
 
 // Control-plane files a writing stage must never author. The orchestrator trusts
 // these to decide verdicts, cycle budgets, and what the next stage is told to do,
@@ -20,6 +90,7 @@ export const CONTROL_PLANE_FILES = [
   '.pipeline/design.md',
   '.pipeline/test_history.json',
   '.pipeline/stage-handoff.json',
+  '.pipeline/reporter.md',
 ];
 
 // A stage always keeps write access to its OWN artifact (the Planner must be
@@ -32,7 +103,23 @@ export function pipelineWriteDeny(stage) {
     // persist into later stages and later runs.
     'Write(.pipeline/prompts/**)',
     'Edit(.pipeline/prompts/**)',
+    // Skill pins are the trust anchor for what gets injected into a prompt, and
+    // reports are compiled by the engine from artifacts. A stage that could
+    // write either could grade or describe its own work.
+    'Write(.pipeline/skills/**)',
+    'Edit(.pipeline/skills/**)',
+    'Write(.pipeline/reports/**)',
+    'Edit(.pipeline/reports/**)',
   ];
+}
+
+// An agent never needs forge credentials: it does not open or merge pull
+// requests, the supervisor does. Withholding them means a compromised or
+// confused stage cannot push, merge, or exfiltrate a token.
+export function agentEnv(base = process.env) {
+  const env = { ...base, FORCE_COLOR: '0' };
+  for (const key of ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITLAB_TOKEN']) delete env[key];
+  return env;
 }
 
 export function binExists(bin) {
@@ -40,37 +127,69 @@ export function binExists(bin) {
   return res.status === 0;
 }
 
+// The one place that decides "does chat mode override this runner". A chat
+// session must always be the one driving its own stages — there is no
+// legitimate reason for a chat invocation to end up dispatching to a
+// different, unwatched agent CLI (the exact failure this exists to prevent:
+// a task started from one IDE's chat silently ran under a different CLI that
+// nobody had open, and just sat there looking stuck). Pure and shared by
+// detectRunner (fresh runs) and reconcileChatRunner (continue/resume), so the
+// decision lives in exactly one place.
+export function resolveChatSafeRunner(requestedRunner, invocationMode) {
+  if (invocationMode !== 'chat' || !requestedRunner || requestedRunner === 'host') {
+    return { runner: requestedRunner ?? null, runnerRequested: null };
+  }
+  console.log(`[Orchestrator] Notice: runner "${requestedRunner}" coerced to "host" — invoked from chat, so this chat session stays the driver instead of silently delegating to an external, unattended agent CLI. Drop --runner (or pass --runner host) to silence this.`);
+  return { runner: 'host', runnerRequested: requestedRunner };
+}
+
 export function detectRunner(config, { invocationMode = 'cli' } = {}) {
   const forced = config.runner && config.runner !== 'auto' ? config.runner : null;
   if (forced) {
-    if (forced === 'host') return 'host';
+    if (forced === 'host') return { runner: 'host', runnerRequested: null };
     if (!RUNNER_BINS[forced] && !config.customRunners?.[forced]) {
       throw new Error(`Unknown runner "${forced}".`);
     }
-    // Explicit flags win, but delegation from a chat session to an external
-    // agent CLI must never happen silently.
-    if (invocationMode === 'chat') {
-      console.log(`[Orchestrator] Notice: runner forced to "${forced}" while invoked from chat — stages will run in an external agent CLI, not this chat session. Drop --runner to keep this chat as the driver.`);
-    }
-    if (invocationMode === 'cli' && forced !== 'host' && !probeRunnerAuth(forced)) {
+    const coerced = resolveChatSafeRunner(forced, invocationMode);
+    if (coerced.runnerRequested) return coerced;
+    // Only the built-in agent CLIs have an auth concept to probe. A custom
+    // runner is a command the user configured explicitly; there is nothing to
+    // log in to, and probing it would always "fail" and refuse a valid runner.
+    const isBuiltIn = Object.prototype.hasOwnProperty.call(RUNNER_BINS, forced);
+    if (invocationMode === 'cli' && isBuiltIn && !probeRunnerAuth(forced)) {
       throw new Error(`Runner "${forced}" is on PATH but not authenticated. Log in to that CLI or use --mode chat from your IDE.`);
     }
-    return forced;
+    return { runner: forced, runnerRequested: null };
   }
 
   // Chat mode: the IDE session is the agent — no separate CLI auth required.
-  if (invocationMode === 'chat') return 'host';
+  if (invocationMode === 'chat') return { runner: 'host', runnerRequested: null };
 
   // CLI mode: pick the first authenticated agent CLI.
   const authed = firstAuthenticatedRunner();
-  if (authed) return authed;
+  if (authed) return { runner: authed, runnerRequested: null };
 
   // Fall back to first binary on PATH (may fail with a clear auth error).
   for (const [name, bin] of Object.entries(RUNNER_BINS)) {
     if (name === 'host' || !bin) continue;
-    if (binExists(bin)) return name;
+    if (binExists(bin)) return { runner: name, runnerRequested: null };
   }
-  throw new Error('No agent CLI found on PATH (looked for: claude, cursor-agent, codex, gemini). Set "runner" in .pipeline/config.json, pass --runner, or invoke from an IDE chat for host mode.');
+  throw new Error('No agent CLI found on PATH (looked for: claude, cursor-agent, codex, agy). Set "runner" in .pipeline/config.json, pass --runner, or invoke from an IDE chat for host mode.');
+}
+
+// For --continue/--resume/--extend: reconciles an already-resolved runner
+// against both its recorded chat surface and this invocation's own freshly
+// detected mode. Self-heals a status.json baked before this coercion existed
+// (runner mismatched against chat-mode metadata), and converges a fresh
+// --resume/--continue invoked from a live chat session onto 'host' even if
+// the halted run was originally a genuine cli-subprocess run — a chat
+// session must always drive its own stages, with no carve-out for what the
+// run used to be. Returns null when nothing needs to change.
+export function reconcileChatRunner({ runner, statusInvocationMode, statusExecutionSurface, currentInvocationMode }) {
+  const recordedHostSurface = isHostSurface({ runner, invocationMode: statusInvocationMode, executionSurface: statusExecutionSurface });
+  if (!recordedHostSurface && currentInvocationMode !== 'chat') return null;
+  const { runner: safeRunner, runnerRequested } = resolveChatSafeRunner(runner, 'chat');
+  return { runner: safeRunner, executionSurface: 'host-handoff', invocationMode: 'chat', runnerRequested };
 }
 
 // Build argv for each supported CLI. Every adapter runs non-interactively with
@@ -80,9 +199,15 @@ export function detectRunner(config, { invocationMode = 'cli' } = {}) {
 // just claude — otherwise the "read-only" review stage could mutate the repo or
 // weaken tests. Each branch sets `readOnlyEnforced` to signal whether the CLI can
 // hard-guarantee read-only at the process level. When it cannot, we drop the
-// auto-approve/write flags (--force / --full-auto / --yolo) so the agent cannot
+// auto-approve/write flags (--force / --full-auto / --dangerously-skip-permissions) so the agent cannot
 // silently apply edits — a best-effort constraint the caller can still reject.
-export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, config, model, effort, artifactOverride = null }) {
+export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, config, model, effort, artifactOverride = null, skills = null }) {
+  // Verified skill instructions sit AFTER the stage prompt (so the trust
+  // boundary is read first) and are still system prompt, never task input.
+  const promptWithSkills = skills?.promptSection
+    ? `${systemPrompt}\n\n${skills.promptSection}`
+    : systemPrompt;
+  systemPrompt = promptWithSkills;
   const combined = `${systemPrompt}\n\n---\nTASK:\n${task}`;
   // Model families are pipeline-internal; each CLI gets the identifier it
   // actually accepts. cursor encodes effort in the id, so it is resolved here too.
@@ -105,7 +230,10 @@ export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, c
         // Headless mode denies anything not allowlisted: a read-only stage may
         // read, run git diff/log, and write ONLY its own artifact file.
         const artifact = artifactOverride || `.pipeline/${STAGE_ARTIFACT_FILES[stage] || 'review_report.md'}`;
-        args.push('--allowedTools', `Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(git status:*),Write(${artifact})`);
+        // A skill may add read-only commands (a validator, a lookup) — never a
+        // renderer or anything that writes, which the engine runs itself.
+        const skillTools = (skills?.allowances || []).join(',');
+        args.push('--allowedTools', `Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(git status:*),Write(${artifact})${skillTools ? `,${skillTools}` : ''}`);
         return { bin: 'claude', args, parse: 'claude-stream-json', readOnlyEnforced: true };
       }
       args.push('--permission-mode', 'acceptEdits', '--allowedTools', 'Bash,Edit,Write,Read,Glob,Grep,WebFetch');
@@ -122,7 +250,7 @@ export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, c
       if (!readOnly) args.push('--force');
       // No --effort flag: resolveModelId already selected the effort-tiered id.
       if (modelId) args.push('--model', modelId);
-      return { bin: 'cursor-agent', args, parse: 'jsonl-or-text', readOnlyEnforced: false };
+      return { bin: 'cursor-agent', args, parse: 'stream-json', readOnlyEnforced: false };
     }
     case 'codex': {
       // codex exec supports a hard read-only sandbox.
@@ -134,16 +262,11 @@ export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, c
       // Effort is a config override rather than a flag on `codex exec`.
       if (level) args.push('-c', `model_reasoning_effort="${level}"`);
       args.push(combined);
-      return { bin: 'codex', args, parse: 'jsonl-or-text', readOnlyEnforced: !!readOnly };
+      return { bin: 'codex', args, parse: 'stream-json', readOnlyEnforced: !!readOnly };
     }
-    case 'gemini': {
-      // gemini has no read-only flag; withhold --yolo so it cannot auto-run
-      // mutating actions during a read-only audit (best-effort).
-      const args = ['-p', combined];
-      if (!readOnly) args.push('--yolo');
-      if (modelId) args.push('--model', modelId);
-      return { bin: 'gemini', args, parse: 'text', readOnlyEnforced: false };
-    }
+    case 'antigravity':
+    case 'gemini':
+      return buildGoogleCliInvocation({ combined, readOnly, modelId, level, runner });
     default: {
       const custom = config.customRunners?.[runner];
       if (!custom) throw new Error(`Unknown runner "${runner}"`);
@@ -158,7 +281,7 @@ export function buildInvocation({ runner, stage, systemPrompt, task, readOnly, c
   }
 }
 
-function writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, paths, model, effort, modelSelection, hostClient = null }) {
+function writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, paths, model, effort, modelSelection, hostClient = null, skills = null }) {
   const handoff = {
     stage,
     cycle: cycle || 1,
@@ -166,6 +289,8 @@ function writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, path
     promptFile: path.relative(paths.root, systemPromptFile),
     artifact: `.pipeline/${STAGE_ARTIFACT_FILES[stage]}`,
     readOnly: !!readOnly,
+    mode: 'chat',
+    actualModel: null,
     createdAt: new Date().toISOString(),
   };
   if (model) {
@@ -174,68 +299,28 @@ function writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, path
     handoff.modelNote = modelNote(model, normalizeEffort(effort));
   }
   if (normalizeEffort(effort)) handoff.effort = normalizeEffort(effort);
+  if (skills?.active?.length) {
+    // A chat host reads the same verified instructions a CLI runner would.
+    handoff.skills = skills.active.map((a) => ({ name: a.skill.name, dir: a.dir, entry: a.skill.entry }));
+    handoff.skillsPromptSection = skills.promptSection;
+  }
   if (hostClient) {
     handoff.hostClient = hostClient;
     handoff.hostNote = `Complete this stage in the current ${hostClient} chat session. Do NOT spawn or delegate to another agent CLI.`;
   }
+  handoff.bridge = { version: 2, project: paths.root, runId: paths.runId, instructions: 'Register your host conversation, run.claim this handoff, run.checkpoint before work and after tool batches, acknowledge and resolve operator messages, then stage.complete. Never edit control state directly.', command: 'node pipeline/bridge-cli.mjs <command> --input-file <json-file>' };
+  handoff.eventCommand = hostEventCommand({ runId: paths.runId, stage });
+  const runFlag = paths.runId ? ` --run-id ${paths.runId}` : '';
+  handoff.progressStream = {
+    heartbeat: `node pipeline/host-event.mjs${runFlag} --stage ${stage} --kind text --text "<action_summary>"`,
+    toolCall: `node pipeline/host-event.mjs${runFlag} --stage ${stage} --kind tool --tool <tool_name> --file <file_path>`,
+    frequency: 'Run heartbeat immediately upon starting stage, after each major tool batch or file edit, and before stage completion.',
+  };
   fs.writeFileSync(paths.stageHandoff, JSON.stringify(handoff, null, 2));
   appendEvent(paths, { stage, cycle, type: 'chat_handoff', artifact: handoff.artifact, ...(hostClient ? { hostClient } : {}) });
 }
 
-// Turn a claude stream-json event line into structured activity blocks the
-// dashboard can render (text paragraphs, file chips, command cards).
-function parseClaudeEvent(line) {
-  let ev;
-  try { ev = JSON.parse(line); } catch { return [{ kind: 'text', text: line }]; }
-  if (ev.type === 'system' && ev.subtype === 'init') return [{ kind: 'sys', text: `session started · model ${ev.model || '?'}` }];
-  if (ev.type === 'assistant') {
-    const blocks = [];
-    for (const block of ev.message?.content || []) {
-      if (block.type === 'text' && block.text?.trim()) blocks.push({ kind: 'text', text: block.text.trim() });
-      if (block.type === 'tool_use') {
-        const input = block.input || {};
-        blocks.push({
-          kind: 'tool',
-          tool: block.name,
-          file: input.file_path || input.path || input.notebook_path || null,
-          cmd: input.command || input.pattern || input.query || null,
-        });
-      }
-    }
-    return blocks;
-  }
-  if (ev.type === 'result') {
-    return [{
-      kind: 'sys',
-      text: `done · ${ev.subtype || ''} · ${ev.num_turns ?? '?'} turns · $${ev.total_cost_usd?.toFixed?.(4) ?? '?'}`,
-      costUsd: typeof ev.total_cost_usd === 'number' ? ev.total_cost_usd : undefined,
-      turns: ev.num_turns,
-    }];
-  }
-  return []; // user/tool_result echoes — too noisy for the dashboard
-}
-
-function parseLine(parse, line) {
-  if (!line.trim()) return [];
-  if (parse === 'claude-stream-json') return parseClaudeEvent(line);
-  if (parse === 'jsonl-or-text') {
-    try {
-      const ev = JSON.parse(line);
-      const text = ev.text || ev.message || ev.content;
-      return typeof text === 'string' ? [{ kind: 'text', text }] : [{ kind: 'text', text: line }];
-    } catch { return [{ kind: 'text', text: line }]; }
-  }
-  return [{ kind: 'text', text: line }];
-}
-
-function blockToLogLine(b) {
-  if (b.kind === 'tool') return `[tool] ${b.tool} ${b.file || b.cmd || ''}`.trim();
-  if (b.kind === 'sys') return `[session] ${b.text}`;
-  if (b.kind === 'err') return `[stderr] ${b.text}`;
-  return b.text;
-}
-
-export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd, readOnly = false, paths, config, model, effort, modelSelection, hostClient = null, artifactOverride = null }) {
+export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd, readOnly = false, paths, config, model, effort, modelSelection, hostClient = null, artifactOverride = null, skills = null }) {
   if (runner === 'host') {
     fs.mkdirSync(paths.logs, { recursive: true });
     const logFile = path.join(paths.logs, `${stage}.log`);
@@ -243,13 +328,13 @@ export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd
     const hostLabel = hostClient ? ` (IDE chat: ${hostClient})` : ' (IDE chat)';
     fs.appendFileSync(logFile, `\n===== ${stage.toUpperCase()} (cycle ${cycle || 1}) — host${hostLabel}${modelLabel} — ${new Date().toISOString()} =====\n`);
     appendEvent(paths, { stage, cycle, type: 'agent_start', runner: 'host', model: model || undefined, effort: normalizeEffort(effort) || undefined, hostClient: hostClient || undefined });
-    writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, paths, model, effort, modelSelection, hostClient });
-    appendEvent(paths, { stage, cycle, type: 'agent_end', ok: false, hostHandoff: true });
+    writeHostHandoff({ stage, cycle, task, systemPromptFile, readOnly, paths, model, effort, modelSelection, hostClient, skills });
+    appendEvent(paths, { stage, cycle, type: 'agent_parked', ok: true, hostHandoff: true });
     return Promise.resolve({ ok: false, hostHandoff: true });
   }
 
   const systemPrompt = fs.readFileSync(systemPromptFile, 'utf8');
-  const { bin, args, parse, readOnlyEnforced } = buildInvocation({ runner, stage, systemPrompt, task, readOnly, config, model, effort, artifactOverride });
+  const { bin, args, readOnlyEnforced } = buildInvocation({ runner, stage, systemPrompt, task, readOnly, config, model, effort, artifactOverride, skills });
 
   fs.mkdirSync(paths.logs, { recursive: true });
   const logFile = path.join(paths.logs, `${stage}.log`);
@@ -275,8 +360,8 @@ export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd
     }, config.agentTimeoutMs);
 
     let buffer = '';
+    const parser = createStreamParser();
     const emit = (b) => {
-      log.write(blockToLogLine(b) + '\n');
       appendEvent(paths, { stage, cycle, type: 'agent_output', ...b });
     };
     const handleChunk = (chunk, isErr) => {
@@ -285,8 +370,12 @@ export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd
       while ((idx = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, idx);
         buffer = buffer.slice(idx + 1);
-        const blocks = isErr ? (line.trim() ? [{ kind: 'err', text: line }] : []) : parseLine(parse, line);
-        blocks.forEach(emit);
+        log.write(`${line}\n`);
+        if (isErr) {
+          if (line.trim()) emit({ kind: 'err', text: line });
+          continue;
+        }
+        parser.pushLine(line).forEach(emit);
       }
     };
     child.stdout.on('data', (c) => handleChunk(c, false));
@@ -301,7 +390,11 @@ export function runAgent({ runner, stage, cycle = 0, task, systemPromptFile, cwd
     });
     child.on('close', (code) => {
       clearTimeout(timer);
-      if (buffer.trim()) parseLine(parse, buffer).forEach(emit);
+      if (buffer.trim()) {
+        log.write(buffer.endsWith('\n') ? buffer : `${buffer}\n`);
+        parser.pushLine(buffer).forEach(emit);
+      }
+      parser.flush().forEach(emit);
       if (timedOut) log.write(`[error] agent exceeded agentTimeoutMs (${config.agentTimeoutMs}ms) and was killed\n`);
       appendEvent(paths, { stage, cycle, type: 'agent_end', ok: code === 0, exitCode: code, timedOut: timedOut || undefined });
       log.end();
@@ -316,7 +409,7 @@ export function runOneShot({ runner, prompt, config, model, timeoutMs = 15000 })
     return Promise.reject(new Error(`Runner "${runner}" has no executable binary.`));
   }
   let args = [];
-  if (runner === 'claude' || runner === 'cursor' || runner === 'gemini') {
+  if (runner === 'claude' || runner === 'cursor' || GOOGLE_CLI_RUNNERS.has(runner)) {
     args = ['-p', prompt];
     if (model) args.push('--model', model);
   } else if (runner === 'codex') {

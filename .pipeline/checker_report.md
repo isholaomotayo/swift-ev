@@ -1,96 +1,12 @@
 ## Verification Status
 - Overall Status: PASS
-- Total Tests Passed: 1
-- Total Tests Failed: 0
+- Total Tests Passed: unknown
+- Total Tests Failed: unknown
 
 ## Test Executions
 ### Linter Output
 ```
- 'internalQuery' is defined but never used     @typescript-eslint/no-unused-vars
-    4:67  warning  'mutation' is defined but never used          @typescript-eslint/no-unused-vars
-    4:77  warning  'query' is defined but never used             @typescript-eslint/no-unused-vars
-    7:10  warning  'requireAuth' is defined but never used       @typescript-eslint/no-unused-vars
-    7:23  warning  'requireAdmin' is defined but never used      @typescript-eslint/no-unused-vars
-    7:37  warning  'createAuditLog' is defined but never used    @typescript-eslint/no-unused-vars
-   46:8   warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
-  206:31  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
-  211:17  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
-  970:17  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
-  977:18  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/files.ts
-  121:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  124:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  146:8   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  147:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/financials.ts
-  2:10  warning  'mutation' is defined but never used  @typescript-eslint/no-unused-vars
-
-/Users/omotayoishola/dev/swiftEv/convex/http.ts
-  79:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/kyc.ts
-  255:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  263:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/lib/auth.ts
-   32:8   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-   38:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-   64:8   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-   71:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  237:8   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  243:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  244:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/lib/orders.ts
-  21:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/mailRouting.ts
-  19:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  31:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/orders.ts
-    38:8   warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
-  1137:11  warning  'admin' is assigned a value but never used  @typescript-eslint/no-unused-vars
-
-/Users/omotayoishola/dev/swiftEv/convex/payments.ts
-  335:8   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  342:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/seedData.ts
-  82:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/services.ts
-    3:10  warning  'Doc' is defined but never used           @typescript-eslint/no-unused-vars
-    3:15  warning  'Id' is defined but never used            @typescript-eslint/no-unused-vars
-   11:21  warning  'ctx' is defined but never used           @typescript-eslint/no-unused-vars
-  107:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/settings.ts
-  42:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/users.ts
-  147:13  warning  'passwordHash' is assigned a value but never used  @typescript-eslint/no-unused-vars
-  339:23  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/convex/vehicles.ts
-    73:42  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    76:34  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    77:17  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    86:41  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    89:34  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    90:17  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    94:43  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-    97:34  warning  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
-  1155:22  warning  '_locationState' is assigned a value but never used  @typescript-eslint/no-unused-vars
-
-/Users/omotayoishola/dev/swiftEv/convex/wallet.ts
-  178:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  182:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-/Users/omotayoishola/dev/swiftEv/hooks/use-toast.ts
-  21:7  warning  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+1:7  warning  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
 
 /Users/omotayoishola/dev/swiftEv/lib/csv-export.ts
    1:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -100,15 +16,65 @@
   45:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   49:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
+/Users/omotayoishola/dev/swiftEv/lib/vehicle-catalog.ts
+  2:27  warning  'formatCanonicalName' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/bridge.test.mjs
+  323:11  warning  'p' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  443:14  warning  'status' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/host-hooks.test.mjs
+  104:9  warning  'claimed' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/installer.mjs
+  299:54  warning  'homeDir' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  299:78  warning  'timeoutMs' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/installer.test.mjs
+  11:47  warning  'remoteLatestTag' is defined but never used  @typescript-eslint/no-unused-vars
+
 /Users/omotayoishola/dev/swiftEv/pipeline/orchestrator.mjs
-  1172:9  warning  'reviewer' is assigned a value but never used  @typescript-eslint/no-unused-vars
+    14:10  warning  'execSync' is defined but never used           @typescript-eslint/no-unused-vars
+    14:20  warning  'spawnSync' is defined but never used          @typescript-eslint/no-unused-vars
+  1493:9   warning  'reviewer' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/pool.mjs
+   16:34  warning  'appendLine' is defined but never used                                 @typescript-eslint/no-unused-vars
+  435:31  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  436:36  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/omotayoishola/dev/swiftEv/pipeline/report.mjs
+  233:28  warning  'testSuite' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/roadmap.test.mjs
+  5:88  warning  'POOL_RUNNERS' is defined but never used  @typescript-eslint/no-unused-vars
 
 /Users/omotayoishola/dev/swiftEv/pipeline/router.mjs
   110:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
   124:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
 
+/Users/omotayoishola/dev/swiftEv/pipeline/skills.test.mjs
+    8:26  warning  'resolveSkillDir' is defined but never used  @typescript-eslint/no-unused-vars
+    8:43  warning  'hashSkillTree' is defined but never used    @typescript-eslint/no-unused-vars
+  237:27  warning  'paths' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  254:27  warning  'paths' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/supervisor.mjs
+  26:60  warning  'pidAlive' is defined but never used  @typescript-eslint/no-unused-vars
+
 /Users/omotayoishola/dev/swiftEv/pipeline/ui-server.mjs
-  494:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  273:20  warning  'totalCost' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  273:31  warning  'costPartial' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/ui-server.test.mjs
+  281:97   warning  'port' is defined but never used  @typescript-eslint/no-unused-vars
+  315:113  warning  'root' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/ui/main.mjs
+  974:62  warning  'meta' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/pipeline/ui/ui.test.mjs
+  5:33  warning  'MAX_TABS' is defined but never used  @typescript-eslint/no-unused-vars
 
 /Users/omotayoishola/dev/swiftEv/proxy.ts
   9:59  warning  'paraglideRequest' is defined but never used  @typescript-eslint/no-unused-vars
@@ -127,9 +93,6 @@
    48:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   107:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
 
-/Users/omotayoishola/dev/swiftEv/store/currency.ts
-  4:7  warning  'SUPPORTED_CURRENCIES' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
-
 /Users/omotayoishola/dev/swiftEv/tests/auctions.test.ts
   124:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   185:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -141,7 +104,28 @@
   675:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 /Users/omotayoishola/dev/swiftEv/tests/auth.test.ts
-  134:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/backend/kyc-rbac-security.test.ts
+   33:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/backend/orders-checkout-engine.test.ts
+  51:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/backend/vehicles-lifecycle.test.ts
+   65:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  332:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  341:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/backend/wallet-ledger.test.ts
+  38:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 /Users/omotayoishola/dev/swiftEv/tests/bids.test.ts
     9:7   warning  'adminToken' is assigned a value but never used  @typescript-eslint/no-unused-vars
@@ -149,6 +133,25 @@
   242:16  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
   349:16  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
   392:16  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/e2e/journey-admin-mail-review.test.ts
+  34:11  warning  'buyRes' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/tests/e2e/journey-buy-now-instant-purchase.test.ts
+  73:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/e2e/journey-kyc-verification-flow.test.ts
+  110:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/omotayoishola/dev/swiftEv/tests/e2e/journey-seller-to-buyer-auction.test.ts
+  6:3  warning  'seedTestVehicle' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/omotayoishola/dev/swiftEv/tests/fuel-types.test.ts
+  8:3  warning  'CANONICAL_FUEL_TYPES' is defined but never used  @typescript-eslint/no-unused-vars
 
 /Users/omotayoishola/dev/swiftEv/tests/orders.test.ts
   280:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -170,12 +173,15 @@
   361:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   449:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
+/Users/omotayoishola/dev/swiftEv/tests/vehicle-dedup.test.ts
+  4:3  warning  'cleanText' is defined but never used  @typescript-eslint/no-unused-vars
+
 /Users/omotayoishola/dev/swiftEv/tests/vehicles.test.ts
   257:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   383:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   472:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-✖ 503 problems (0 errors, 503 warnings)
+✖ 600 problems (0 errors, 600 warnings)
   0 errors and 4 warnings potentially fixable with the `--fix` option.
 [... truncated, showing last portion]
 ```
@@ -187,62 +193,55 @@
 
 ### Test Suite Output
 ```
- verifies, and logs in user of type "seller_dealer" with role "seller" [4450.41ms]
-(pass) End-to-End Registration & Auth Suite > Registration Flow Across All Account Types > registers, verifies, and logs in user of type "seller_fleet" with role "seller" [5671.91ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > rejects registration with duplicate email and extracts clear error [3765.19ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > rejects registration with case-insensitive duplicate email [3827.98ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > rejects registration with duplicate phone number [3873.19ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > allows multiple registrations with empty or whitespace phone numbers [3795.67ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > rejects registration when terms are not accepted [1127.68ms]
-(pass) End-to-End Registration & Auth Suite > Registration Input Validation & Error Handling > rejects registration with password shorter than 8 characters [415.36ms]
-(pass) End-to-End Registration & Auth Suite > getAuthErrorMessage Helper Robustness > correctly parses error from ConvexError data payload [0.16ms]
-(pass) End-to-End Registration & Auth Suite > getAuthErrorMessage Helper Robustness > correctly strips [CONVEX ...] prefix from direct error messages [0.14ms]
-(pass) End-to-End Registration & Auth Suite > getAuthErrorMessage Helper Robustness > returns fallback when error message contains Server Error without data payload [0.06ms]
-(pass) End-to-End Registration & Auth Suite > getAuthErrorMessage Helper Robustness > handles plain string errors [0.06ms]
+y Management (In-Memory Hermetic) > seller uploads vehicle -> pending_approval -> admin approves -> status is approved [2.18ms]
+(pass) Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic) > buyer cannot upload vehicle (seller role required) [0.47ms]
+(pass) Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic) > admin rejects pending vehicle with reason [0.77ms]
+(pass) Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic) > catalog management and deduplication allows adding novel make and models with collision prevention [6.87ms]
+(pass) Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic) > vendor can upload vehicles with various canonical and legacy fuel types, and invalid ones are rejected [2.20ms]
+(pass) Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic) > vendor can update vehicle fuel type with normalization and invalid values are rejected [2.21ms]
 
-tests/safe-redirect.test.ts:
-(pass) safe redirect > allows internal paths only [0.19ms]
-(pass) safe redirect > maps roles to home paths [0.08ms]
+tests/backend/auctions-live-engine.test.ts:
+(pass) Backend Live Auction & Bidding Engine (In-Memory Hermetic) > complete live sequential auction lifecycle: create, add lots, start, live bids, proxy bids, auto-advance, winning order [15.41ms]
+(pass) Backend Live Auction & Bidding Engine (In-Memory Hermetic) > timed concurrent auction mode activates all lots in parallel [1.94ms]
+(pass) Backend Live Auction & Bidding Engine (In-Memory Hermetic) > unsold lot transitions vehicle status to unsold and handles no bids [1.43ms]
 
-tests/admin-live-control-center.test.ts:
-(pass) Admin Live Control Center > LiveControlCenter UI component file exists [0.21ms]
-(pass) Admin Live Control Center > getLiveControlCenterData requires admin auth and returns control center data [1293.37ms]
-(pass) Admin Live Control Center > setCurrentActiveLot fails for non-admin user [0.51ms]
-(pass) Admin Live Control Center > extendLotTime fails for non-admin user [0.25ms]
-(pass) Admin Live Control Center > notifyAuctionWinner fails for non-admin user [0.04ms]
+tests/backend/orders-checkout-engine.test.ts:
+(pass) Backend Orders, Checkout, Payments & Logistics Engine (In-Memory Hermetic) > direct Buy-Now purchase -> soft-hold payment_pending -> pay from wallet -> logistics tracking -> gate pass generation [4.60ms]
 
-tests/soft-hold-release.test.ts:
-(pass) soft-hold release policy > admin revoke restores inventory correctly by order kind [0.05ms]
-(pass) soft-hold release policy > classifies order kinds for release [0.04ms]
+tests/ui-forms/admin-live-controls.test.ts:
+(pass) Admin Live Auction Controls & Currency Formatting (Client-Side Logic) > formatCurrency converts NGN amounts to USD, CNY, GBP correctly [0.78ms]
+(pass) Admin Live Auction Controls & Currency Formatting (Client-Side Logic) > membership tier limits enforce daily bids and buying power gates [0.02ms]
 
-tests/buy-now-pricing.test.ts:
-(pass) buy now pricing > sums all-in fees for Lagos destination [0.08ms]
-(pass) buy now pricing > uses higher shipping for Port Harcourt [0.02ms]
-(pass) buy now pricing > client and convex helpers stay in sync [0.03ms]
-(pass) buy now pricing > tiered service fee matches order creation bands [0.01ms]
+tests/ui-forms/vendor-vehicle-wizard.test.ts:
+(pass) Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic) > sanitizes standard EV vehicle submission payload [0.04ms]
+(pass) Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic) > handles custom make and custom battery type fields when 'Other' selected [0.02ms]
+(pass) Vendor Vehicle Listing Wizard Form Actions (Client-Side Logic) > validates newly added models dynamically without static catalog mismatch [0.23ms]
 
-tests/purchase-flow.test.ts:
-(pass) purchase flow helpers > treats only pending and active lots as holding a vehicle [0.04ms]
-(pass) purchase flow helpers > allows auction buy now only before a scheduled auction starts [0.03ms]
-(pass) purchase flow helpers > calculates the 10 percent bid reserve in kobo from a naira bid [0.02ms]
-(pass) purchase flow helpers > resolves buy now price with reserve and starting bid fallbacks [0.09ms]
-(pass) purchase flow helpers > marks approved vehicles without a holding lot as buy-now purchasable [0.03ms]
-(pass) purchase flow helpers > soft-hold payment_pending is not buy-now purchasable [0.01ms]
+tests/ui-forms/checkout-payment-panel.test.ts:
+(pass) Checkout Payment Panel & Pricing Logic (Client-Side Logic) > tiered platform service fee calculations [0.02ms]
+(pass) Checkout Payment Panel & Pricing Logic (Client-Side Logic) > calculates comprehensive Buy Now all-in checkout breakdown [0.03ms]
+(pass) Checkout Payment Panel & Pricing Logic (Client-Side Logic) > destination label parser extracts valid port keys [0.02ms]
 
-tests/check-db.test.ts:
-(pass) Database Check > check what password hashes are actually stored [809.22ms]
+tests/ui-forms/auth-forms.test.ts:
+(pass) UI Form Actions & Auth Validation (Client-Side Logic) > getSafeRedirectPath prevents open-redirect vulnerabilities [0.04ms]
+(pass) UI Form Actions & Auth Validation (Client-Side Logic) > getRoleHomePath maps roles to appropriate landing dashboard [0.02ms]
+(pass) UI Form Actions & Auth Validation (Client-Side Logic) > getAuthErrorMessage and getMutationErrorMessage format system errors into user-friendly notices [0.07ms]
+(pass) UI Form Actions & Auth Validation (Client-Side Logic) > enum validators filter out illegitimate payloads [0.04ms]
 
-tests/vehicle-lifecycle.test.ts:
-(pass) vehicle lifecycle > allows the canonical approval and auction flow [0.13ms]
-(pass) vehicle lifecycle > allows buy now holds before direct or scheduled auction sale [0.03ms]
-(pass) vehicle lifecycle > blocks direct status jumps that bypass payment or logistics [0.12ms]
-(pass) vehicle lifecycle > supports re-listing unsold vehicles through scheduled before auction [0.04ms]
-(pass) vehicle lifecycle > supports seller edit re-approval transitions [0.11ms]
-(pass) vehicle lifecycle > supports explicit review, unsold, and terminal branches [0.09ms]
-(pass) vehicle lifecycle > maps order statuses back to vehicle statuses [0.10ms]
-(pass) vehicle lifecycle > keeps soft-held payment_pending vehicles out of public inventory [0.09ms]
-(pass) vehicle lifecycle > allows releasing a soft-hold back to inventory [0.05ms]
-(pass) vehicle lifecycle > revoke/forfeit restores the correct inventory status by soft-hold kind [0.07ms]
+tests/e2e/journey-admin-mail-review.test.ts:
+(pass) E2E Journey: Admin Mail Review System & Interception Safeguard > emails queued during transactions are inspectable, editable, and approvable by admins [3.05ms]
+
+tests/e2e/journey-kyc-verification-flow.test.ts:
+(pass) E2E Journey: KYC Document Verification, Admin Approval & Gated Bidding Flow > unfunded / suspended user is blocked from bidding -> submits KYC -> admin approves -> funds wallet -> bidding enabled [4.58ms]
+
+tests/e2e/journey-seller-to-buyer-auction.test.ts:
+(pass) E2E Journey: Seller Listing to Live Auction Bidding to Checkout & Gate Pass Release > end-to-end multi-actor lifecycle across Seller, Buyer 1, Buyer 2, Admin, and Security Officer [4.51ms]
+
+tests/e2e/journey-dispute-resolution.test.ts:
+(pass) E2E Journey: Buyer Dispute Filing, Evidence Submission & Admin Arbitration > complete dispute lifecycle: order delivery -> dispute filing -> admin evidence review -> resolution refund [2.09ms]
+
+tests/e2e/journey-buy-now-instant-purchase.test.ts:
+(pass) E2E Journey: Direct Buy-Now Instant Purchase & Settlement Flow > complete instant purchase lifecycle with deposit funding and delivery settlement [3.33ms]
 
 70 tests skipped:
 (skip) Bids > placeBid [convex writes blocked] > user can place a bid on active lot
@@ -316,11 +315,11 @@ tests/vehicle-lifecycle.test.ts:
 (skip) Vehicles > approveVehicle [convex writes blocked] > admin cannot approve a vehicle that is not pending approval
 (skip) Vehicles > updateVehicle [convex writes blocked] > vendor can update vehicle with legacy image URLs
 
- 329 pass
+ 975 pass
  70 skip
  0 fail
- 777 expect() calls
-Ran 399 tests across 35 files. [89.38s]
+ 1203 expect() calls
+Ran 1045 tests across 80 files. [141.87s]
 [... truncated, showing last portion]
 ```
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { classifyFailure, backoffMs } from './retry.mjs';
-import { pipelinePaths } from './state.mjs';
+import { pipelinePaths, STAGES } from './state.mjs';
 
 test('provider capacity and network errors are transient', () => {
   for (const tail of [
@@ -28,6 +28,7 @@ test('auth, quota, and model-configuration failures are fatal', () => {
     'authentication required',
     'Invalid API key provided',
     'unknown model: opus-4.8',
+    'The \'gpt-5.6-sol\' model requires a newer version of Codex',
     'quota exceeded for this organization',
     'insufficient credit balance',
   ]) {
@@ -59,7 +60,11 @@ test('backoff grows exponentially and is capped', () => {
 test('every stage prompt carries the trust boundary', () => {
   const paths = pipelinePaths(process.cwd());
   const prompts = fs.readdirSync(paths.prompts).filter((f) => f.endsWith('_prompt.txt'));
-  assert.equal(prompts.length, 6, 'expected six stage prompts');
+  // Derived from the stage list rather than a fixed count, so adding a stage
+  // without its prompt fails here instead of at run time.
+  for (const stage of STAGES) {
+    assert.ok(prompts.includes(`${stage}_prompt.txt`), `no prompt for the ${stage} stage`);
+  }
   for (const name of prompts) {
     const text = fs.readFileSync(path.join(paths.prompts, name), 'utf8');
     assert.match(text, /TRUST BOUNDARY/, `${name} is missing the trust boundary`);

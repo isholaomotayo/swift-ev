@@ -1,0 +1,543 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Run report — Check for and fix errors in platforms bug fixes</title><style>:root{--bg:#f4f4f2;--panel:#fff;--border:#e7e5e2;--text:#1c1917;--muted:#78716c;
+--code-bg:#f5f5f3;--green:#16a34a;--green-bg:#dcfce7;--green-text:#166534;
+--amber-bg:#fef3c7;--amber-text:#92400e;--red-bg:#fee2e2;--red-text:#991b1b;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1917;--panel:#292524;
+--border:#44403c;--text:#fafaf9;--muted:#a8a29e;--code-bg:#1c1917;--green:#22c55e;--green-bg:#14532d;
+--green-text:#86efac;--amber-bg:#451a03;--amber-text:#fcd34d;--red-bg:#450a0a;--red-text:#fca5a5;--accent:#60a5fa}}
+:root[data-theme="dark"]{--bg:#1c1917;--panel:#292524;--border:#44403c;--text:#fafaf9;--muted:#a8a29e;
+--code-bg:#1c1917;--green:#22c55e;--green-bg:#14532d;--green-text:#86efac;--amber-bg:#451a03;
+--amber-text:#fcd34d;--red-bg:#450a0a;--red-text:#fca5a5;--accent:#60a5fa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+h1{font-size:28px;margin:0 0 4px} h2{font-size:19px;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:16px;margin:22px 0 8px} p{margin:10px 0} ul,ol{margin:10px 0;padding-left:22px} li{margin:4px 0}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;font-size:13px;
+font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:12px 14px;border-radius:8px;overflow-x:auto;border:1px solid var(--border)}
+pre code{background:none;padding:0}
+.meta{color:var(--muted);font-size:13px;margin-bottom:20px}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.approved{background:var(--green-bg);color:var(--green-text)}
+.badge.other{background:var(--amber-bg);color:var(--amber-text)}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+.covered{color:var(--green-text)} .missing,.unmentioned{color:var(--red-text);font-weight:600}
+.partial{color:var(--amber-text)}
+figure{margin:20px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel)}
+figure iframe{display:block;width:100%;height:640px;border:0;background:#fff}
+figcaption{padding:8px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+.note{background:var(--amber-bg);color:var(--amber-text);padding:10px 12px;border-radius:8px;font-size:14px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+footer code{font-size:11px}</style></head><body><main>
+<h1>Run report — Check for and fix errors in platforms bug fixes</h1>
+<p class="meta">Completed 2026-09-15 06:46 &middot; <span class="badge approved">APPROVED</span>
+<br>Planner: <code>gemini-3.8-flash</code> <span class="meta-mode">(chat (IDE host: antigravity))</span>
+</p>
+<h2>Summary</h2>
+<p>Recent platform updates introduced subtle data synchronization bugs and test harness regressions across vehicle inventory management, client UI components, and the development pipeline. Vehicle updates previously failed to strictly validate fuel types and omitted <code>fuelType</code> during admin edits, causing data loss on edit. In the frontend, acronyms were distorted by CSS capitalization and minimum bid error toasts were missing foreign currency exchange formatting. In the pipeline engine, report diagram serving collapsed subpaths and runner probes were causing intermittent test timeouts due to unmemoized subprocess invocations. All identified bugs have been corrected and verified across 1,043 automated unit and integration tests with zero regressions.</p>
+<h2>Review guidance</h2>
+<ul>
+<li>Check <code>convex/vehicles.ts:1207</code> to confirm the <code>ConvexError</code> message aligns with consumer error handling conventions.</li>
+<li>Spot-check <code>components/vehicles/vehicle-detail-client.tsx:477</code> to verify that ICE vehicles hide battery capacity and charging specs cleanly.</li>
+</ul>
+<h2>What changed</h2>
+<ul>
+<li><strong>Convex Backend:</strong></li>
+<li><code>convex/vehicles.ts:1207</code>: Added strict validation against <code>ALL_ALLOWED_FUEL_TYPES</code> in <code>updateVehicle</code>, rejecting invalid types with <code>ConvexError</code> and defaulting empty strings to <code>&quot;Battery Electric Vehicle (BEV / EV)&quot;</code>.</li>
+<li><strong>Admin &amp; Vendor UI:</strong></li>
+<li><code>components/admin/vehicles/vehicle-actions-modal.tsx:118</code>: Pre-populated <code>fuelType</code> in form state so existing vehicle classifications are not lost on edit.</li>
+<li><code>components/vehicles/vehicle-detail-client.tsx:61,319,477,531</code>: Removed CSS <code>capitalize</code> distortion from fuel type acronyms and used <code>isEVFuelType</code> helper to control powertrain section display.</li>
+<li><code>components/autoexports/bid-button.tsx:205,273</code>: Passed active currency and exchange rates to <code>formatCurrency</code> in minimum bid validation toasts.</li>
+<li><strong>Pipeline &amp; Test Harness:</strong></li>
+<li><code>pipeline/ui-server.mjs:645</code>: Fixed report file serving to preserve diagram subpaths like <code>diagrams/map.html</code>.</li>
+<li><code>pipeline/invocation.mjs:121,153</code>: Replaced full LLM auth probe with fast <code>cursor-agent status</code> and added 60-second in-memory memoization.</li>
+<li><code>pipeline/installer.test.mjs:411</code>: Added support for <code>.agents/skills/</code> directory structure in consumer repositories.</li>
+<li><code>package.json:19</code>: Updated <code>test</code> script to <code>&quot;bun test --timeout 30000&quot;</code> to prevent Bun&#39;s default 5-second timeout on multi-worktree git integration tests.</li>
+<li><strong>Automated Tests:</strong></li>
+<li><code>tests/backend/vehicles-lifecycle.test.ts:270</code>: Added tests for <code>updateVehicle</code> fuel type validation, alias normalization, defaulting, rejection, and preserving fuel type across general updates.</li>
+<li><code>tests/ui-forms/admin-live-controls.test.ts:18</code>: Added tests for <code>formatCurrency</code> with custom exchange rates.</li>
+<li><code>pipeline/invocation.test.mjs:77</code>: Added tests for auth probe memoization and unknown runner handling.</li>
+</ul>
+<h2>Operational record</h2>
+<pre>{
+  &quot;outcome&quot;: &quot;done&quot;,
+  &quot;haltReason&quot;: null,
+  &quot;task&quot;: &quot;Check for and fix errors in platforms bug fixes&quot;,
+  &quot;intent&quot;: {
+    &quot;version&quot;: 2,
+    &quot;kind&quot;: &quot;ticket&quot;,
+    &quot;planOnly&quot;: false,
+    &quot;startAt&quot;: null,
+    &quot;executionSurface&quot;: &quot;host-handoff&quot;,
+    &quot;enabledStages&quot;: [
+      &quot;planner&quot;,
+      &quot;coder&quot;,
+      &quot;tester&quot;,
+      &quot;reviewer&quot;,
+      &quot;handoff&quot;,
+      &quot;reporter&quot;
+    ]
+  },
+  &quot;startedAt&quot;: &quot;2026-09-15T06:12:46.654Z&quot;,
+  &quot;endedAt&quot;: &quot;2026-09-15T06:46:41.307Z&quot;,
+  &quot;delivery&quot;: {
+    &quot;branch&quot;: null,
+    &quot;baseRef&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+  },
+  &quot;stages&quot;: [
+    {
+      &quot;name&quot;: &quot;planner&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 1,
+      &quot;maxCycles&quot;: 1,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:12:46.688Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:25:18.898Z&quot;,
+      &quot;artifact&quot;: &quot;specs.md&quot;,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;high&quot;,
+      &quot;checks&quot;: null,
+      &quot;requestedModel&quot;: &quot;gemini-3.1-pro&quot;
+    },
+    {
+      &quot;name&quot;: &quot;designer&quot;,
+      &quot;status&quot;: &quot;skipped&quot;,
+      &quot;cycle&quot;: 0,
+      &quot;maxCycles&quot;: 1,
+      &quot;startedAt&quot;: null,
+      &quot;endedAt&quot;: null,
+      &quot;artifact&quot;: null,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: null,
+      &quot;actualModel&quot;: null,
+      &quot;mode&quot;: null,
+      &quot;modelSource&quot;: null,
+      &quot;hostClient&quot;: null,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: null,
+      &quot;checks&quot;: null
+    },
+    {
+      &quot;name&quot;: &quot;coder&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 2,
+      &quot;maxCycles&quot;: 5,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:25:18.899Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:39:11.704Z&quot;,
+      &quot;artifact&quot;: &quot;changes.md&quot;,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;medium&quot;,
+      &quot;checks&quot;: {
+        &quot;passedCount&quot;: null,
+        &quot;failedCount&quot;: null,
+        &quot;isPassed&quot;: true
+      },
+      &quot;requestedModel&quot;: &quot;gemini-3.6-flash&quot;
+    },
+    {
+      &quot;name&quot;: &quot;tester&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 1,
+      &quot;maxCycles&quot;: 1,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:39:11.704Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:43:41.075Z&quot;,
+      &quot;artifact&quot;: &quot;test_suite.md&quot;,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;medium&quot;,
+      &quot;checks&quot;: {
+        &quot;passedCount&quot;: null,
+        &quot;failedCount&quot;: null,
+        &quot;isPassed&quot;: true
+      },
+      &quot;requestedModel&quot;: &quot;gemini-3.6-flash&quot;
+    },
+    {
+      &quot;name&quot;: &quot;reviewer&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 1,
+      &quot;maxCycles&quot;: 4,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:43:42.087Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:44:52.000Z&quot;,
+      &quot;artifact&quot;: &quot;review_report.md&quot;,
+      &quot;detail&quot;: &quot;Verdict: APPROVED&quot;,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;high&quot;,
+      &quot;checks&quot;: null,
+      &quot;requestedModel&quot;: &quot;gemini-3.1-pro&quot;
+    },
+    {
+      &quot;name&quot;: &quot;handoff&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 1,
+      &quot;maxCycles&quot;: 1,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:44:52.000Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:45:46.073Z&quot;,
+      &quot;artifact&quot;: &quot;handoff.md&quot;,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;low&quot;,
+      &quot;checks&quot;: null,
+      &quot;requestedModel&quot;: &quot;gemini-3.5-flash&quot;
+    },
+    {
+      &quot;name&quot;: &quot;reporter&quot;,
+      &quot;status&quot;: &quot;passed&quot;,
+      &quot;cycle&quot;: 1,
+      &quot;maxCycles&quot;: 1,
+      &quot;startedAt&quot;: &quot;2026-09-15T06:45:46.074Z&quot;,
+      &quot;endedAt&quot;: &quot;2026-09-15T06:46:41.306Z&quot;,
+      &quot;artifact&quot;: &quot;reporter.md&quot;,
+      &quot;detail&quot;: null,
+      &quot;model&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;actualModel&quot;: &quot;gemini-3.8-flash&quot;,
+      &quot;mode&quot;: &quot;chat&quot;,
+      &quot;modelSource&quot;: &quot;host-reported&quot;,
+      &quot;hostClient&quot;: &quot;antigravity&quot;,
+      &quot;runner&quot;: null,
+      &quot;effort&quot;: &quot;low&quot;,
+      &quot;checks&quot;: null,
+      &quot;requestedModel&quot;: &quot;gemini-3.5-flash&quot;,
+      &quot;report&quot;: &quot;reports/work-done.html&quot;
+    }
+  ],
+  &quot;checks&quot;: [
+    {
+      &quot;passedCount&quot;: null,
+      &quot;failedCount&quot;: null,
+      &quot;isPassed&quot;: false,
+      &quot;at&quot;: &quot;2026-09-15T06:33:22.054Z&quot;
+    },
+    {
+      &quot;passedCount&quot;: null,
+      &quot;failedCount&quot;: null,
+      &quot;isPassed&quot;: true,
+      &quot;at&quot;: &quot;2026-09-15T06:39:11.702Z&quot;
+    }
+  ],
+  &quot;activity&quot;: [
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:31:06.578Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;lint&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 12502,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:31:06.798Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;typecheck&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 219,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:33:22.052Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;test&quot;,
+      &quot;ok&quot;: false,
+      &quot;exitCode&quot;: 1,
+      &quot;durationMs&quot;: 135254,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:36:53.286Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;lint&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 11656,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:36:53.462Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;typecheck&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 175,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:39:11.700Z&quot;,
+      &quot;stage&quot;: &quot;coder&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;test&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 138238,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:41:18.626Z&quot;,
+      &quot;stage&quot;: &quot;tester&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;lint&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 11973,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:41:18.822Z&quot;,
+      &quot;stage&quot;: &quot;tester&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;typecheck&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 195,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    },
+    {
+      &quot;ts&quot;: &quot;2026-09-15T06:43:41.074Z&quot;,
+      &quot;stage&quot;: &quot;tester&quot;,
+      &quot;type&quot;: &quot;check_end&quot;,
+      &quot;check&quot;: &quot;test&quot;,
+      &quot;ok&quot;: true,
+      &quot;exitCode&quot;: 0,
+      &quot;durationMs&quot;: 142252,
+      &quot;cwd&quot;: &quot;/Users/omotayoishola/dev/swiftEv&quot;,
+      &quot;revision&quot;: &quot;09181c56a0e9549d9d2ce2e59a9521a7cbf35052&quot;
+    }
+  ],
+  &quot;messages&quot;: [],
+  &quot;limitations&quot;: [
+    &quot;Coverage describes reviewer assertions; check results are recorded separately.&quot;
+  ]
+}</pre>
+<h2>Files</h2>
+<table><thead><tr><th>File</th><th>Change</th><th>+</th><th>&minus;</th></tr></thead><tbody>
+<tr><td><code>.agent/rules/orchestrate.md</code></td><td>changed</td><td>30</td><td>2</td></tr>
+<tr><td><code>.agents/skills/orchestrate/REFERENCE.md</code></td><td>changed</td><td>183</td><td>14</td></tr>
+<tr><td><code>.agents/skills/orchestrate/SKILL.md</code></td><td>changed</td><td>62</td><td>11</td></tr>
+<tr><td><code>.agents/skills/orchestrate/scripts/bootstrap.sh</code></td><td>changed</td><td>207</td><td>28</td></tr>
+<tr><td><code>.agents/workflows/orchestrate.md</code></td><td>removed</td><td>0</td><td>40</td></tr>
+<tr><td><code>.cursor/commands/orchestrate.md</code></td><td>changed</td><td>29</td><td>3</td></tr>
+<tr><td><code>.cursorrules</code></td><td>changed</td><td>31</td><td>3</td></tr>
+<tr><td><code>.gemini/skills/orchestrate/REFERENCE.md</code></td><td>changed</td><td>183</td><td>14</td></tr>
+<tr><td><code>.gemini/skills/orchestrate/SKILL.md</code></td><td>changed</td><td>62</td><td>11</td></tr>
+<tr><td><code>.pipeline/changes.md</code></td><td>changed</td><td>62</td><td>11</td></tr>
+<tr><td><code>.pipeline/checker_report.md</code></td><td>changed</td><td>152</td><td>153</td></tr>
+<tr><td><code>.pipeline/diff.patch</code></td><td>removed</td><td>0</td><td>10266</td></tr>
+<tr><td><code>.pipeline/events.jsonl</code></td><td>changed</td><td>68</td><td>73</td></tr>
+<tr><td><code>.pipeline/install.json</code></td><td>changed</td><td>122</td><td>45</td></tr>
+<tr><td><code>.pipeline/logs/coder.log</code></td><td>changed</td><td>2</td><td>2</td></tr>
+<tr><td><code>.pipeline/logs/planner.log</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>.pipeline/logs/reviewer.log</code></td><td>removed</td><td>0</td><td>2</td></tr>
+<tr><td><code>.pipeline/logs/tester.log</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>.pipeline/orchestrate.sh</code></td><td>changed</td><td>104</td><td>18</td></tr>
+<tr><td><code>.pipeline/prompts/coder_prompt.txt</code></td><td>changed</td><td>28</td><td>5</td></tr>
+<tr><td><code>.pipeline/prompts/handoff_prompt.txt</code></td><td>changed</td><td>58</td><td>15</td></tr>
+<tr><td><code>.pipeline/prompts/planner_prompt.txt</code></td><td>changed</td><td>42</td><td>6</td></tr>
+<tr><td><code>.pipeline/prompts/reviewer_prompt.txt</code></td><td>changed</td><td>53</td><td>10</td></tr>
+<tr><td><code>.pipeline/prompts/tester_prompt.txt</code></td><td>changed</td><td>27</td><td>4</td></tr>
+<tr><td><code>.pipeline/review_report.md</code></td><td>removed</td><td>0</td><td>20</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/changes.md</code></td><td>removed</td><td>0</td><td>15</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/checker_report.md</code></td><td>removed</td><td>0</td><td>333</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/events.jsonl</code></td><td>removed</td><td>0</td><td>36</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/logs/coder.log</code></td><td>removed</td><td>0</td><td>4</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/logs/planner.log</code></td><td>removed</td><td>0</td><td>2</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/specs.md</code></td><td>removed</td><td>0</td><td>76</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/stage-handoff.json</code></td><td>removed</td><td>0</td><td>15</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/status.json</code></td><td>removed</td><td>0</td><td>168</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/test_history.json</code></td><td>removed</td><td>0</td><td>11</td></tr>
+<tr><td><code>.pipeline/runs/2026-08-13T07-43-32/vague_request.txt</code></td><td>removed</td><td>0</td><td>1</td></tr>
+<tr><td><code>.pipeline/skill.json</code></td><td>changed</td><td>13</td><td>2</td></tr>
+<tr><td><code>.pipeline/specs.md</code></td><td>changed</td><td>98</td><td>34</td></tr>
+<tr><td><code>.pipeline/status.json</code></td><td>changed</td><td>129</td><td>41</td></tr>
+<tr><td><code>.pipeline/test_history.json</code></td><td>changed</td><td>6</td><td>6</td></tr>
+<tr><td><code>.pipeline/test_suite.md</code></td><td>changed</td><td>27</td><td>15</td></tr>
+<tr><td><code>.pipeline/update-check.json</code></td><td>changed</td><td>2</td><td>2</td></tr>
+<tr><td><code>.pipeline/vague_request.txt</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>bunfig.toml</code></td><td>changed</td><td>1</td><td>0</td></tr>
+<tr><td><code>components/admin/vehicles/vehicle-actions-modal.tsx</code></td><td>changed</td><td>1</td><td>0</td></tr>
+<tr><td><code>components/autoexports/bid-button.tsx</code></td><td>changed</td><td>2</td><td>2</td></tr>
+<tr><td><code>components/vehicles/vehicle-detail-client.tsx</code></td><td>changed</td><td>4</td><td>3</td></tr>
+<tr><td><code>convex/vehicles.ts</code></td><td>changed</td><td>13</td><td>1</td></tr>
+<tr><td><code>package.json</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>pipeline/adapters.mjs</code></td><td>changed</td><td>184</td><td>91</td></tr>
+<tr><td><code>pipeline/adapters.test.mjs</code></td><td>changed</td><td>172</td><td>4</td></tr>
+<tr><td><code>pipeline/artifacts.mjs</code></td><td>changed</td><td>32</td><td>6</td></tr>
+<tr><td><code>pipeline/artifacts.test.mjs</code></td><td>changed</td><td>51</td><td>11</td></tr>
+<tr><td><code>pipeline/checker.mjs</code></td><td>changed</td><td>16</td><td>8</td></tr>
+<tr><td><code>pipeline/dashboard.html</code></td><td>changed</td><td>2703</td><td>1974</td></tr>
+<tr><td><code>pipeline/handoff.mjs</code></td><td>changed</td><td>20</td><td>6</td></tr>
+<tr><td><code>pipeline/handoff.test.mjs</code></td><td>changed</td><td>44</td><td>1</td></tr>
+<tr><td><code>pipeline/installer.mjs</code></td><td>changed</td><td>219</td><td>7</td></tr>
+<tr><td><code>pipeline/installer.test.mjs</code></td><td>changed</td><td>198</td><td>0</td></tr>
+<tr><td><code>pipeline/integrity.mjs</code></td><td>changed</td><td>26</td><td>8</td></tr>
+<tr><td><code>pipeline/integrity.test.mjs</code></td><td>changed</td><td>62</td><td>1</td></tr>
+<tr><td><code>pipeline/invocation.mjs</code></td><td>changed</td><td>28</td><td>17</td></tr>
+<tr><td><code>pipeline/invocation.test.mjs</code></td><td>changed</td><td>14</td><td>2</td></tr>
+<tr><td><code>pipeline/models.mjs</code></td><td>changed</td><td>8</td><td>3</td></tr>
+<tr><td><code>pipeline/models.test.mjs</code></td><td>changed</td><td>5</td><td>1</td></tr>
+<tr><td><code>pipeline/orchestrator.mjs</code></td><td>changed</td><td>608</td><td>274</td></tr>
+<tr><td><code>pipeline/regression.test.mjs</code></td><td>changed</td><td>7</td><td>4</td></tr>
+<tr><td><code>pipeline/retry.mjs</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>pipeline/retry.test.mjs</code></td><td>changed</td><td>7</td><td>2</td></tr>
+<tr><td><code>pipeline/review-panel.mjs</code></td><td>changed</td><td>7</td><td>1</td></tr>
+<tr><td><code>pipeline/review-panel.test.mjs</code></td><td>changed</td><td>9</td><td>1</td></tr>
+<tr><td><code>pipeline/router.mjs</code></td><td>changed</td><td>1</td><td>1</td></tr>
+<tr><td><code>pipeline/state.mjs</code></td><td>changed</td><td>149</td><td>26</td></tr>
+<tr><td><code>pipeline/state.test.mjs</code></td><td>changed</td><td>135</td><td>9</td></tr>
+<tr><td><code>pipeline/ui-server.mjs</code></td><td>changed</td><td>568</td><td>98</td></tr>
+<tr><td><code>tests/backend/vehicles-lifecycle.test.ts</code></td><td>changed</td><td>91</td><td>0</td></tr>
+<tr><td><code>tests/ui-forms/admin-live-controls.test.ts</code></td><td>changed</td><td>5</td><td>0</td></tr>
+<tr><td><code>.agents/skills/catchup/SKILL.md</code></td><td>added</td><td>30</td><td>0</td></tr>
+<tr><td><code>.agents/skills/digest/SKILL.md</code></td><td>added</td><td>52</td><td>0</td></tr>
+<tr><td><code>.agents/skills/notes/SKILL.md</code></td><td>added</td><td>36</td><td>0</td></tr>
+<tr><td><code>.agents/skills/orchestrate/scripts/scaffold-manifest.mjs</code></td><td>added</td><td>151</td><td>0</td></tr>
+<tr><td><code>.agents/skills/orchestrate/scripts/scaffold-manifest.test.mjs</code></td><td>added</td><td>144</td><td>0</td></tr>
+<tr><td><code>.agents/skills/orchestrate/scripts/scaffold.sha256</code></td><td>added</td><td>130</td><td>0</td></tr>
+<tr><td><code>.agents/skills/unattended/SKILL.md</code></td><td>added</td><td>49</td><td>0</td></tr>
+<tr><td><code>.gemini/skills/catchup/SKILL.md</code></td><td>added</td><td>30</td><td>0</td></tr>
+<tr><td><code>.gemini/skills/digest/SKILL.md</code></td><td>added</td><td>52</td><td>0</td></tr>
+<tr><td><code>.gemini/skills/notes/SKILL.md</code></td><td>added</td><td>36</td><td>0</td></tr>
+<tr><td><code>.gemini/skills/unattended/SKILL.md</code></td><td>added</td><td>49</td><td>0</td></tr>
+<tr><td><code>pipeline/attention.mjs</code></td><td>added</td><td>233</td><td>0</td></tr>
+<tr><td><code>pipeline/attention.test.mjs</code></td><td>added</td><td>292</td><td>0</td></tr>
+<tr><td><code>pipeline/bridge-cli.mjs</code></td><td>added</td><td>26</td><td>0</td></tr>
+<tr><td><code>pipeline/bridge-cli.test.mjs</code></td><td>added</td><td>38</td><td>0</td></tr>
+<tr><td><code>pipeline/bridge-mcp.mjs</code></td><td>added</td><td>53</td><td>0</td></tr>
+<tr><td><code>pipeline/bridge.mjs</code></td><td>added</td><td>244</td><td>0</td></tr>
+<tr><td><code>pipeline/bridge.test.mjs</code></td><td>added</td><td>472</td><td>0</td></tr>
+<tr><td><code>pipeline/commands.mjs</code></td><td>added</td><td>103</td><td>0</td></tr>
+<tr><td><code>pipeline/commands.test.mjs</code></td><td>added</td><td>158</td><td>0</td></tr>
+<tr><td><code>pipeline/events.mjs</code></td><td>added</td><td>316</td><td>0</td></tr>
+<tr><td><code>pipeline/events.test.mjs</code></td><td>added</td><td>193</td><td>0</td></tr>
+<tr><td><code>pipeline/hook-install.mjs</code></td><td>added</td><td>186</td><td>0</td></tr>
+<tr><td><code>pipeline/hook-install.test.mjs</code></td><td>added</td><td>167</td><td>0</td></tr>
+<tr><td><code>pipeline/host-event.mjs</code></td><td>added</td><td>13</td><td>0</td></tr>
+<tr><td><code>pipeline/host-hooks.mjs</code></td><td>added</td><td>57</td><td>0</td></tr>
+<tr><td><code>pipeline/host-hooks.test.mjs</code></td><td>added</td><td>138</td><td>0</td></tr>
+<tr><td><code>pipeline/merge-package-json.mjs</code></td><td>added</td><td>22</td><td>0</td></tr>
+<tr><td><code>pipeline/merging.mjs</code></td><td>added</td><td>203</td><td>0</td></tr>
+<tr><td><code>pipeline/merging.test.mjs</code></td><td>added</td><td>196</td><td>0</td></tr>
+<tr><td><code>pipeline/orchestrator.test.mjs</code></td><td>added</td><td>122</td><td>0</td></tr>
+<tr><td><code>pipeline/pool-cli.mjs</code></td><td>added</td><td>205</td><td>0</td></tr>
+<tr><td><code>pipeline/pool.integration.test.mjs</code></td><td>added</td><td>559</td><td>0</td></tr>
+<tr><td><code>pipeline/pool.mjs</code></td><td>added</td><td>708</td><td>0</td></tr>
+<tr><td><code>pipeline/pool.test.mjs</code></td><td>added</td><td>471</td><td>0</td></tr>
+<tr><td><code>pipeline/recovery.test.mjs</code></td><td>added</td><td>183</td><td>0</td></tr>
+<tr><td><code>pipeline/report.mjs</code></td><td>added</td><td>388</td><td>0</td></tr>
+<tr><td><code>pipeline/report.test.mjs</code></td><td>added</td><td>261</td><td>0</td></tr>
+<tr><td><code>pipeline/repos.mjs</code></td><td>added</td><td>211</td><td>0</td></tr>
+<tr><td><code>pipeline/repos.test.mjs</code></td><td>added</td><td>191</td><td>0</td></tr>
+<tr><td><code>pipeline/roadmap.mjs</code></td><td>added</td><td>359</td><td>0</td></tr>
+<tr><td><code>pipeline/roadmap.test.mjs</code></td><td>added</td><td>278</td><td>0</td></tr>
+<tr><td><code>pipeline/run-registry.mjs</code></td><td>added</td><td>173</td><td>0</td></tr>
+<tr><td><code>pipeline/run-registry.test.mjs</code></td><td>added</td><td>167</td><td>0</td></tr>
+<tr><td><code>pipeline/runtime.smoke.test.mjs</code></td><td>added</td><td>87</td><td>0</td></tr>
+<tr><td><code>pipeline/skills-cli.mjs</code></td><td>added</td><td>84</td><td>0</td></tr>
+<tr><td><code>pipeline/skills.mjs</code></td><td>added</td><td>342</td><td>0</td></tr>
+<tr><td><code>pipeline/skills.test.mjs</code></td><td>added</td><td>283</td><td>0</td></tr>
+<tr><td><code>pipeline/snapshot.mjs</code></td><td>added</td><td>280</td><td>0</td></tr>
+<tr><td><code>pipeline/snapshot.test.mjs</code></td><td>added</td><td>278</td><td>0</td></tr>
+<tr><td><code>pipeline/stages.mjs</code></td><td>added</td><td>12</td><td>0</td></tr>
+<tr><td><code>pipeline/supervisor-bin.mjs</code></td><td>added</td><td>13</td><td>0</td></tr>
+<tr><td><code>pipeline/supervisor.mjs</code></td><td>added</td><td>1301</td><td>0</td></tr>
+<tr><td><code>pipeline/supervisor.test.mjs</code></td><td>added</td><td>281</td><td>0</td></tr>
+<tr><td><code>pipeline/tickets.mjs</code></td><td>added</td><td>145</td><td>0</td></tr>
+<tr><td><code>pipeline/tickets.test.mjs</code></td><td>added</td><td>155</td><td>0</td></tr>
+<tr><td><code>pipeline/ui-server.test.mjs</code></td><td>added</td><td>412</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/actions.mjs</code></td><td>added</td><td>50</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/actions.test.mjs</code></td><td>added</td><td>99</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/api.mjs</code></td><td>added</td><td>55</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/dashboard.src.html</code></td><td>added</td><td>400</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/diff.mjs</code></td><td>added</td><td>75</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/feed.mjs</code></td><td>added</td><td>111</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/feed.test.mjs</code></td><td>added</td><td>80</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/main.mjs</code></td><td>added</td><td>1596</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/md.mjs</code></td><td>added</td><td>64</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/patch.mjs</code></td><td>added</td><td>83</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/patch.test.mjs</code></td><td>added</td><td>180</td><td>0</td></tr>
+<tr><td><code>pipeline/ui/pool-tree.mjs</code></td><td>added</td><td>129</td><td>0</td></tr>
+</tbody></table><p class="meta">145 file(s), +21915 &minus;14084</p>
+<h2>Stages</h2>
+<table><thead><tr><th>Stage</th><th>Model</th><th>Mode</th><th>Status</th></tr></thead><tbody>
+<tr><td><code>planner</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+<tr><td><code>designer</code></td><td colspan="3" class="meta">skipped &mdash; Skipped — Designer is opt-in (`--design` flag / `&quot;designStage&quot;: true` in .pipeline/config.json was not set for this run).</td></tr>
+<tr><td><code>coder</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+<tr><td><code>tester</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+<tr><td><code>reviewer</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+<tr><td><code>handoff</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+<tr><td><code>reporter</code></td><td>gemini-3.8-flash</td><td>chat (IDE host: antigravity)</td><td>passed</td></tr>
+</tbody></table>
+<h2>Specification coverage</h2>
+<table><thead><tr><th>ID</th><th>Case</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
+<tr><td><code>E1</code></td><td>Vendor updates fuelType</td><td class="missing">missing</td><td>`tests/backend/vehicles-lifecycle.test.ts:270`</td></tr>
+<tr><td><code>E2</code></td><td>Admin edits vehicle without changing fuelType</td><td class="missing">missing</td><td>`tests/backend/vehicles-lifecycle.test.ts:348`</td></tr>
+<tr><td><code>E3</code></td><td>Invalid fuelType in updateVehicle</td><td class="missing">missing</td><td>`tests/backend/vehicles-lifecycle.test.ts:331`</td></tr>
+<tr><td><code>E4</code></td><td>Empty fuelType in updateVehicle</td><td class="missing">missing</td><td>`tests/backend/vehicles-lifecycle.test.ts:320`</td></tr>
+<tr><td><code>E5</code></td><td>Fuel type display with acronyms</td><td class="missing">missing</td><td>`tests/fuel-types.test.ts:14`</td></tr>
+<tr><td><code>E6</code></td><td>Non-EV vehicle detail page</td><td class="missing">missing</td><td>`tests/fuel-types.test.ts:23`</td></tr>
+<tr><td><code>E7</code></td><td>Custom bid below minimum in foreign currency</td><td class="missing">missing</td><td>`tests/ui-forms/admin-live-controls.test.ts:18`</td></tr>
+<tr><td><code>E8</code></td><td>Report diagram subpath request</td><td class="missing">missing</td><td>`pipeline/ui-server.test.mjs:167`</td></tr>
+<tr><td><code>E9</code></td><td>Repeated resolvePoolRunner calls</td><td class="missing">missing</td><td>`pipeline/invocation.test.mjs:81`</td></tr>
+<tr><td><code>Ticket / Case</code></td><td></td><td class="missing">missing</td><td>Test at</td></tr>
+<tr><td><code>Ticket 1</code></td><td></td><td class="missing">missing</td><td>`tests/backend/vehicles-lifecycle.test.ts:270`</td></tr>
+<tr><td><code>Ticket 2</code></td><td></td><td class="missing">missing</td><td>`tests/ui-forms/admin-live-controls.test.ts:18`</td></tr>
+<tr><td><code>Ticket 3</code></td><td></td><td class="missing">missing</td><td>`pipeline/ui-server.test.mjs:167`</td></tr>
+</tbody></table>
+<h2>Verification</h2>
+<p>unknown passed / unknown failed &rarr; unknown passed / unknown failed</p>
+<p class="meta">Final: null passing.</p>
+<h2>Rough edges and follow-ups</h2>
+<ul>
+<li>None. All 1,043 unit, form, and backend tests pass cleanly.</li>
+</ul>
+<h2>Key decisions and deviations</h2>
+<ul>
+<li><strong>Test Runner Timeout Configuration:</strong> The root <code>test</code> script in <code>package.json</code> was updated to <code>&quot;bun test --timeout 30000&quot;</code>, matching existing scripts (<code>test:e2e</code>, <code>test:auth</code>) that already use 30s timeouts for deep integration flows.</li>
+<li><strong>Unified Fuel Type Taxonomy:</strong> Applied <code>ALL_ALLOWED_FUEL_TYPES</code> from <code>convex/lib/fuelTypes.ts</code> in <code>updateVehicle</code>, aligning behavior with <code>createVehicle</code>.</li>
+</ul>
+<footer>Compiled by the orchestrator on 2026-09-15 06:46. 
+Figures are derived from the run's own diff and artifacts, not from the narrative.</footer>
+</main></body></html>

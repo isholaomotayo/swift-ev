@@ -5,8 +5,10 @@ Repository: https://github.com/isholaomotayo/orchestrator
 ## Architecture
 
 ```
-Task → Planner → (optional Designer) → Coder ↔ Checker → Tester → Reviewer → Verdict → (optional Handoff)
+Task → Planner → (optional Designer) → Coder ↔ Checker → Tester → Reviewer → Verdict → Handoff → Reporter
 ```
+
+Handoff and Reporter are mandatory: every run reaching `APPROVED` always produces both `handoff.md` (for the next agent) and `reporter.md` / `reports/work-done.html` (for the human who asked for the work). Neither has a flag — there is nothing to opt into.
 
 ## Install via skills CLI
 
@@ -34,6 +36,35 @@ bash skills/orchestrate/scripts/bootstrap.sh
 Copies `.pipeline/`, `pipeline/`, and merges `package.json` scripts from the GitHub repo, then records
 `.pipeline/install.json` (installed commit + a hash of every delivered file).
 
+## Supply-chain integrity
+
+By default, fetches track `master` (`ORCHESTRATOR_REF="master"`) for continuous, zero-friction automatic updates from the official repository, while optional pinned tags are supported via `ORCHESTRATOR_REF=<tag>`. On update, the fetched scaffold is verified against the release manifest before files are copied.
+
+| Property | Why it matters |
+|---|---|
+| The manifest ships **with the skill**, not with the clone | A manifest fetched alongside the code it describes proves nothing — whoever controls the code controls the manifest. `scaffold.sha256` arrives via `npx skills add`, out-of-band from the tree it validates. |
+| The **verifier** also runs from the installed skill | Running the clone's own copy would let a tampered tree approve itself. |
+| Verification happens **before** any fetched code runs | Including before the re-exec into the fetched `installer.mjs`. |
+| Coverage includes **stage prompts** and `package.json` | Prompts steer the agents and npm scripts execute, so both are as security-relevant as engine code. |
+| **Extra** files fail the check too | `npm test` globs `pipeline/*.test.mjs`, so a merely *added* file can execute. |
+| Fails **closed** | A mismatch aborts the install; it never proceeds with a warning. |
+
+Escape hatch, for local development against a fork only:
+`ORCHESTRATOR_REPO` / `ORCHESTRATOR_REF` / `ORCHESTRATOR_MANIFEST` to point at
+your own release, or `--skip-verify` to install unverified (prints a warning).
+
+Cutting a release:
+
+```bash
+npm run release:manifest -- --ref vX.Y.Z   # rehash the tree
+git commit -am "release vX.Y.Z"            # commit the manifest
+git tag vX.Y.Z && git push --tags
+```
+
+The manifest never hashes itself, which is what makes a same-commit pin
+possible — a file cannot contain its own hash, and a commit cannot contain its
+own SHA.
+
 ## Update an installed scaffold
 
 ```bash
@@ -41,18 +72,28 @@ bash .agents/skills/orchestrate/scripts/bootstrap.sh --update   # engine always;
 bash .agents/skills/orchestrate/scripts/bootstrap.sh --force    # also overwrite edited prompts/docs
 ```
 
-`orchestrate.sh` also applies pending updates automatically before a new run (never on `--continue` /
-`--resume`, never while `.pipeline/.lock` is held). Disable with `ORCH_NO_AUTO_UPDATE=1` or
-`"autoUpdate": false` in `.pipeline/config.json`. An edited prompt is never overwritten — the new
+Updates are **explicit by default**. `orchestrate.sh` tells you when one is available but does not
+install it: applying upstream code before a run would let a remote change the engine and the stage
+prompts underneath that run, unattended. Opt in per project with `"autoUpdate": true` in
+`.pipeline/config.json` (then `ORCH_NO_AUTO_UPDATE=1` suppresses it for one run); auto-update never
+runs on `--continue` / `--resume`, nor while `.pipeline/.lock` is held. Either way the fetch is
+pinned and integrity-verified as described above. An edited prompt is never overwritten — the new
 version is written beside it as `<file>.new`. `.pipeline/config.json` and run state are never touched.
 
 ## Direct CLI
 
 ```bash
-bash .pipeline/orchestrate.sh "task description" [--runner ...] [--model-profile auto|manual] [--models JSON] [--approve-plan] [--design] [--handoff] [--sandbox]
+bash .pipeline/orchestrate.sh "task description" [--runner ...] [--model-profile auto|manual] [--models JSON] [--approve-plan] [--design] [--review-panel] [--sandbox]
+bash .pipeline/orchestrate.sh --task-file .pipeline/task.txt [same flags as above]
 bash .pipeline/orchestrate.sh --resume [--extend 5]
 node pipeline/orchestrator.mjs --task "description" --model-profile auto
+node pipeline/orchestrator.mjs --task-file .pipeline/task.txt --model-profile auto
 ```
+
+`--task-file` reads the task text from a file instead of a shell argument.
+Chat-mode hosts should prefer it: it means free-form, user-supplied task text
+never has to be embedded in (and correctly re-quoted within) a shell command
+the agent constructs.
 
 ## New flags and config keys
 
@@ -60,12 +101,13 @@ node pipeline/orchestrator.mjs --task "description" --model-profile auto
 |---|---|---|---|
 | `--approve-plan` | `approvePlan` | `false` | After the Planner produces `specs.md`, halt with status `awaiting_plan_approval` until a human approves (or queues a revision note in `.pipeline/followups/planner.txt`) and resumes with `--continue`. |
 | `--design` | `designStage` | `false` | Run an optional Designer stage between Planner and Coder, producing `.pipeline/design.md`. |
-| `--handoff` | `handoffStage` | `false` | After an `APPROVED` review, run an optional Handoff stage producing `.pipeline/handoff.md`. |
-| `--host-client <name>` | env `PIPELINE_HOST_CLIENT` | auto-detected | Names the IDE chat client hosting the run (`claude`, `cursor`, `codex`, `gemini`, `antigravity`; aliases `agy`, `claude-code`, `cursor-agent`). Implies `--mode chat`, drives dashboard/log attribution (`status.hostClient`, `stage-handoff.json.hostClient`/`hostNote`), and selects environment-aware auto models. |
+| — (mandatory) | — | — | Handoff and Reporter always run after an `APPROVED` review, producing `.pipeline/handoff.md` and `.pipeline/reporter.md`. There is no flag or config key for either — see "Work-done reports" below. |
+| `--host-client <name>` | env `PIPELINE_HOST_CLIENT` | auto-detected | Names the IDE chat client hosting the run (`claude`, `cursor`, `codex`, `antigravity`; aliases `agy`, `gemini`, `claude-code`, `cursor-agent`). Implies `--mode chat`, drives dashboard/log attribution (`status.hostClient`, `stage-handoff.json.hostClient`/`hostNote`), and selects environment-aware auto models. |
 | `--review-panel` | `reviewPanel` | `false` | Replace the single Reviewer with three concurrent read-only lenses (spec/correctness, security, architecture). Verdict is the **strictest** of the three, so a lone security finding cannot be outvoted; per-lens reports land in `.pipeline/review_{correctness,security,architecture}.md`. CLI mode only — a chat host runs one stage at a time. |
 | — | `agentRetries` | `2` | Bounded retries for **transient** agent failures (429/5xx/overloaded/network/timeout) with exponential backoff. Auth, quota, and bad-model failures are fatal and never retried. Set `0` to disable. |
 | — | `stageEffort` | see below | Per-stage reasoning effort. |
 | `--allow-self` | env `ORCH_ALLOW_SELF=1` | off | Override the self-repo guard: without it, targeting the orchestrator SOURCE repository exits with code **3** (markers: `skills/orchestrate/SKILL.md` + `pipeline/orchestrator.mjs`). Consumers installed via bootstrap never trip the guard. |
+| — | `uiIdleTimeoutMs` / env `PIPELINE_UI_IDLE_TIMEOUT_MS` | `3600000` (1h) | The dashboard server runs detached and nothing else ever stops it, so it auto-exits once idle past this many ms with no open browser tab (no requests, no SSE clients) **and** no registered project has a run in flight. Set `0` to disable and keep it running forever. |
 
 The first three also live in `.pipeline/config.json` as top-level booleans and can be enabled by default without passing the flag each run.
 
@@ -84,8 +126,7 @@ Bootstrap installs these into consumers (Antigravity, verified July 2026):
 
 | Path | Purpose |
 |------|---------|
-| `.agents/skills/orchestrate/SKILL.md` | Workspace skill (also the agents-standard skill location) |
-| `.agents/workflows/orchestrate.md` | Workflow — registers `/orchestrate` in Antigravity chat |
+| `.agents/skills/orchestrate/SKILL.md` | Workspace skill — registers `/orchestrate` in Antigravity chat |
 | `.agent/rules/orchestrate.md` | Always-on rule: `--mode chat --host-client antigravity`, never delegate to an external CLI |
 
 ## Per-stage model selection
@@ -99,7 +140,7 @@ Each pipeline stage (Planner, Designer, Coder, Tester, Reviewer, Handoff) can us
 
 **Chat mode:** resolved models are written to `stage-handoff.json` (`model`, `modelNote`). Switch IDE model before each stage (or use your active model, updating `"actualModel"` in `stage-handoff.json` before running `--continue`).
 
-**CLI mode:** `--model` is passed to `claude`, `cursor-agent`, `codex`, and `gemini` subprocesses.
+**CLI mode:** `--model` is passed to `claude`, `cursor-agent`, `codex`, and `agy` (Antigravity) subprocesses. (`gemini` is a deprecated runner alias for `antigravity`.)
 
 Slash command (`/orchestrate`): the IDE agent must ask the model-selection question before calling `orchestrate.sh` — this is the only pre-run user prompt.
 
@@ -110,7 +151,7 @@ Default auto profiles (override in `.pipeline/config.json`):
 | claude | opus-5 | sonnet-5 | opus-5 | haiku-4.5 |
 | cursor | opus-5 | sonnet-5 | opus-5 | haiku-4.5 |
 | codex | gpt-5.6-sol | gpt-5.5 | gpt-5.6-sol | gpt-5.4-mini |
-| gemini / antigravity | gemini-3.1-pro | gemini-3.6-flash | gemini-3.1-pro | gemini-3.5-flash |
+| antigravity (`gemini` alias) | gemini-3.1-pro | gemini-3.6-flash | gemini-3.1-pro | gemini-3.5-flash |
 
 The Reviewer sits on the frontier tier deliberately: its verdict gates the whole
 run, it is read-only, and it runs few times. The Handoff stage is pure
@@ -141,7 +182,7 @@ the identifier it actually accepts, resolved in `pipeline/models.mjs`:
 | `haiku-4.5` | `haiku` | — |
 
 Short aliases are used for `claude` so an auto profile always tracks the newest
-model in that family. `codex` and `gemini` receive the family id unchanged.
+model in that family. `codex` and `antigravity` (`agy`) receive the family id unchanged.
 
 ### Reasoning effort
 
@@ -155,7 +196,7 @@ configurable under `stageEffort` in `.pipeline/config.json`:
 | reviewer | `high` | its verdict gates the run |
 | handoff | `low` | summarisation of existing artifacts |
 
-Effort is delivered per runner: `claude --effort <level>`, `codex -c model_reasoning_effort=<level>`, and — because `cursor-agent` has no effort flag — by selecting the effort-tiered cursor model id (`claude-opus-5-thinking-high`). Chat/host stages receive it as a target in `stage-handoff.json.effort`.
+Effort is delivered per runner: `claude --effort <level>`, `agy --effort <low|medium|high>` (higher tiers collapse to `high`), `codex -c model_reasoning_effort=<level>`, and — because `cursor-agent` has no effort flag — by selecting the effort-tiered cursor model id (`claude-opus-5-thinking-high`). Chat/host stages receive it as a target in `stage-handoff.json.effort`.
 
 ## Integrity guarantees
 
@@ -168,7 +209,7 @@ Two checks run around every stage, independent of which runner executed it:
   the run as `INTEGRITY_VIOLATION`. Without this, the Coder could write its own
   `## Verdict: APPROVED`.
 - **Read-only proof.** Read-only stages have the working tree fingerprinted
-  before and after. `cursor-agent` and `gemini` cannot hard-enforce read-only, so
+  before and after. `cursor-agent` and `agy` cannot hard-enforce read-only, so
   this catches after the fact what their CLIs cannot prevent.
 
 Artifacts are also content-validated rather than size-checked: a review report
@@ -206,3 +247,131 @@ Env heuristics are unreliable across IDEs (TTY checks misfire in IDE-integrated 
 | `.pipeline/skill.json` | `.cursorrules`, `AGENTS.md`, editor rules |
 
 Both use the name `orchestrate` and command `bash .pipeline/orchestrate.sh`.
+
+---
+
+# v2: roadmap mode, skills and reports
+
+## Roadmap and pool commands
+
+```bash
+bash .pipeline/orchestrate.sh --roadmap <file>       # compile and start the supervisor
+bash .pipeline/orchestrate.sh roadmap compile|show
+bash .pipeline/orchestrate.sh roadmap hold|release|skip <featureId>
+bash .pipeline/orchestrate.sh pool start|stop|pause|resume
+bash .pipeline/orchestrate.sh pool status [--json] | digest
+bash .pipeline/orchestrate.sh pool attention [--json] | ack <id>
+bash .pipeline/orchestrate.sh pool decisions [--json]
+bash .pipeline/orchestrate.sh pool claim <runId>                    # pick up a run parked in chat (runner: host)
+bash .pipeline/orchestrate.sh pool decide <decisionId> "<answer>"
+bash .pipeline/orchestrate.sh pool approve-plan <runId>
+bash .pipeline/orchestrate.sh pool approve-merge [featureId] [--note "..."]
+bash .pipeline/orchestrate.sh pool land-roadmap [--note "..."]   # review: end — land the working branch onto base
+bash .pipeline/orchestrate.sh pool retry <featureId>
+bash .pipeline/orchestrate.sh pool request-changes <featureId> "<text>"
+bash .pipeline/orchestrate.sh pool extend <runId> <cycles>
+bash .pipeline/orchestrate.sh pool notes add "<text>" [--kind learning|decision|gotcha]
+```
+
+Exit codes: `0` ok, `1` error, `2` usage, `3` self-target guard, `4` no supervisor running.
+
+## Engine flags added in v2
+
+| Flag | Meaning |
+|---|---|
+| `--run-id <id>` | run state lives in `.pipeline/runs/<id>/` instead of `.pipeline/` |
+| `--worktree <path\|auto>` | isolate this run in its own git worktree (`--sandbox` is now sugar for `auto`) |
+| `--branch <name>` | branch for this run's commits |
+| `--base-ref <sha>` | what the review diff is scoped against (an integration run reviews a whole feature) |
+| `--feature-id`, `--ticket-id` | identity, recorded in `run.json` and the snapshot |
+| `--brief-file <path>` | task text from a brief; the machine header never enters the TASK block |
+| `--specs-file <path>` | start from an existing specification, skipping the Planner |
+| `--changes-file <path>` | seed the Coder artifact (used by integration runs) |
+| `--start-at tester` | begin at verification over work that is already committed |
+| `--plan-only` | run the Planner and stop, producing the specification tickets are sliced from |
+
+Handoff and Reporter are mandatory for every ticket and integration run too — there is no `--report`/`--handoff` flag in pool mode either; `ticketFlags`/`integrationFlags` below now only carry `reviewPanel`.
+
+## Feature and run state
+
+Feature statuses: `queued`, `planning`, `awaiting_plan_approval`, `executing`,
+`integrating`, `reviewing`, `awaiting_merge_approval`, `merge_approved`,
+`merging`, `landed`, `failed`, `held`, `skipped`.
+
+Roadmap frontmatter: `title`, `base`, `merge: pr|local-only`, `review: feature|end`
+(default `feature`). `review: end` accepts each approved feature onto
+`pipeline/roadmap/<slug>` and asks once, at the end, to land that branch onto
+`base` via `pool land-roadmap`.
+
+Run verbs (`.pipeline/runs/<id>/run.status`, append-only): `working`,
+`needs-decision`, `blocked`, `paused`, `held`, `resolved`, `done`, `failed`,
+`landed`, `note`.
+
+Contracts: `orchestrator-roadmap.v1`, `orchestrator-run-meta.v1`,
+`orchestrator-pool-snapshot.v1`.
+
+## Configuration added in v2
+
+```jsonc
+"pool": {
+  "maxParallel": 3,              // tickets running at once within a feature
+  "pollMs": 2000,
+  "heartbeatMs": 300000,
+  "staleAfterMs": 600000,        // quiet this long while "working" is suspicious
+  "staleEscalateMs": 240000,     // still quiet this long after that: tell someone
+  "pauseResurfaceMs": 3600000,   // how often a declared wait is put back in front of you
+  "autoResumeMax": 2,            // transient failures retried without asking
+  "serializeOnFileOverlap": true,
+  "featurePlanApproval": true,
+  "ticketFlags": { "reviewPanel": false },
+  "integrationFlags": { "reviewPanel": true }
+},
+"merge": {
+  "mode": "pr",                  // pr | local-only
+  "remote": "origin",
+  "mergeMethod": "squash",
+  "requireMergeable": true,      // refuse while checks are outstanding
+  "autoMerge": false,            // still performs the live check
+  "cleanupOnMerge": true
+},
+"reports": { "diagrams": true, "archifyTimeoutMs": 120000 },
+"skills": [ /* see below */ ]
+```
+
+## Skills
+
+```jsonc
+"skills": [{
+  "name": "archify",
+  "source": { "type": "local", "path": "~/.claude/skills/archify" },
+  // or  { "type": "git", "repo": "...", "ref": "v2.16.0", "sha256": "<hash of the pin file>" }
+  "stages": ["reporter"],
+  "entry": "SKILL.md",
+  "maxPromptBytes": 32768,
+  "omitSections": ["## Update awareness", "## Setup and fallback"],
+  "tools": [{ "bash": "node {skillDir}/bin/archify.mjs validate" }],
+  "diagrams": {
+    "render":   "node {skillDir}/bin/archify.mjs deliver {type} {spec} {out} --quality showcase --json",
+    "validate": "node {skillDir}/bin/archify.mjs validate {type} {spec} --quality showcase --json",
+    "types": ["architecture", "workflow", "sequence", "dataflow", "lifecycle"],
+    "repoRootFlag": { "architecture": "--repo-root {repoRoot}" }
+  }
+}]
+```
+
+```bash
+node pipeline/skills.mjs list | verify [name] | pin <name>
+```
+
+`pin` records a sha256 of every file in the package. Review a skill before
+pinning it: its text becomes part of your agents' instructions.
+
+## Upgrading from v1
+
+1. Refresh the skill bundle, then `bash .agents/skills/orchestrate/scripts/bootstrap.sh --update`.
+2. `.gitignore` is not managed — copy the v2 block from this repository's
+   `.gitignore` by hand. Without it, worktrees show up as untracked files.
+3. `.pipeline_sandbox/` is legacy. Finish or discard any run using it, delete the
+   directory, and use `--worktree auto` (or nothing) instead of `--sandbox`.
+4. Existing runs, `--continue`, `--resume` and the single-run dashboard are
+   unchanged; a v1 `status.json` still resumes.

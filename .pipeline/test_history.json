@@ -1,16 +1,16 @@
 {
   "coder": [
     {
-      "passedCount": 0,
-      "failedCount": 1,
+      "passedCount": null,
+      "failedCount": null,
       "isPassed": false,
-      "at": "2026-08-13T07:55:02.682Z"
+      "at": "2026-09-15T06:33:22.054Z"
     },
     {
-      "passedCount": 1,
-      "failedCount": 0,
+      "passedCount": null,
+      "failedCount": null,
       "isPassed": true,
-      "at": "2026-08-13T11:46:35.913Z"
+      "at": "2026-09-15T06:39:11.702Z"
     }
   ],
   "postTester": []

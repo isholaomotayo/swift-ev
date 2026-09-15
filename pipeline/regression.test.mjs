@@ -37,12 +37,15 @@ test('[P0-3] https loopback origin on default 443 is rejected against port 4600'
 const base = { systemPrompt: 's', task: 't', config: {}, model: null };
 
 test('[P0-2] no read-only invocation contains an auto-approve/write flag', () => {
-  for (const runner of ['claude', 'cursor', 'codex', 'gemini']) {
+  for (const runner of ['claude', 'cursor', 'codex', 'antigravity', 'gemini']) {
     const inv = buildInvocation({ ...base, runner, readOnly: true });
     const joined = inv.args.join(' ');
     assert.ok(!joined.includes('--force'), `${runner} leaked --force`);
     assert.ok(!joined.includes('--full-auto'), `${runner} leaked --full-auto`);
     assert.ok(!joined.includes('--yolo'), `${runner} leaked --yolo`);
+    if (runner !== 'antigravity') {
+      assert.ok(!joined.includes('--dangerously-skip-permissions'), `${runner} leaked --dangerously-skip-permissions`);
+    }
     assert.ok(!joined.includes('acceptEdits'), `${runner} leaked acceptEdits`);
   }
 });
@@ -73,7 +76,7 @@ test('[P1-1] atomicWrite result is always complete and parseable JSON', () => {
   atomicWrite(file, big);
   const readBack = JSON.parse(fs.readFileSync(file, 'utf8'));
   assert.equal(readBack.overall, 'running');
-  assert.equal(readBack.stages.length, 6);
+  assert.equal(readBack.stages.length, 7);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -107,11 +110,11 @@ test('[P2] mergeModelProfiles overlays config overrides onto defaults', () => {
 
 // ---- newStatus shape guard -------------------------------------------------
 
-test('newStatus initializes a 6-stage running pipeline with coder budget and skipped optionals', () => {
+test('newStatus initializes the full stage list with a coder budget and skipped optionals', () => {
   const s = newStatus('do a thing');
   assert.equal(s.task, 'do a thing');
   assert.equal(s.overall, 'running');
-  assert.deepEqual(s.stages.map((x) => x.name), ['planner', 'designer', 'coder', 'tester', 'reviewer', 'handoff']);
+  assert.deepEqual(s.stages.map((x) => x.name), ['planner', 'designer', 'coder', 'tester', 'reviewer', 'handoff', 'reporter']);
   assert.equal(s.stages.find((x) => x.name === 'coder').maxCycles, 5);
   assert.equal(s.stages.find((x) => x.name === 'designer').status, 'skipped');
 });

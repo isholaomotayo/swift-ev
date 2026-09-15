@@ -1205,7 +1205,19 @@ export const updateVehicle = mutation({
     const normalizedRawUpdates: Record<string, unknown> = { ...rawVehicleUpdates };
 
     if (rawVehicleUpdates.fuelType !== undefined) {
-      normalizedRawUpdates.fuelType = normalizeFuelType(rawVehicleUpdates.fuelType as string);
+      if (typeof rawVehicleUpdates.fuelType === "string" && rawVehicleUpdates.fuelType.trim()) {
+        const trimmed = rawVehicleUpdates.fuelType.trim();
+        const normalized = normalizeFuelType(trimmed);
+        if (
+          !ALL_ALLOWED_FUEL_TYPES.has(trimmed.toLowerCase()) &&
+          !ALL_ALLOWED_FUEL_TYPES.has(normalized.toLowerCase())
+        ) {
+          throw new ConvexError(`Invalid fuel type: "${trimmed}".`);
+        }
+        normalizedRawUpdates.fuelType = normalized;
+      } else {
+        normalizedRawUpdates.fuelType = "Battery Electric Vehicle (BEV / EV)";
+      }
     }
 
     if (rawVehicleUpdates.make === "Other") {

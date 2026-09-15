@@ -115,6 +115,7 @@ export function VehicleActionsModal({
             model,
             year: sourceVehicle.year,
             vin: sourceVehicle.vin,
+            fuelType: sourceVehicle.fuelType || "Battery Electric Vehicle (BEV / EV)",
             lotNumber: sourceVehicle.lotNumber,
             odometer: sourceVehicle.odometer,
             exteriorColor: sourceVehicle.exteriorColor,

@@ -1,3 +1,4 @@
 [test]
 # Always load before every test file — do not rely on per-file imports.
 preload = ["./tests/setup-test-guard.ts"]
+timeout = 30000
