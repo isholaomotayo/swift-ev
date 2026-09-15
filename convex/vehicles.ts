@@ -870,15 +870,18 @@ export const createVehicle = mutation({
       throw new ConvexError("Buy it now price must be greater than or equal to the reserve price.");
     }
 
-    if (vehicleData.fuelType) {
+    if (vehicleData.fuelType && vehicleData.fuelType.trim()) {
       const trimmed = vehicleData.fuelType.trim();
+      const normalized = normalizeFuelType(trimmed);
       if (
         !ALL_ALLOWED_FUEL_TYPES.has(trimmed.toLowerCase()) &&
-        !ALL_ALLOWED_FUEL_TYPES.has(normalizeFuelType(trimmed).toLowerCase())
+        !ALL_ALLOWED_FUEL_TYPES.has(normalized.toLowerCase())
       ) {
-        throw new ConvexError("Invalid fuel type.");
+        throw new ConvexError(`Invalid fuel type: "${trimmed}".`);
       }
-      vehicleData.fuelType = normalizeFuelType(vehicleData.fuelType);
+      vehicleData.fuelType = normalized;
+    } else {
+      vehicleData.fuelType = "Battery Electric Vehicle (BEV / EV)";
     }
 
     if (vehicleData.mediaUploads.length > 30) {

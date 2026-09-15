@@ -170,4 +170,101 @@ describe("Backend Vehicle Lifecycle & Inventory Management (In-Memory Hermetic)"
     });
     expect(checkDup.isDuplicate).toBe(true);
   });
+
+  test("vendor can upload vehicles with various canonical and legacy fuel types, and invalid ones are rejected", async () => {
+    const t = createTestHarness();
+    const seller = await seedTestUser(t, { role: "seller", accountType: "seller_individual" });
+
+    const baseData = {
+      make: "Toyota",
+      model: "Camry",
+      year: 2022,
+      odometer: 25000,
+      exteriorColor: "Silver",
+      interiorColor: "Black",
+      condition: "good",
+      damageDescription: "Clean condition",
+      locationCity: "Ikeja",
+      locationState: "Lagos",
+      locationCountry: "Nigeria",
+      startingBid: 15_000_000,
+      reservePrice: 18_000_000,
+      buyItNowPrice: 20_000_000,
+      buyItNowEnabled: true,
+      initialStatus: "pending_approval" as const,
+      mediaUploads: [
+        { storageId: "s1", category: "Front View", isRequired: true },
+        { storageId: "s2", category: "Rear View", isRequired: true },
+        { storageId: "s3", category: "Driver Side", isRequired: true },
+        { storageId: "s4", category: "Interior (Dashboard)", isRequired: true },
+        { storageId: "s5", category: "Engine Bay", isRequired: true },
+      ],
+    };
+
+    // Test ICE fuel type
+    const iceRes = await t.mutation(api.vehicles.createVehicle, {
+      token: seller.token,
+      vehicleData: {
+        ...baseData,
+        vin: "4T1B11HK5NU000001",
+        fuelType: "Internal Combustion Engine (ICE)",
+      },
+    });
+    const iceDoc = await t.run(async (ctx) => ctx.db.get(iceRes.vehicleId));
+    expect(iceDoc?.fuelType).toBe("Internal Combustion Engine (ICE)");
+
+    // Test Full Hybrid fuel type
+    const hybridRes = await t.mutation(api.vehicles.createVehicle, {
+      token: seller.token,
+      vehicleData: {
+        ...baseData,
+        vin: "4T1B11HK5NU000002",
+        fuelType: "Full Hybrid (HEV)",
+      },
+    });
+    const hybridDoc = await t.run(async (ctx) => ctx.db.get(hybridRes.vehicleId));
+    expect(hybridDoc?.fuelType).toBe("Full Hybrid (HEV)");
+
+    // Test legacy "Gas/Petrol" fuel type
+    const legacyGasRes = await t.mutation(api.vehicles.createVehicle, {
+      token: seller.token,
+      vehicleData: {
+        ...baseData,
+        vin: "4T1B11HK5NU000003",
+        fuelType: "Gas/Petrol",
+      },
+    });
+    const legacyGasDoc = await t.run(async (ctx) => ctx.db.get(legacyGasRes.vehicleId));
+    expect(legacyGasDoc?.fuelType).toBe("Internal Combustion Engine (ICE)");
+
+    // Test empty fuelType defaults safely to BEV
+    const emptyFuelRes = await t.mutation(api.vehicles.createVehicle, {
+      token: seller.token,
+      vehicleData: {
+        ...baseData,
+        vin: "4T1B11HK5NU000004",
+        fuelType: "",
+      },
+    });
+    const emptyFuelDoc = await t.run(async (ctx) => ctx.db.get(emptyFuelRes.vehicleId));
+    expect(emptyFuelDoc?.fuelType).toBe("Battery Electric Vehicle (BEV / EV)");
+
+    // Test invalid fuel type is rejected
+    let invalidError: any = null;
+    try {
+      await t.mutation(api.vehicles.createVehicle, {
+        token: seller.token,
+        vehicleData: {
+          ...baseData,
+          vin: "4T1B11HK5NU000005",
+          fuelType: "Nuclear Rocket Fuel",
+        },
+      });
+    } catch (e: any) {
+      invalidError = e;
+    }
+    expect(invalidError).not.toBeNull();
+    expect(invalidError.message).toContain("Invalid fuel type");
+  });
 });
+

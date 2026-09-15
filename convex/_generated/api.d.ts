@@ -30,6 +30,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_buyNowPricing from "../lib/buyNowPricing.js";
 import type * as lib_emailTemplates from "../lib/emailTemplates.js";
 import type * as lib_flutterwave from "../lib/flutterwave.js";
+import type * as lib_fuelTypes from "../lib/fuelTypes.js";
 import type * as lib_orders from "../lib/orders.js";
 import type * as lib_payments from "../lib/payments.js";
 import type * as lib_purchaseFlow from "../lib/purchaseFlow.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "lib/buyNowPricing": typeof lib_buyNowPricing;
   "lib/emailTemplates": typeof lib_emailTemplates;
   "lib/flutterwave": typeof lib_flutterwave;
+  "lib/fuelTypes": typeof lib_fuelTypes;
   "lib/orders": typeof lib_orders;
   "lib/payments": typeof lib_payments;
   "lib/purchaseFlow": typeof lib_purchaseFlow;

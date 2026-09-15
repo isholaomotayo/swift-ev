@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, test as it, expect } from "bun:test";
 import {
   FUEL_TYPES,
   normalizeFuelType as normalizeFuelTypeConstants,
