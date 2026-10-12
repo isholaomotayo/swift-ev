@@ -113,6 +113,7 @@ interface Vehicle {
   reservePrice?: number;
   buyItNowPrice?: number;
   buyItNowEnabled?: boolean;
+  canBuyNow?: boolean;
   buyItNowPurchasedBy?: Id<"users">;
   status: string;
   images: Array<{
@@ -203,15 +204,9 @@ export function VehicleDetailClient({
     !!vehicle.buyItNowPurchasedBy &&
     vehicle.buyItNowPurchasedBy === user.id;
 
+  // Decided by the backend (same rules as the purchase mutations).
   const canBuyNow =
-    !!resolvedBuyNowPrice &&
-    resolvedBuyNowPrice > 0 &&
-    !isLive &&
-    !isReserved &&
-    (vehicle.status === "approved" ||
-      vehicle.status === "unsold" ||
-      vehicle.status === "scheduled" ||
-      isPreBid);
+    !!resolvedBuyNowPrice && resolvedBuyNowPrice > 0 && !isReserved && !!vehicle.canBuyNow;
 
   // Hero Image Handling
   const heroImageUrl =

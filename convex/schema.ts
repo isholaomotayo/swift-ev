@@ -113,7 +113,8 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_membership", ["membershipTier"])
     .index("by_kyc_status", ["kycStatus"])
-    .index("by_account_type", ["accountType"]),
+    .index("by_account_type", ["accountType"])
+    .index("by_sumsub_applicant", ["sumsubApplicantId"]),
 
   userDocuments: defineTable({
     userId: v.id("users"),

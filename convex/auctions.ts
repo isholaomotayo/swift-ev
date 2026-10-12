@@ -1,4 +1,8 @@
 import { v } from "convex/values";
+import { createLotForVehicle } from "./lib/lots";
+import { findResumableBuyNowOrder, placeBuyNowOrder } from "./lib/buyNowOrder";
+import { transitionVehicle } from "./lib/vehicleTransition";
+import { release } from "./lib/ledger";
 import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -20,7 +24,6 @@ import {
   createInAppNotification,
   paymentDeadlineFrom,
 } from "./lib/payments";
-import { calculateBuyNowPricing } from "./lib/buyNowPricing";
 import { internal } from "./_generated/api";
 
 function vehicleStatusOf(status: string): VehicleStatus {
@@ -151,10 +154,7 @@ async function activateLot(
     pausedRemainingMs: undefined,
   });
 
-  await ctx.db.patch(lot.vehicleId, {
-    status: "in_auction",
-    updatedAt: now,
-  });
+  await transitionVehicle(ctx, lot.vehicleId, "in_auction");
 
   await ctx.scheduler.runAt(endsAt, internal.auctions.closeLotAt, {
     lotId: lot._id,
@@ -355,33 +355,13 @@ async function cancelPreBidsAndReleaseReserves(
       continue;
     }
 
-    const reservedBalance = bidder.reservedBalance ?? 0;
-    const releaseAmount = Math.min(
-      calculateBidReserveAmountKobo(bid.bidAmount),
-      reservedBalance
-    );
-
-    if (releaseAmount <= 0) {
-      continue;
-    }
-
-    await ctx.db.patch(bid.userId, {
-      walletBalance: (bidder.walletBalance ?? 0) + releaseAmount,
-      reservedBalance: reservedBalance - releaseAmount,
-      updatedAt: now,
-    });
-
-    await ctx.db.insert("walletTransactions", {
+    await release(ctx, {
       userId: bid.userId,
+      amountKobo: calculateBidReserveAmountKobo(bid.bidAmount),
       type: "bid_release",
-      amount: releaseAmount,
-      currency: bidder.walletCurrency ?? "NGN",
-      status: "completed",
       reference: `BIN_RELEASE_${now}_${bid._id}`,
       description: "Bid reserve released: vehicle purchased before auction start",
       relatedBidId: bid._id,
-      createdAt: now,
-      completedAt: now,
     });
   }
 }
@@ -453,44 +433,40 @@ export const getPromotedAuction = query({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const auctions = await ctx.db.query("auctions").collect();
 
-    const withLotCounts = await Promise.all(
-      auctions.map(async (auction) => {
-        const lots = await ctx.db
-          .query("auctionLots")
-          .withIndex("by_auction", (q) => q.eq("auctionId", auction._id))
-          .collect();
-        return { ...auction, totalLots: lots.length };
-      }),
-    );
+    const withLotCount = async (auction: Doc<"auctions">) => {
+      const lots = await ctx.db
+        .query("auctionLots")
+        .withIndex("by_auction", (q) => q.eq("auctionId", auction._id))
+        .collect();
+      return { ...auction, totalLots: lots.length };
+    };
 
-    const live = withLotCounts
-      .filter((a) => a.status === "live")
-      .sort((a, b) => b.scheduledStart - a.scheduledStart)[0];
+    // Live first (most recently scheduled).
+    const liveAuctions = await ctx.db
+      .query("auctions")
+      .withIndex("by_status", (q) => q.eq("status", "live"))
+      .take(20);
+    const live = liveAuctions.sort((a, b) => b.scheduledStart - a.scheduledStart)[0];
+    if (live) return await withLotCount(live);
 
-    if (live) {
-      return live;
+    // Otherwise the next scheduled auction that has lots, preferring ones still in the future.
+    const scheduled = (
+      await ctx.db
+        .query("auctions")
+        .withIndex("by_status", (q) => q.eq("status", "scheduled"))
+        .take(50)
+    ).sort((a, b) => a.scheduledStart - b.scheduledStart);
+
+    const upcomingFirst = [
+      ...scheduled.filter((a) => a.scheduledStart > now),
+      ...scheduled.filter((a) => a.scheduledStart <= now),
+    ];
+    for (const candidate of upcomingFirst) {
+      const hydrated = await withLotCount(candidate);
+      if (hydrated.totalLots > 0) return hydrated;
     }
-
-    const upcoming = withLotCounts
-      .filter(
-        (a) =>
-          a.status === "scheduled" &&
-          a.scheduledStart > now &&
-          a.totalLots > 0,
-      )
-      .sort((a, b) => a.scheduledStart - b.scheduledStart)[0];
-
-    if (upcoming) {
-      return upcoming;
-    }
-
-    return (
-      withLotCounts
-        .filter((a) => a.status === "scheduled" && a.totalLots > 0)
-        .sort((a, b) => a.scheduledStart - b.scheduledStart)[0] ?? null
-    );
+    return null;
   },
 });
 
@@ -883,27 +859,16 @@ export const purchaseBuyItNow = mutation({
       throw new Error("You cannot purchase your own listing");
     }
 
+    const resumable = await findResumableBuyNowOrder(ctx, user._id, vehicle);
+    if (resumable) {
+      return {
+        success: true,
+        orderId: resumable._id,
+        orderNumber: resumable.orderNumber,
+        resumed: true,
+      };
+    }
     if (vehicle.status === "payment_pending") {
-      if (vehicle.buyItNowPurchasedBy === user._id) {
-        const mine = (
-          await ctx.db
-            .query("orders")
-            .withIndex("by_vehicle", (q) => q.eq("vehicleId", lot.vehicleId))
-            .collect()
-        ).find(
-          (order) =>
-            order.userId === user._id &&
-            (order.status === "pending_payment" || order.status === "payment_partial")
-        );
-        if (mine) {
-          return {
-            success: true,
-            orderId: mine._id,
-            orderNumber: mine.orderNumber,
-            resumed: true,
-          };
-        }
-      }
       throw new Error("This vehicle is reserved pending payment by another buyer");
     }
 
@@ -944,8 +909,6 @@ export const purchaseBuyItNow = mutation({
 
     await cancelPreBidsAndReleaseReserves(ctx, lot, now);
 
-    const pricing = calculateBuyNowPricing(purchasePrice, args.destination);
-
     // Soft-hold lot: mark passed-for-purchase intent without treating vehicle as sold inventory
     await ctx.db.patch(args.lotId, {
       status: "sold",
@@ -958,99 +921,14 @@ export const purchaseBuyItNow = mutation({
       soldAt: now,
     });
 
-    await ctx.db.patch(lot.vehicleId, {
-      status: "payment_pending",
-      buyItNowPrice: purchasePrice,
-      buyItNowEnabled: true,
-      buyItNowPurchasedAt: now,
-      buyItNowPurchasedBy: user._id,
-      updatedAt: now,
+    const { orderId, orderNumber } = await placeBuyNowOrder(ctx, {
+      user,
+      vehicle,
+      priceNaira: purchasePrice,
+      destination: args.destination,
+      lot,
+      now,
     });
-
-    const orderNumber = await generateUniqueOrderNumber(ctx);
-    const orderId = await ctx.db.insert("orders", {
-      orderNumber,
-      userId: user._id,
-      vehicleId: lot.vehicleId,
-      auctionLotId: lot._id,
-      orderType: "buy_it_now",
-      winningBid: pricing.vehiclePrice,
-      serviceFee: pricing.serviceFee,
-      documentationFee: pricing.documentationFee,
-      inspectionFee: pricing.inspectionFee,
-      shippingCost: pricing.shippingCost,
-      estimatedDuties: pricing.customsClearingFee,
-      clearanceFee: pricing.customsClearingFee,
-      registrationFee: pricing.registrationFee,
-      destinationPort: pricing.destination,
-      subtotal: pricing.vehiclePrice,
-      totalAmount: pricing.totalAmount,
-      paidAmount: 0,
-      balanceDue: pricing.totalAmount,
-      status: "pending_payment",
-      paymentDeadline: paymentDeadlineFrom(now),
-      guaranteeStatus: "active",
-      guaranteeActivatedAt: now,
-      guaranteePolicyNumber: `MBG-${orderNumber}`,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-     const deadlineStr = new Date(paymentDeadlineFrom(now)).toLocaleString();
-    await createInAppNotification(ctx, {
-      userId: user._id,
-      type: "payment_reminder",
-      title: "Complete payment to secure this vehicle",
-      message: `Order ${orderNumber} created. Pay ₦${pricing.totalAmount.toLocaleString()} by ${deadlineStr} to secure the vehicle. The listing remains reserved until payment is complete.`,
-      orderId,
-      vehicleId: lot.vehicleId,
-      auctionId: lot.auctionId,
-    });
-
-    // Send C1: Buy Now Order Created Email (Buyer)
-    await ctx.scheduler.runAfter(0, internal.emails.sendBuyNowOrderEmail, {
-      userId: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      orderNumber,
-      orderId,
-      vehiclePrice: pricing.vehiclePrice,
-      serviceFee: pricing.serviceFee,
-      documentationFee: pricing.documentationFee,
-      shippingCost: pricing.shippingCost,
-      totalAmount: pricing.totalAmount,
-      paymentDeadline: paymentDeadlineFrom(now),
-      vehicleId: lot.vehicleId,
-    });
-
-    if (vehicle.sellerId) {
-      await createInAppNotification(ctx, {
-        userId: vehicle.sellerId,
-        type: "system",
-        title: "Buyer reserved your vehicle",
-        message: `A buyer created order ${orderNumber} for ${vehicle.year} ${vehicle.make} ${vehicle.model} via Buy Now. Payment is due by ${deadlineStr}.`,
-        orderId,
-        vehicleId: lot.vehicleId,
-        auctionId: lot.auctionId,
-      });
-
-      // Send C3: Seller Reserved Vehicle Email (Seller)
-      const sellerUser = await ctx.db.get(vehicle.sellerId);
-      if (sellerUser) {
-        await ctx.scheduler.runAfter(0, internal.emails.sendSellerVehicleSoldEmail, {
-          userId: sellerUser._id,
-          email: sellerUser.email,
-          firstName: sellerUser.firstName,
-          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          salePrice: pricing.vehiclePrice,
-          paymentDeadline: paymentDeadlineFrom(now),
-          orderNumber,
-          saleType: "buy_now",
-          vehicleId: lot.vehicleId,
-        });
-      }
-    }
 
     if (auction) {
       await ctx.db.patch(lot.auctionId, {
@@ -1200,65 +1078,11 @@ export const createAuctionWithLots = mutation({
       if (!vehicle) {
         throw new Error("Vehicle not found");
       }
-      if (vehicle.status !== "approved") {
-        throw new Error(`Only approved vehicles can be added to auctions. Current status: ${vehicle.status}`);
-      }
-
-      const duplicateVehicleLot = await ctx.db
-        .query("auctionLots")
-        .withIndex("by_vehicle", (q) => q.eq("vehicleId", lotInput.vehicleId))
-        .filter((q) =>
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "active")
-          )
-        )
-        .first();
-
-      if (duplicateVehicleLot) {
-        throw new Error("Vehicle already has an active or pending auction lot");
-      }
-
-      const startingBid = lotInput.startingBid ?? vehicle.startingBid ?? 0;
-      const reservePrice = lotInput.reservePrice ?? vehicle.reservePrice;
-      const buyItNowPrice = lotInput.buyItNowPrice ?? vehicle.buyItNowPrice;
-      const bidIncrement = lotInput.bidIncrement ?? args.bidIncrement;
-
-      if (startingBid < 0 || bidIncrement <= 0) {
-        throw new Error("Starting bid and bid increment must be positive values");
-      }
-      if (reservePrice !== undefined && reservePrice < startingBid) {
-        throw new Error("Reserve price must be greater than or equal to starting bid");
-      }
-      if (buyItNowPrice === undefined || buyItNowPrice <= 0) {
-        throw new Error("Buy It Now price is required for all auction lots");
-      }
-      if (reservePrice !== undefined && buyItNowPrice < reservePrice) {
-        throw new Error("Buy It Now price must be greater than or equal to reserve price");
-      }
-
-      const lotId = await ctx.db.insert("auctionLots", {
-        auctionId,
-        vehicleId: lotInput.vehicleId,
-        lotOrder: lotInput.lotOrder,
-        status: "pending",
-        currentBid: startingBid,
-        startingBid,
-        reservePrice,
-        bidIncrement,
-        bidCount: 0,
-        reserveMet: false,
-        estimatedStartTime: lotInput.estimatedStartTime,
-        lotDuration: lotInput.lotDuration,
-        buyItNowPrice,
-        buyItNowEnabled: true,
-      });
-
-      assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "scheduled");
-
-      await ctx.db.patch(lotInput.vehicleId, {
-        status: "scheduled",
-        updatedAt: Date.now(),
+      const lotId = await createLotForVehicle(ctx, {
+        auctionId: auctionId,
+        vehicle,
+        input: lotInput,
+        defaultBidIncrement: args.bidIncrement,
       });
 
       createdLotIds.push(lotId);
@@ -1306,24 +1130,6 @@ export const addLotToAuction = mutation({
     if (!vehicle) {
       throw new Error("Vehicle not found");
     }
-    if (vehicle.status !== "approved") {
-      throw new Error(`Only approved vehicles can be added to auctions. Current status: ${vehicle.status}`);
-    }
-
-    const duplicateVehicleLot = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "pending"),
-          q.eq(q.field("status"), "active")
-        )
-      )
-      .first();
-
-    if (duplicateVehicleLot) {
-      throw new Error("Vehicle already has an active or pending auction lot");
-    }
 
     const duplicateLotOrder = (await ctx.db
       .query("auctionLots")
@@ -1334,47 +1140,11 @@ export const addLotToAuction = mutation({
       throw new Error(`Auction already has a lot at order ${args.lotOrder}`);
     }
 
-    const startingBid = args.startingBid ?? vehicle.startingBid ?? 0;
-    const reservePrice = args.reservePrice ?? vehicle.reservePrice;
-    const buyItNowPrice = args.buyItNowPrice ?? vehicle.buyItNowPrice;
-    const bidIncrement = args.bidIncrement ?? auction.bidIncrement;
-
-    if (startingBid < 0 || bidIncrement <= 0) {
-      throw new Error("Starting bid and bid increment must be positive values");
-    }
-    if (reservePrice !== undefined && reservePrice < startingBid) {
-      throw new Error("Reserve price must be greater than or equal to starting bid");
-    }
-    if (buyItNowPrice === undefined || buyItNowPrice <= 0) {
-      throw new Error("Buy It Now price is required for all auction lots");
-    }
-    if (reservePrice !== undefined && buyItNowPrice < reservePrice) {
-      throw new Error("Buy It Now price must be greater than or equal to reserve price");
-    }
-
-    const lotId = await ctx.db.insert("auctionLots", {
+    const lotId = await createLotForVehicle(ctx, {
       auctionId: args.auctionId,
-      vehicleId: args.vehicleId,
-      lotOrder: args.lotOrder,
-      status: "pending",
-      currentBid: startingBid,
-      startingBid,
-      reservePrice,
-      bidIncrement,
-      bidCount: 0,
-      reserveMet: false,
-      estimatedStartTime: args.estimatedStartTime,
-      lotDuration: args.lotDuration,
-      buyItNowPrice,
-      buyItNowEnabled: true,
-    });
-
-    assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "scheduled");
-
-    // Update vehicle status
-    await ctx.db.patch(args.vehicleId, {
-      status: "scheduled",
-      updatedAt: Date.now(),
+      vehicle,
+      input: args,
+      defaultBidIncrement: auction.bidIncrement,
     });
 
     await ctx.db.patch(args.auctionId, {
@@ -1449,65 +1219,11 @@ export const addLotsToAuctionBulk = mutation({
       if (!vehicle) {
         throw new Error("Vehicle not found");
       }
-      if (vehicle.status !== "approved") {
-        throw new Error(`Only approved vehicles can be added to auctions. Current status: ${vehicle.status}`);
-      }
-
-      const duplicateVehicleLot = await ctx.db
-        .query("auctionLots")
-        .withIndex("by_vehicle", (q) => q.eq("vehicleId", lotInput.vehicleId))
-        .filter((q) =>
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "active")
-          )
-        )
-        .first();
-
-      if (duplicateVehicleLot) {
-        throw new Error("Vehicle already has an active or pending auction lot");
-      }
-
-      const startingBid = lotInput.startingBid ?? vehicle.startingBid ?? 0;
-      const reservePrice = lotInput.reservePrice ?? vehicle.reservePrice;
-      const buyItNowPrice = lotInput.buyItNowPrice ?? vehicle.buyItNowPrice;
-      const bidIncrement = lotInput.bidIncrement ?? auction.bidIncrement;
-
-      if (startingBid < 0 || bidIncrement <= 0) {
-        throw new Error("Starting bid and bid increment must be positive values");
-      }
-      if (reservePrice !== undefined && reservePrice < startingBid) {
-        throw new Error("Reserve price must be greater than or equal to starting bid");
-      }
-      if (buyItNowPrice === undefined || buyItNowPrice <= 0) {
-        throw new Error("Buy It Now price is required for all auction lots");
-      }
-      if (reservePrice !== undefined && buyItNowPrice < reservePrice) {
-        throw new Error("Buy It Now price must be greater than or equal to reserve price");
-      }
-
-      const lotId = await ctx.db.insert("auctionLots", {
+      const lotId = await createLotForVehicle(ctx, {
         auctionId: args.auctionId,
-        vehicleId: lotInput.vehicleId,
-        lotOrder: lotInput.lotOrder,
-        status: "pending",
-        currentBid: startingBid,
-        startingBid,
-        reservePrice,
-        bidIncrement,
-        bidCount: 0,
-        reserveMet: false,
-        estimatedStartTime: lotInput.estimatedStartTime,
-        lotDuration: lotInput.lotDuration,
-        buyItNowPrice,
-        buyItNowEnabled: true,
-      });
-
-      assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "scheduled");
-
-      await ctx.db.patch(lotInput.vehicleId, {
-        status: "scheduled",
-        updatedAt: Date.now(),
+        vehicle,
+        input: lotInput,
+        defaultBidIncrement: auction.bidIncrement,
       });
 
       createdLotIds.push(lotId);
@@ -2023,12 +1739,8 @@ export const startScheduledAuctions = internalMutation({
 
     const scheduledAuctions = await ctx.db
       .query("auctions")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("status"), "scheduled"),
-          q.lte(q.field("scheduledStart"), now)
-        )
-      )
+      .withIndex("by_status", (q) => q.eq("status", "scheduled"))
+      .filter((q) => q.lte(q.field("scheduledStart"), now))
       .collect();
 
     for (const auction of scheduledAuctions) {
@@ -2123,12 +1835,8 @@ export const endExpiredLots = internalMutation({
 
     const expiredLots = await ctx.db
       .query("auctionLots")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("status"), "active"),
-          q.lte(q.field("endsAt"), now)
-        )
-      )
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .filter((q) => q.lte(q.field("endsAt"), now))
       .collect();
 
     // Group by auction so concurrent auctions only end once all lots are done
@@ -2175,44 +1883,38 @@ export const getVendorAuctions = query({
     const user = await requireAuth(ctx, args.token);
     requireSeller(user);
 
-    // Get all auctions
-    const auctions = await ctx.db.query("auctions").collect();
+    // Start from the vendor's own vehicles and walk to their lots, grouped by auction.
+    const vehicles = await ctx.db
+      .query("vehicles")
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+      .collect();
 
-    // Filter auctions that have vendor's vehicles
-    const vendorAuctions = [];
-
-    for (const auction of auctions) {
-      // Get lots for this auction
+    const lotsByAuction = new Map<Id<"auctions">, Array<Doc<"auctionLots"> & { vehicle: Record<string, unknown> }>>();
+    for (const vehicle of vehicles) {
       const lots = await ctx.db
         .query("auctionLots")
-        .filter((q) => q.eq(q.field("auctionId"), auction._id))
+        .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
         .collect();
-
-      // Check if any lots contain vendor's vehicles
-      const vendorLots = [];
       for (const lot of lots) {
-        const vehicle = await ctx.db.get(lot.vehicleId);
-        if (vehicle && vehicle.sellerId === user._id) {
-          vendorLots.push({
-            ...lot,
-            vehicle: {
-              _id: vehicle._id,
-              year: vehicle.year,
-              make: vehicle.make,
-              model: vehicle.model,
-              lotNumber: vehicle.lotNumber,
-            },
-          });
-        }
-      }
-
-      // If auction has vendor's vehicles, include it
-      if (vendorLots.length > 0) {
-        vendorAuctions.push({
-          ...auction,
-          vendorLots,
+        const group = lotsByAuction.get(lot.auctionId) ?? [];
+        group.push({
+          ...lot,
+          vehicle: {
+            _id: vehicle._id,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            lotNumber: vehicle.lotNumber,
+          },
         });
+        lotsByAuction.set(lot.auctionId, group);
       }
+    }
+
+    const vendorAuctions = [];
+    for (const [auctionId, vendorLots] of lotsByAuction) {
+      const auction = await ctx.db.get(auctionId);
+      if (auction) vendorAuctions.push({ ...auction, vendorLots });
     }
 
     // Sort by scheduled start (newest first)
@@ -2688,21 +2390,6 @@ export const quickAddVehicleToAuction = mutation({
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) throw new Error("Vehicle not found");
 
-    const existingLot = await ctx.db
-      .query("auctionLots")
-      .withIndex("by_vehicle", (q) => q.eq("vehicleId", args.vehicleId))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "pending"),
-          q.eq(q.field("status"), "active")
-        )
-      )
-      .first();
-
-    if (existingLot) {
-      throw new Error("Vehicle is already in an active or pending auction lot");
-    }
-
     const existingLots = await ctx.db
       .query("auctionLots")
       .withIndex("by_auction", (q) => q.eq("auctionId", args.auctionId))
@@ -2714,29 +2401,11 @@ export const quickAddVehicleToAuction = mutation({
     );
 
     const lotOrder = maxLotOrder + 1;
-    const startingBid = vehicle.startingBid || 1000;
-    const reservePrice = vehicle.reservePrice;
-    const buyItNowPrice = vehicle.buyItNowPrice || startingBid * 1.5;
-
-    const lotId = await ctx.db.insert("auctionLots", {
+    const lotId = await createLotForVehicle(ctx, {
       auctionId: args.auctionId,
-      vehicleId: args.vehicleId,
-      lotOrder,
-      status: "pending",
-      currentBid: startingBid,
-      startingBid,
-      reservePrice,
-      bidIncrement: auction.bidIncrement || 100,
-      bidCount: 0,
-      reserveMet: false,
-      lotDuration: 5 * 60 * 1000,
-      buyItNowPrice,
-      buyItNowEnabled: true,
-    });
-
-    await ctx.db.patch(args.vehicleId, {
-      status: "scheduled",
-      updatedAt: Date.now(),
+      vehicle,
+      input: { lotOrder, lotDuration: 5 * 60 * 1000 },
+      defaultBidIncrement: auction.bidIncrement || 100,
     });
 
     await ctx.db.patch(args.auctionId, {
@@ -3047,6 +2716,9 @@ export const deleteAuction = mutation({
 
     // 2. Cascade cleanup per lot
     for (const lot of lots) {
+      // Give bidders their reserved deposits back before the bids disappear
+      await cancelPreBidsAndReleaseReserves(ctx, lot, Date.now());
+
       // Delete bids
       const bids = await ctx.db
         .query("bids")

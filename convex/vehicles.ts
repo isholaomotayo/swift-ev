@@ -1,7 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   createAuditLog,
@@ -12,20 +11,21 @@ import {
   requireKycApproved,
   requireSeller,
 } from "./lib/auth";
-import { generateUniqueOrderNumber } from "./lib/orders";
 import {
   assertVehicleStatusTransition,
+  BUYER_VISIBLE_VEHICLE_STATUSES,
   isBuyerVisibleVehicleStatus,
   isVehicleStatus,
   type VehicleStatus,
 } from "./lib/vehicleLifecycle";
-import { isAuctionLotHoldingVehicleForPurchase, resolveBuyNowPrice } from "./lib/purchaseFlow";
-import { assertValidVehicleMakeModel, ensureMakeModelInCatalog } from "./lib/vehicleCatalog";
 import {
-  createInAppNotification,
-  paymentDeadlineFrom,
-} from "./lib/payments";
-import { calculateBuyNowPricing } from "./lib/buyNowPricing";
+  isAuctionLotHoldingVehicleForPurchase,
+  isPreAuctionBuyNowAvailable,
+  isVehicleBuyNowPurchasable,
+  resolveBuyNowPrice,
+} from "./lib/purchaseFlow";
+import { assertValidVehicleMakeModel, ensureMakeModelInCatalog } from "./lib/vehicleCatalog";
+import { findResumableBuyNowOrder, placeBuyNowOrder } from "./lib/buyNowOrder";
 import {
   ALL_ALLOWED_FUEL_TYPES,
   getFuelTypeSearchValues,
@@ -94,6 +94,19 @@ async function getActiveAuctionLot(ctx: any, vehicleId: Id<"vehicles">) {
     .withIndex("by_vehicle", (q: any) => q.eq("vehicleId", vehicleId))
     .filter((q: any) => q.eq(q.field("status"), "active"))
     .first();
+}
+
+/** Vehicles buyers can see, read per status through the by_status index (never the whole table). */
+async function listBuyerVisibleVehicles(ctx: QueryCtx): Promise<Doc<"vehicles">[]> {
+  const perStatus = await Promise.all(
+    BUYER_VISIBLE_VEHICLE_STATUSES.map((status) =>
+      ctx.db
+        .query("vehicles")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect()
+    )
+  );
+  return perStatus.flat();
 }
 
 async function hydrateVehicleForList(ctx: any, vehicle: Doc<"vehicles">, auctionLot?: Doc<"auctionLots"> | null) {
@@ -195,19 +208,14 @@ export const getFeaturedVehicles = query({
 export const getVehicleStats = query({
   args: {},
   handler: async (ctx) => {
-    const totalListings = await ctx.db
-      .query("vehicles")
-      .filter((q) => q.neq(q.field("status"), "deleted"))
-      .collect();
-
-    const totalSold = await ctx.db
-      .query("vehicles")
-      .filter((q) => q.eq(q.field("status"), "sold"))
-      .collect();
+    // One pass over vehicles for both counts.
+    const vehicles = await ctx.db.query("vehicles").collect();
+    const totalListings = vehicles;
+    const totalSold = vehicles.filter((v) => v.status === "sold");
 
     const activeAuctions = await ctx.db
       .query("auctions")
-      .filter((q) => q.eq(q.field("status"), "live"))
+      .withIndex("by_status", (q) => q.eq("status", "live"))
       .collect();
 
     return {
@@ -475,10 +483,9 @@ export const searchVehicles = query({
 
       // Fallback for existing records that haven't been migrated
       if (matchedVehicles.length === 0) {
-        const allVehicles = await ctx.db.query("vehicles").collect();
+        const allVehicles = await listBuyerVisibleVehicles(ctx);
         matchedVehicles = allVehicles
           .filter((vehicle) => {
-            if (!isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))) return false;
             if (vehicle.searchableText) return false;
             const text = [
               vehicle.make,
@@ -618,10 +625,28 @@ export const getVehicleById = query({
         }
       : null;
 
+    // Server-side decision so the UI never disagrees with purchaseVehicleDirectly / purchaseBuyItNow.
+    let canBuyNow: boolean;
+    if (!auctionLot) {
+      canBuyNow = isVehicleBuyNowPurchasable({
+        vehicleStatus: vehicle.status,
+        buyItNowPrice: vehicle.buyItNowPrice,
+        reservePrice: vehicle.reservePrice,
+        startingBid: vehicle.startingBid,
+      });
+    } else {
+      const lotAuction = await ctx.db.get(auctionLot.auctionId);
+      canBuyNow =
+        !!lotAuction &&
+        isPreAuctionBuyNowAvailable(auctionLot.status, lotAuction.status) &&
+        normalizedLot?.buyItNowPrice !== undefined;
+    }
+
     return {
       ...vehicle,
       buyItNowPrice,
       buyItNowEnabled: !!buyItNowPrice,
+      canBuyNow,
       images: imagesWithUrls,
       heroImage: imagesWithUrls[0]?.url,
       auctionLot: normalizedLot,
@@ -643,9 +668,7 @@ export const getVehicleById = query({
 export const getFilterOptions = query({
   args: {},
   handler: async (ctx) => {
-    const vehicles = (await ctx.db.query("vehicles").collect()).filter((vehicle) =>
-      isBuyerVisibleVehicleStatus(vehicleStatusOf(vehicle.status))
-    );
+    const vehicles = await listBuyerVisibleVehicles(ctx);
 
     // Get unique makes
     const makes = [...new Set(vehicles.map((v) => v.make))].sort();
@@ -658,10 +681,16 @@ export const getFilterOptions = query({
     };
 
     // Get price range from auction lots
-    const visibleVehicleIds = new Set(vehicles.map((vehicle) => vehicle._id));
-    const auctionLots = (await ctx.db.query("auctionLots").collect()).filter((lot) =>
-      visibleVehicleIds.has(lot.vehicleId)
-    );
+    const auctionLots = (
+      await Promise.all(
+        vehicles.map((vehicle) =>
+          ctx.db
+            .query("auctionLots")
+            .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
+            .collect()
+        )
+      )
+    ).flat();
     const prices = auctionLots.map((lot) => lot.currentBid);
     const priceRange = {
       min: Math.min(...prices, 0),
@@ -815,13 +844,13 @@ export const createVehicle = mutation({
     }
 
     // Check role permissions
-    if (user.role !== "seller" && user.role !== "admin" && user.role !== "superadmin") {
+    if (user.role !== "seller" && !authIsAdmin(user)) {
       throw new ConvexError("Only vendors or admins can upload vehicles");
     }
 
     const { vehicleData } = args;
     const initialStatus = vehicleData.initialStatus ?? "pending_approval";
-    if (initialStatus === "approved" && user.role !== "admin" && user.role !== "superadmin") {
+    if (initialStatus === "approved" && !authIsAdmin(user)) {
       throw new ConvexError("Only admins can create pre-approved vehicles");
     }
 
@@ -1118,7 +1147,7 @@ export const updateVehicle = mutation({
 
     // 3. Verify ownership (only seller or admin can update)
     // Note: Admin roles are "admin" or "superadmin"
-    const isAdmin = user.role === "admin" || user.role === "superadmin";
+    const isAdmin = authIsAdmin(user);
     const isOwner = vehicle.sellerId === user._id;
 
     if (!isOwner && !isAdmin) {
@@ -1781,27 +1810,16 @@ export const purchaseVehicleDirectly = mutation({
       throw new ConvexError("You cannot purchase your own listing");
     }
 
+    const resumable = await findResumableBuyNowOrder(ctx, user._id, vehicle);
+    if (resumable) {
+      return {
+        success: true,
+        orderId: resumable._id,
+        orderNumber: resumable.orderNumber,
+        resumed: true,
+      };
+    }
     if (vehicle.status === "payment_pending") {
-      if (vehicle.buyItNowPurchasedBy === user._id) {
-        const mine = (
-          await ctx.db
-            .query("orders")
-            .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-            .collect()
-        ).find(
-          (order) =>
-            order.userId === user._id &&
-            (order.status === "pending_payment" || order.status === "payment_partial")
-        );
-        if (mine) {
-          return {
-            success: true,
-            orderId: mine._id,
-            orderNumber: mine.orderNumber,
-            resumed: true,
-          };
-        }
-      }
       throw new ConvexError("This vehicle is reserved pending payment by another buyer");
     }
 
@@ -1846,99 +1864,13 @@ export const purchaseVehicleDirectly = mutation({
       throw new ConvexError("Vehicle already has an active purchase order");
     }
 
-    const pricing = calculateBuyNowPricing(buyItNowPrice, args.destination);
-    const now = Date.now();
-
-    await ctx.db.patch(vehicle._id, {
-      status: "payment_pending",
-      buyItNowPrice,
-      buyItNowEnabled: true,
-      buyItNowPurchasedAt: now,
-      buyItNowPurchasedBy: user._id,
-      updatedAt: now,
+    const { orderId, orderNumber } = await placeBuyNowOrder(ctx, {
+      user,
+      vehicle,
+      priceNaira: buyItNowPrice,
+      destination: args.destination,
+      now: Date.now(),
     });
-
-    const orderNumber = await generateUniqueOrderNumber(ctx);
-    const orderId = await ctx.db.insert("orders", {
-      orderNumber,
-      userId: user._id,
-      vehicleId: vehicle._id,
-      orderType: "buy_it_now",
-      winningBid: pricing.vehiclePrice,
-      serviceFee: pricing.serviceFee,
-      documentationFee: pricing.documentationFee,
-      inspectionFee: pricing.inspectionFee,
-      shippingCost: pricing.shippingCost,
-      estimatedDuties: pricing.customsClearingFee,
-      clearanceFee: pricing.customsClearingFee,
-      registrationFee: pricing.registrationFee,
-      destinationPort: pricing.destination,
-      subtotal: pricing.vehiclePrice,
-      totalAmount: pricing.totalAmount,
-      paidAmount: 0,
-      balanceDue: pricing.totalAmount,
-      status: "pending_payment",
-      paymentDeadline: paymentDeadlineFrom(now),
-      guaranteeStatus: "active",
-      guaranteeActivatedAt: now,
-      guaranteePolicyNumber: `MBG-${orderNumber}`,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const deadlineStr = new Date(paymentDeadlineFrom(now)).toLocaleString();
-    await createInAppNotification(ctx, {
-      userId: user._id,
-      type: "payment_reminder",
-      title: "Complete payment to secure this vehicle",
-      message: `Order ${orderNumber} created. Pay ₦${pricing.totalAmount.toLocaleString()} by ${deadlineStr} to secure the vehicle. The listing remains reserved until payment is complete.`,
-      orderId,
-      vehicleId: vehicle._id,
-    });
-
-    // Send C2: Buy Now Order Email (Buyer)
-    await ctx.scheduler.runAfter(0, internal.emails.sendBuyNowOrderEmail, {
-      userId: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      orderNumber,
-      orderId,
-      vehiclePrice: pricing.vehiclePrice,
-      serviceFee: pricing.serviceFee,
-      documentationFee: pricing.documentationFee,
-      shippingCost: pricing.shippingCost,
-      totalAmount: pricing.totalAmount,
-      paymentDeadline: paymentDeadlineFrom(now),
-      vehicleId: vehicle._id,
-    });
-
-    if (vehicle.sellerId) {
-      await createInAppNotification(ctx, {
-        userId: vehicle.sellerId,
-        type: "system",
-        title: "Buyer reserved your vehicle",
-        message: `A buyer created order ${orderNumber} for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Payment is due by ${deadlineStr}.`,
-        orderId,
-        vehicleId: vehicle._id,
-      });
-
-      // Send Seller Sold Email
-      const sellerUser = await ctx.db.get(vehicle.sellerId);
-      if (sellerUser) {
-        await ctx.scheduler.runAfter(0, internal.emails.sendSellerVehicleSoldEmail, {
-          userId: sellerUser._id,
-          email: sellerUser.email,
-          firstName: sellerUser.firstName,
-          vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          salePrice: pricing.vehiclePrice,
-          paymentDeadline: paymentDeadlineFrom(now),
-          orderNumber,
-          saleType: "buy_now",
-          vehicleId: vehicle._id,
-        });
-      }
-    }
 
     return { success: true, orderId, orderNumber };
   },
@@ -1960,7 +1892,7 @@ export const getVendorStats = query({
     // Get vendor's vehicles
     const vehicles = await ctx.db
       .query("vehicles")
-      .filter((q) => q.eq(q.field("sellerId"), user._id))
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
       .collect();
 
     // Calculate stats
@@ -2024,12 +1956,8 @@ export const getVendorRevenueHistory = query({
     // Get vendor's sold vehicles
     const vehicles = await ctx.db
       .query("vehicles")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("sellerId"), user._id),
-          q.eq(q.field("status"), "sold")
-        )
-      )
+      .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
+      .filter((q) => q.eq(q.field("status"), "sold"))
       .collect();
 
     // Group sales by month

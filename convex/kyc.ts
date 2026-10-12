@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
-import { calculateBidReserveAmountKobo } from "./lib/purchaseFlow";
+import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 import { requireAuth, requireAdmin } from "./lib/auth";
 
 const MAX_KYC_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024;
@@ -506,7 +506,7 @@ export const processSumsubWebhook = internalMutation({
         // Find user by Sumsub applicant ID
         const users = await ctx.db
             .query("users")
-            .filter((q) => q.eq(q.field("sumsubApplicantId"), args.applicantId))
+            .withIndex("by_sumsub_applicant", (q) => q.eq("sumsubApplicantId", args.applicantId))
             .collect();
 
         if (users.length === 0) {
@@ -611,7 +611,7 @@ export const canUserBid = query({
         return {
             canBid: true,
             walletBalance: user.walletBalance ?? 0,
-            biddingPower: (user.walletBalance ?? 0) * 10,
+            biddingPower: buyingPowerFromWalletKobo(user.walletBalance ?? 0),
         };
     },
 });
