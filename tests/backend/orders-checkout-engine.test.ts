@@ -143,5 +143,16 @@ describe("Backend Orders, Checkout, Payments & Logistics Engine (In-Memory Herme
       orderId,
     });
     expect(finalOrder?.order.status).toBe("delivered");
+
+    // Gate-pass delivery settles the order: seller receives subtotal minus 5% commission, in kobo, once.
+    const sellerAfter = await t.run(async (ctx) => ctx.db.get(seller.userId));
+    const sellerPayouts = await t.run(async (ctx) =>
+      (await ctx.db.query("walletTransactions").withIndex("by_user", (q) => q.eq("userId", seller.userId)).collect()).filter(
+        (tx) => tx.type === "sale_payout"
+      )
+    );
+    expect(sellerPayouts.length).toBe(1);
+    expect(sellerPayouts[0].amount).toBe(Math.round(finalOrder!.order.subtotal * 0.95 * 100));
+    expect(sellerAfter?.buyingPower).toBe(sellerAfter!.walletBalance! / 10);
   });
 });

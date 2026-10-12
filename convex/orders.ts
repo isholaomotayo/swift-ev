@@ -2,15 +2,9 @@ import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
-import { requireAuth, requireAdmin, requireSeller, hasOwnershipOrAdmin, createAuditLog, getAuthUserOrNull } from "./lib/auth";
-import {
-  assertVehicleStatusTransition,
-  getVehicleStatusForOrderStatus,
-  isVehicleStatus,
-  type OrderStatus,
-  type VehicleStatus,
-} from "./lib/vehicleLifecycle";
-import { createInAppNotification, releaseUnpaidSoftHold } from "./lib/payments";
+import { requireAuth, requireAdmin, requireSeller, hasOwnershipOrAdmin, createAuditLog, getAuthUserOrNull, isAdmin as hasAdminRole } from "./lib/auth";
+import { createInAppNotification, releaseUnpaidSoftHold, syncVehicleFromOrderStatus } from "./lib/payments";
+import { computeOrderCommissions, markOrderDelivered, settleSellerPayout } from "./lib/settlement";
 
 const orderStatusValidator = v.union(
   v.literal("pending_payment"),
@@ -26,36 +20,6 @@ const orderStatusValidator = v.union(
   v.literal("cancelled"),
   v.literal("refunded")
 );
-
-function vehicleStatusOf(status: string): VehicleStatus {
-  if (!isVehicleStatus(status)) {
-    throw new Error(`Unknown vehicle status: ${status}`);
-  }
-  return status;
-}
-
-async function syncVehicleStatusFromOrder(
-  ctx: any,
-  order: Doc<"orders">,
-  nextOrderStatus: OrderStatus
-) {
-  const vehicle = await ctx.db.get(order.vehicleId);
-  if (!vehicle) {
-    throw new Error(`Vehicle ${order.vehicleId} not found for order ${order._id}`);
-  }
-
-  const nextVehicleStatus = getVehicleStatusForOrderStatus(nextOrderStatus);
-  if (vehicle.status === nextVehicleStatus) return nextVehicleStatus;
-
-  assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), nextVehicleStatus);
-
-  await ctx.db.patch(order.vehicleId, {
-    status: nextVehicleStatus,
-    updatedAt: Date.now(),
-  });
-
-  return nextVehicleStatus;
-}
 
 /**
  * Buyer's pending/partial order for a reserved vehicle (Complete payment CTA).
@@ -105,7 +69,7 @@ export const listOrders = query({
 
     // Helper function to build orders query
     const buildOrdersQuery = async (): Promise<Doc<"orders">[]> => {
-      const isAdmin = user.role === "admin" || user.role === "superadmin";
+      const isAdmin = hasAdminRole(user);
       if (args.userId && args.userId !== user._id && !isAdmin) {
         throw new ConvexError("Unauthorized: Non-admin users cannot query other users' orders");
       }
@@ -246,7 +210,7 @@ export const getOrderDetails = query({
     // Get shipping records
     const shipments = await ctx.db
       .query("shipments")
-      .filter((q) => q.eq(q.field("orderId"), targetOrderId))
+      .withIndex("by_order", (q) => q.eq("orderId", targetOrderId))
       .collect();
 
     // Get additional services
@@ -546,7 +510,7 @@ export const updateOrderStatus = mutation({
       );
     }
 
-    const nextVehicleStatus = await syncVehicleStatusFromOrder(ctx, order, args.status);
+    const nextVehicleStatus = await syncVehicleFromOrderStatus(ctx, order, args.status);
 
     // Update order
     await ctx.db.patch(targetOrderId, {
@@ -719,7 +683,7 @@ export const addShippingTracking = mutation({
     }
 
     // Authorization check: Admin, Superadmin, or the listing Seller
-    if (user.role !== "admin" && user.role !== "superadmin") {
+    if (!hasAdminRole(user)) {
       if (vehicle.sellerId !== user._id) {
         throw new Error("Unauthorized: Only admins or the vehicle seller can add shipping tracking");
       }
@@ -755,7 +719,7 @@ export const addShippingTracking = mutation({
       throw new Error(`Cannot add shipping tracking to an order in status: ${order.status}`);
     }
 
-    await syncVehicleStatusFromOrder(ctx, order, "shipped");
+    await syncVehicleFromOrderStatus(ctx, order, "shipped");
 
     // Update order status once tracking is assigned.
     await ctx.db.patch(targetOrderId, {
@@ -904,59 +868,14 @@ export const triggerSellerPayout = mutation({
       throw new Error("Vehicle does not have a seller associated with it");
     }
 
-    // Check if payout already exists for this order to prevent double payout
-    const existingPayout = await ctx.db
-      .query("walletTransactions")
-      .withIndex("by_user", (q) => q.eq("userId", vehicle.sellerId!))
-      .filter((q) => q.eq(q.field("relatedOrderId"), order._id))
-      .filter((q) => q.eq(q.field("type"), "sale_payout"))
-      .first();
-
-    if (existingPayout) {
+    const payout = await settleSellerPayout(ctx, order);
+    if (!payout) {
+      throw new Error("Vehicle does not have a seller associated with it");
+    }
+    if (!payout.applied) {
       throw new Error("Seller has already been paid for this order");
     }
-
-    // Calculate payout
-    const setting = await ctx.db
-      .query("systemSettings")
-      .withIndex("by_key", (q) => q.eq("key", "seller_commission_percentage"))
-      .first();
-
-    let commissionRate = 0.05; // Default 5%
-    if (setting && setting.value) {
-      const parsed = parseFloat(setting.value);
-      if (!isNaN(parsed)) {
-        commissionRate = parsed / 100;
-      }
-    }
-    const commission = order.winningBid * commissionRate;
-    const payoutAmount = order.winningBid - commission;
-
-    // Credit seller
-    const seller = await ctx.db.get(vehicle.sellerId);
-    if (!seller) {
-      throw new Error("Seller not found");
-    }
-    
-    const currentBalance = seller.walletBalance ?? 0;
-    
-    await ctx.db.patch(vehicle.sellerId, {
-      walletBalance: currentBalance + payoutAmount,
-      updatedAt: Date.now(),
-    });
-
-    await ctx.db.insert("walletTransactions", {
-      userId: vehicle.sellerId,
-      type: "sale_payout",
-      amount: payoutAmount,
-      currency: "NGN",
-      status: "completed",
-      reference: `payout_order_${order.orderNumber}`,
-      description: `Sale payout for order ${order.orderNumber}`,
-      relatedOrderId: order._id,
-      createdAt: Date.now(),
-      completedAt: Date.now(),
-    });
+    const payoutAmount = payout.payoutNaira;
 
     await createAuditLog(ctx, {
       userId: user._id,
@@ -992,7 +911,7 @@ export const confirmDelivery = mutation({
       throw new Error("Order not found");
     }
 
-    if (order.userId !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    if (order.userId !== user._id && !hasAdminRole(user)) {
       throw new Error("Unauthorized: Only the buyer can confirm delivery");
     }
 
@@ -1005,49 +924,8 @@ export const confirmDelivery = mutation({
       throw new Error("Vehicle not found");
     }
 
-    const now = Date.now();
-
-    // 1. Update order and vehicle status to delivered
-    await ctx.db.patch(targetOrderId, {
-      status: "delivered",
-      deliveredAt: now,
-      guaranteeStatus: "fulfilled",
-      updatedAt: now,
-    });
-    
-    await syncVehicleStatusFromOrder(ctx, order, "delivered");
-
-    // 2. Escrow Payout: Release subtotal to vendor's wallet
-    if (vehicle.sellerId) {
-      const seller = await ctx.db.get(vehicle.sellerId);
-      if (seller) {
-        const payoutAmount = order.subtotal; 
-        const currentBalance = seller.walletBalance || 0;
-        await ctx.db.patch(vehicle.sellerId, {
-          walletBalance: currentBalance + payoutAmount,
-        });
-
-        // Notify Vendor of Escrow Release
-        await createInAppNotification(ctx, {
-          userId: vehicle.sellerId,
-          type: "system",
-          title: "Funds Released",
-          message: `Delivery confirmed for order ${order.orderNumber}. ₦${payoutAmount.toLocaleString()} has been added to your wallet balance.`,
-          orderId: targetOrderId,
-          vehicleId: vehicle._id,
-        });
-      }
-    }
-
-    // 3. Notify Buyer of fulfilled guarantee
-    await createInAppNotification(ctx, {
-      userId: order.userId,
-      type: "system",
-      title: "Delivery Confirmed",
-      message: `You have successfully confirmed delivery of your vehicle. The Money-Back Guarantee has been marked as fulfilled.`,
-      orderId: targetOrderId,
-      vehicleId: vehicle._id,
-    });
+    // Order + vehicle status, seller payout (net of commission) and notifications, in one place.
+    await markOrderDelivered(ctx, order, { fulfillGuarantee: true });
 
     await createAuditLog(ctx, {
       userId: user._id,
@@ -1083,34 +961,13 @@ export const calculateOrderCommissions = query({
       )
     ),
   },
-  handler: async (_ctx, args) => {
-    const isChina = args.isChinaImport ?? true;
-    const chinaImportLeadCommission = isChina ? Math.round(args.subtotal * 0.03) : 0;
-
-    const facilitatorPercent = args.facilitatorPercent ?? 0;
-    const facilitatorCommissionAmount = Math.round(args.subtotal * (facilitatorPercent / 100));
-
-    const fractionalCommissions = (args.fractionalReps || []).map((rep) => ({
-      repId: rep.repId,
-      role: rep.role,
-      sharePercent: rep.sharePercent,
-      amount: Math.round(args.subtotal * (rep.sharePercent / 100)),
-    }));
-
-    const totalCommissions =
-      chinaImportLeadCommission +
-      facilitatorCommissionAmount +
-      fractionalCommissions.reduce((sum, r) => sum + r.amount, 0);
-
-    return {
+  handler: async (_ctx, args) =>
+    computeOrderCommissions({
       subtotal: args.subtotal,
-      chinaImportLeadCommission,
-      facilitatorCommissionPercent: facilitatorPercent,
-      facilitatorCommissionAmount,
-      fractionalCommissions,
-      totalCommissions,
-    };
-  },
+      isChinaImport: args.isChinaImport,
+      facilitatorPercent: args.facilitatorPercent,
+      fractionalReps: args.fractionalReps,
+    }),
 });
 
 /**
@@ -1142,18 +999,17 @@ export const attachOrderCommissions = mutation({
       throw new ConvexError({ message: "Order not found" });
     }
 
-    const isChina = args.isChinaImport ?? true;
-    const chinaImportLeadCommission = isChina ? Math.round(order.subtotal * 0.03) : 0;
-
-    const facilitatorPercent = args.facilitatorPercent ?? 0;
-    const facilitatorCommissionAmount = Math.round(order.subtotal * (facilitatorPercent / 100));
-
-    const fractionalCommissions = (args.fractionalReps || []).map((rep) => ({
-      repId: rep.repId,
-      role: rep.role,
-      sharePercent: rep.sharePercent,
-      amount: Math.round(order.subtotal * (rep.sharePercent / 100)),
-    }));
+    const {
+      chinaImportLeadCommission,
+      facilitatorCommissionPercent: facilitatorPercent,
+      facilitatorCommissionAmount,
+      fractionalCommissions,
+    } = computeOrderCommissions({
+      subtotal: order.subtotal,
+      isChinaImport: args.isChinaImport,
+      facilitatorPercent: args.facilitatorPercent,
+      fractionalReps: args.fractionalReps,
+    });
 
     await ctx.db.patch(args.orderId, {
       chinaImportLeadCommission,

@@ -1,13 +1,14 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth } from "./lib/auth";
+import { requireAuth, isAdmin } from "./lib/auth";
 import {
     assertVehicleStatusTransition,
     isVehicleStatus,
     type VehicleStatus,
 } from "./lib/vehicleLifecycle";
 import { createInAppNotification } from "./lib/payments";
+import { markOrderDelivered } from "./lib/settlement";
 
 function vehicleStatusOf(status: string): VehicleStatus {
     if (!isVehicleStatus(status)) {
@@ -38,7 +39,7 @@ export const generateGatePass = mutation({
 
         if (order.userId !== user._id) {
             // Check if user is admin?
-            if (user.role !== "admin" && user.role !== "superadmin") {
+            if (!isAdmin(user)) {
                 throw new Error("Unauthorized");
             }
         }
@@ -111,7 +112,7 @@ export const scanGatePass = mutation({
     handler: async (ctx, args) => {
         const user = await requireAuth(ctx, args.token);
         // Maybe restrict to 'admin' or specific 'security' role if it existed.
-        if (user.role !== "admin" && user.role !== "superadmin") { // Assuming admins act as gatekeepers for now
+        if (!isAdmin(user)) { // Assuming admins act as gatekeepers for now
             throw new Error("Unauthorized to scan gate passes");
         }
 
@@ -148,31 +149,12 @@ export const scanGatePass = mutation({
             usedAt: now
         });
 
-        // Update vehicle/order status.
-        await ctx.db.patch(pass.orderId, {
-            status: "delivered", // Or 'out_for_delivery' if shipping?
-            deliveredAt: now,
-            updatedAt: now
-        });
-        await ctx.db.patch(pass.vehicleId, {
-            status: "delivered",
-            updatedAt: now
-        });
-
-        // Send E2: Order Delivered Email (Buyer)
-        const buyerUser = await ctx.db.get(pass.userId);
+        // Order + vehicle status, seller payout and buyer notification/email.
         const orderRecord = await ctx.db.get(pass.orderId);
-        if (buyerUser && orderRecord) {
-            await ctx.scheduler.runAfter(0, internal.emails.sendOrderDeliveredEmail, {
-                userId: buyerUser._id,
-                email: buyerUser.email,
-                firstName: buyerUser.firstName,
-                vehicleTitle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-                orderNumber: orderRecord.orderNumber,
-                orderId: pass.orderId,
-                relatedOrderId: pass.orderId,
-            });
+        if (!orderRecord) {
+            throw new Error("Order not found");
         }
+        await markOrderDelivered(ctx, orderRecord);
 
         return { success: true, message: "Gate Pass Validated. Vehicle Released." };
     }
@@ -231,7 +213,7 @@ export const addShipmentUpdate = mutation({
         const vehicle = await ctx.db.get(shipment.vehicleId);
         if (!vehicle) throw new Error("Vehicle not found");
 
-        if (user.role !== "admin" && user.role !== "superadmin") {
+        if (!isAdmin(user)) {
             if (vehicle.sellerId !== user._id) {
                 throw new Error("Unauthorized");
             }
@@ -244,7 +226,7 @@ export const addShipmentUpdate = mutation({
             location: args.location,
             description: args.description,
             timestamp: now,
-            source: user.role === "admin" || user.role === "superadmin" ? "system" : "manual"
+            source: isAdmin(user) ? "system" : "manual"
         });
 
         // Potentially transition order status
@@ -293,7 +275,7 @@ export const getShipmentUpdates = query({
         const vehicle = await ctx.db.get(shipment.vehicleId);
 
         // Security check: must be admin, seller, or buyer
-        if (user.role !== "admin" && user.role !== "superadmin") {
+        if (!isAdmin(user)) {
             if (order?.userId !== user._id && vehicle?.sellerId !== user._id) {
                 throw new Error("Unauthorized");
             }

@@ -68,7 +68,8 @@ export const ALLOWED_TRANSITIONS: Record<VehicleStatus, readonly VehicleStatus[]
   scheduled: ["pending_approval", "in_auction", "payment_pending", "withdrawn"],
   in_auction: ["payment_pending", "unsold", "withdrawn"],
   payment_pending: ["sold", "cancelled", "unsold", "approved", "scheduled"],
-  sold: ["in_transit", "delivered", "cancelled"],
+  // sold -> approved: a fully refunded dispute puts the vehicle back on the market.
+  sold: ["in_transit", "delivered", "cancelled", "approved"],
   unsold: ["pending_approval", "approved", "withdrawn", "payment_pending", "scheduled"],
   withdrawn: [],
   rejected: ["approved", "pending_approval", "withdrawn"],

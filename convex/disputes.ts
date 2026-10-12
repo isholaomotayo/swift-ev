@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth, requireAdmin } from "./lib/auth";
-import { buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
+import { requireAuth, requireAdmin, isAdmin as hasAdminRole } from "./lib/auth";
+import { credit, nairaToKobo } from "./lib/ledger";
+import { transitionVehicle } from "./lib/vehicleTransition";
 
 /**
  * Create a new dispute
@@ -76,7 +77,7 @@ export const getDisputeById = query({
         if (!dispute) throw new Error("Dispute not found");
 
         // Check authorization
-        const isAdmin = user.role === "admin" || user.role === "superadmin";
+        const isAdmin = hasAdminRole(user);
         const isReporter = dispute.reporterId === user._id;
         const isRespondent = dispute.respondentId === user._id;
 
@@ -284,26 +285,13 @@ export const resolveDispute = mutation({
             }
 
             if (finalRefundAmount > 0 && reporterUser) {
-                const currentBalance = reporterUser.walletBalance ?? 0;
-                const newBalance = currentBalance + finalRefundAmount;
-                
-                await ctx.db.patch(reporterUser._id, {
-                    walletBalance: newBalance,
-                    buyingPower: buyingPowerFromWalletKobo(newBalance),
-                    updatedAt: Date.now(),
-                });
-
-                await ctx.db.insert("walletTransactions", {
+                await credit(ctx, {
                     userId: reporterUser._id,
+                    amountKobo: nairaToKobo(finalRefundAmount), // order/dispute amounts are Naira
                     type: "refund",
-                    amount: finalRefundAmount,
-                    currency: "NGN",
-                    status: "completed",
                     reference: `REFUND_DISPUTE_${dispute._id}`,
                     description: `Refund for dispute on order ${orderRecord?.orderNumber}`,
                     relatedOrderId: orderRecord?._id,
-                    createdAt: Date.now(),
-                    completedAt: Date.now(),
                 });
 
                 if (args.resolution === "full_refund" && orderRecord && orderRecord.status !== "refunded") {
@@ -313,7 +301,7 @@ export const resolveDispute = mutation({
                     if (orderRecord.status !== "delivered") {
                         const vehicle = await ctx.db.get(orderRecord.vehicleId);
                         if (vehicle && (vehicle.status === "payment_pending" || vehicle.status === "sold")) {
-                           await ctx.db.patch(vehicle._id, { status: "approved", buyItNowPurchasedBy: undefined });
+                           await transitionVehicle(ctx, vehicle._id, "approved", { buyItNowPurchasedBy: undefined });
                         }
                     }
                 }

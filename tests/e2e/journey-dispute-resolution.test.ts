@@ -81,6 +81,8 @@ describe("E2E Journey: Buyer Dispute Filing, Evidence Submission & Admin Arbitra
     expect(disputeDetails?.disputeType).toBe("damage_in_transit");
     expect(disputeDetails?.evidenceUrls?.length).toBeGreaterThanOrEqual(3);
 
+    const walletBefore = (await t.run(async (ctx) => ctx.db.get(buyer.userId)))!.walletBalance!;
+
     // 6. Admin Resolves Dispute with Repair Credit
     await t.mutation(api.disputes.resolveDispute, {
       token: admin.token,
@@ -99,5 +101,10 @@ describe("E2E Journey: Buyer Dispute Filing, Evidence Submission & Admin Arbitra
     expect(resolvedDispute?.status).toBe("resolved");
     expect(resolvedDispute?.resolution).toBe("repair_credit");
     expect(resolvedDispute?.refundAmount).toBe(2_200_000);
+
+    // refundAmount is Naira; the wallet is kobo, so the credit must be 100x.
+    const buyerAfter = (await t.run(async (ctx) => ctx.db.get(buyer.userId)))!;
+    expect(buyerAfter.walletBalance! - walletBefore).toBe(2_200_000 * 100);
+    expect(buyerAfter.buyingPower).toBe(buyerAfter.walletBalance! / 10);
   });
 });
