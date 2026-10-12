@@ -1,9 +1,10 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
 /**
- * Clear all data from the database (for development only)
+ * Clear all data from the database (for development only).
+ * Internal: run with `npx convex run clearData:clearDatabase`.
  */
-export const clearDatabase = mutation({
+export const clearDatabase = internalMutation({
   args: {},
   handler: async (ctx) => {
     console.log("🗑️  Clearing all data from database...");

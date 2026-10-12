@@ -15,9 +15,9 @@ describe("Admin Live Auction Controls & Currency Formatting (Client-Side Logic)"
     expect(formattedUsd).toContain("10,000");
 
     // E7: formatCurrency with custom exchangeRates and foreign currency
-    const customRates = { USD: 0.000625, EUR: 0.00058, GBP: 0.0005, CNY: 0.0045 };
+    const customRates = { usdToNgn: 1600, gbpToNgn: 2000, cnyToNgn: 220 };
     const formattedCustomUsd = formatCurrency(amountNgn, { currency: "USD", exchangeRates: customRates });
-    expect(formattedCustomUsd).toContain("$");
+    expect(formattedCustomUsd).toContain("10,312");
 
     // No symbol formatting
     const rawNumber = formatCurrency(amountNgn, { showSymbol: false });

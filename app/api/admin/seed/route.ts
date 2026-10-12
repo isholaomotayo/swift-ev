@@ -7,6 +7,11 @@ import path from "path";
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
+    const secret = process.env.SEED_SECRET;
+    if (!secret || req.headers.get("x-seed-secret") !== secret) {
+        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const { clearExisting } = await req.json();
 
@@ -32,7 +37,7 @@ export async function POST(req: Request) {
                 console.log(`Uploading ${file.name}...`);
 
                 // 1. Get Upload URL
-                const uploadUrl = await convex.mutation(api.seedData.generateSeedUploadUrl, {});
+                const uploadUrl = await convex.mutation(api.seedData.generateSeedUploadUrl, { secret });
 
                 // 2. Read file
                 const filePath = path.join(process.cwd(), file.path);
@@ -55,7 +60,7 @@ export async function POST(req: Request) {
                 storageId = newId;
 
                 // 4. Save ID
-                await convex.mutation(api.seedData.saveImageStorageId, { key, storageId: storageId! });
+                await convex.mutation(api.seedData.saveImageStorageId, { secret, key, storageId: storageId! });
                 console.log(`Uploaded ${file.name} -> ${storageId}`);
             } else {
                 console.log(`Using existing ${file.name} -> ${storageId}`);
@@ -67,6 +72,7 @@ export async function POST(req: Request) {
         // Call seed
         console.log("Seeding database...");
         const result = await convex.mutation(api.seedData.seedDatabase, {
+            secret,
             clearExisting: !!clearExisting,
             imageStorageIds,
         });

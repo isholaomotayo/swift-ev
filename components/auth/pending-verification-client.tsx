@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { getSafeRedirectPath } from "@/lib/safe-redirect";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,7 @@ export function PendingVerificationClient() {
     token ? { token } : "skip"
   );
 
-  const redirectParam = searchParams.get("redirect") || "/dashboard";
+  const redirectParam = getSafeRedirectPath(searchParams.get("redirect"), "/dashboard");
 
   // Auto-redirect if account becomes active
   useEffect(() => {

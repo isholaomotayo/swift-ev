@@ -423,7 +423,7 @@ export const updateProfile = mutation({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       throw new ConvexError({ message: "Unauthorized" });
     }
 

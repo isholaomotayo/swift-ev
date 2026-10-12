@@ -27,7 +27,7 @@ export const getKycStatus = query({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             return null;
         }
 
@@ -81,7 +81,7 @@ export const submitDocument = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -137,7 +137,7 @@ export const initiateVerificationFeePayment = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -216,7 +216,7 @@ export const confirmVerificationFeePayment = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -350,7 +350,7 @@ export const generateSumsubToken = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -399,7 +399,7 @@ export const submitKycDocuments = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -574,7 +574,7 @@ export const canUserBid = query({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             return {
                 canBid: false,
                 reason: "not_authenticated",

@@ -18,7 +18,7 @@ export const getWalletBalance = query({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             return null;
         }
 
@@ -56,7 +56,7 @@ export const getTransactionHistory = query({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             return [];
         }
 
@@ -89,7 +89,7 @@ export const initiateWalletFunding = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -148,7 +148,7 @@ export const confirmWalletFunding = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -278,7 +278,7 @@ export const reserveFundsForBid = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -344,7 +344,7 @@ export const releaseReservedFunds = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -403,7 +403,7 @@ export const initiateWithdrawal = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             throw new Error("Unauthorized");
         }
 
@@ -461,7 +461,7 @@ export const checkBiddingPower = query({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) {
+        if (!session || session.expiresAt < Date.now()) {
             return { canBid: false, reason: "Not authenticated" };
         }
 
@@ -506,7 +506,7 @@ export const approveWithdrawal = mutation({
             .withIndex("by_token", (q) => q.eq("token", args.token))
             .first();
 
-        if (!session) throw new Error("Unauthorized");
+        if (!session || session.expiresAt < Date.now()) throw new Error("Unauthorized");
         const adminUser = await ctx.db.get(session.userId);
         if (!adminUser || adminUser.role !== "admin") throw new Error("Unauthorized - Admin only");
 

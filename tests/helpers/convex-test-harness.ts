@@ -34,6 +34,7 @@ export const testModules = {
   "./payments.ts": () => import("../../convex/payments"),
   "./registration.ts": () => import("../../convex/registration"),
   "./schema.ts": () => import("../../convex/schema"),
+  "./seedData.ts": () => import("../../convex/seedData"),
   "./services.ts": () => import("../../convex/services"),
   "./settings.ts": () => import("../../convex/settings"),
   "./userMail.ts": () => import("../../convex/userMail"),

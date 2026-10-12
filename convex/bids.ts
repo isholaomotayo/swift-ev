@@ -26,7 +26,7 @@ export const placeBid = mutation({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Unauthorized - please log in");
     }
 
@@ -333,7 +333,7 @@ export const setMaxBid = mutation({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Unauthorized - please log in");
     }
 
@@ -537,7 +537,7 @@ export const getUserBids = query({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       return [];
     }
 
@@ -651,7 +651,7 @@ export const getUserMaxBid = query({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       return null;
     }
 
@@ -860,7 +860,7 @@ export const cancelMaxBid = mutation({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!session) {
+    if (!session || session.expiresAt < Date.now()) {
       throw new Error("Unauthorized");
     }
 

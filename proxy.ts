@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { paraglideMiddleware } from "@/src/paraglide/server.js";
+import { getSafeRedirectPath } from "@/lib/safe-redirect";
 
 export function proxy(request: NextRequest) {
   // Use Paraglide middleware to handle locale detection
@@ -61,7 +62,7 @@ export function proxy(request: NextRequest) {
       const authFailed = searchParams.has("auth_failed");
 
       if (!authFailed) {
-        const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+        const redirectTo = getSafeRedirectPath(searchParams.get("redirect"), "/dashboard");
         return addLocaleHeader(NextResponse.redirect(new URL(redirectTo, request.url)));
       }
     }

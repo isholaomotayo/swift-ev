@@ -7,7 +7,7 @@ describe("safe redirect", () => {
     expect(getSafeRedirectPath("/orders/xyz?x=1")).toBe("/orders/xyz?x=1");
     expect(getSafeRedirectPath("https://evil.com")).toBe("/");
     expect(getSafeRedirectPath("//evil.com")).toBe("/");
-    expect(getSafeRedirectPath("/\\evil")).toBe("/\\evil");
+    expect(getSafeRedirectPath("/\\evil.com")).toBe("/"); // browsers treat "\" as "/"
     expect(getSafeRedirectPath(null, "/vendor")).toBe("/vendor");
   });
 

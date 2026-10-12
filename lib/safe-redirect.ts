@@ -14,7 +14,12 @@ export function getSafeRedirectPath(
     }
   })();
 
-  if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("://")) {
+  if (
+    !decoded.startsWith("/") ||
+    decoded.startsWith("//") ||
+    decoded.includes("\\") ||
+    decoded.includes("://")
+  ) {
     return fallback;
   }
   return decoded;

@@ -1,15 +1,25 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
+
+/** Seeding is destructive; require the deployment's SEED_SECRET env var. */
+function requireSeedSecret(secret: string) {
+  const expected = process.env.SEED_SECRET;
+  if (!expected || secret !== expected) {
+    throw new ConvexError("Unauthorized");
+  }
+}
 
 /**
  * Save an image storage ID to system settings
  */
 export const saveImageStorageId = mutation({
   args: {
+    secret: v.string(),
     key: v.string(),
     storageId: v.string(),
   },
   handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
     const existing = await ctx.db
       .query("systemSettings")
       .withIndex("by_key", (q) => q.eq("key", args.key))
@@ -49,8 +59,9 @@ export const getImageStorageId = query({
  * Generate an upload URL for seeding images
  */
 export const generateSeedUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { secret: v.string() },
+  handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -61,10 +72,12 @@ export const generateSeedUploadUrl = mutation({
  */
 export const seedDatabase = mutation({
   args: {
+    secret: v.string(),
     clearExisting: v.optional(v.boolean()),
     imageStorageIds: v.optional(v.any()), // Map of filename -> storageId
   },
   handler: async (ctx, args) => {
+    requireSeedSecret(args.secret);
     const now = Date.now();
 
     // 0. Clear existing data if requested
