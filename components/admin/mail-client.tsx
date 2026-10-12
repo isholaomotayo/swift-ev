@@ -87,30 +87,32 @@ export function MailClient({ initialEmails, initialStats, token }: MailClientPro
     : emailsData?.emails || initialEmails?.emails || [];
   const stats = mailStats || initialStats;
 
+  // Primitives keep these effects from refiring when the email object is re-created.
+  const openEmailId = selectedEmail?._id;
+  const selectedIsRead = selectedEmail?.isRead;
+  const selectedHasBody = !!selectedEmail?.bodyHtml;
+  const selectedResendEmailId = selectedEmail?.resendEmailId;
+
   // Auto-mark as read when selecting email
   useEffect(() => {
-    if (selectedEmail && !selectedEmail.isRead) {
+    if (openEmailId && !selectedIsRead) {
       markAsReadMutation({
         token,
-        emailId: selectedEmail._id,
+        emailId: openEmailId,
         isRead: true,
       }).catch(console.error);
     }
-  }, [selectedEmail?._id, selectedEmail?.isRead]);
+  }, [openEmailId, selectedIsRead, token, markAsReadMutation]);
 
   // Retry fetching body if empty and has resendEmailId
   useEffect(() => {
-    if (
-      selectedEmail &&
-      !selectedEmail.bodyHtml &&
-      selectedEmail.resendEmailId
-    ) {
+    if (openEmailId && !selectedHasBody && selectedResendEmailId) {
       retryFetchBodyMutation({
         token,
-        emailId: selectedEmail._id,
+        emailId: openEmailId,
       }).catch(console.error);
     }
-  }, [selectedEmail?._id, selectedEmail?.bodyHtml]);
+  }, [openEmailId, selectedHasBody, selectedResendEmailId, token, retryFetchBodyMutation]);
 
   // Clear selection when changing folders
   const handleFolderChange = useCallback((folder: MailFolder) => {

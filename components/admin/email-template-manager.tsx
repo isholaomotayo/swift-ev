@@ -84,14 +84,20 @@ export function EmailTemplateManager({ token }: EmailTemplateManagerProps) {
   const updateTemplate = useMutation(api.emailTemplates.updateEmailTemplate);
   const revertTemplate = useMutation(api.emailTemplates.revertEmailTemplate);
 
-  // Sync edit fields when selected template changes
-  useEffect(() => {
+  // Reset edit fields when the loaded template (or its saved content) changes.
+  // Adjusting state during render avoids an extra effect-driven render pass.
+  const loadedKey = selectedTemplate
+    ? `${selectedTemplate.emailType}|${selectedTemplate.currentSubject}|${selectedTemplate.currentBodyHtml}`
+    : null;
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
+  if (loadedKey !== syncedKey) {
+    setSyncedKey(loadedKey);
     if (selectedTemplate) {
       setEditedSubject(selectedTemplate.currentSubject);
       setEditedHtml(selectedTemplate.currentBodyHtml);
       setIsDirty(false);
     }
-  }, [selectedTemplate?.emailType, selectedTemplate?.currentSubject, selectedTemplate?.currentBodyHtml]);
+  }
 
   // Auto-select first template on load
   useEffect(() => {

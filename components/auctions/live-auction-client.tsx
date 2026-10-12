@@ -136,7 +136,7 @@ export function LiveAuctionClient({
     initialRoomData;
 
   const auction = roomData?.auction;
-  const allLots = (roomData?.lots ?? []) as PublicLot[];
+  const allLots = useMemo(() => (roomData?.lots ?? []) as PublicLot[], [roomData?.lots]);
   const isSequential = auction?.executionMode === "sequential";
   const isConcurrent = auction?.executionMode === "concurrent";
   const isAuctionLive = auction?.status === "live";
@@ -151,10 +151,11 @@ export function LiveAuctionClient({
   const primaryActiveLot = activeLots[0] ?? null;
 
   const displayItem = useMemo(() => {
-    if (inspectedLotId) {
-      return allLots.find((item) => item.lot._id === inspectedLotId) ?? null;
-    }
-    return primaryActiveLot ?? allLots[0] ?? null;
+    // A stale inspected id (lot removed) falls back to the default lot, same as no selection.
+    const inspected = inspectedLotId
+      ? allLots.find((item) => item.lot._id === inspectedLotId)
+      : undefined;
+    return inspected ?? primaryActiveLot ?? allLots[0] ?? null;
   }, [allLots, inspectedLotId, primaryActiveLot]);
 
   const displayLotClosed =
@@ -208,12 +209,6 @@ export function LiveAuctionClient({
   const currentLotIndex = displayItem
     ? allLots.findIndex((item) => item.lot._id === displayItem.lot._id)
     : -1;
-
-  useEffect(() => {
-    if (!inspectedLotId) return;
-    const stillExists = allLots.some((item) => item.lot._id === inspectedLotId);
-    if (!stillExists) setInspectedLotId(null);
-  }, [allLots, inspectedLotId]);
 
   useEffect(() => {
     const selectedId = displayItem?.lot._id;

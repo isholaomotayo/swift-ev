@@ -132,11 +132,11 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
 
   const currentAuction = controlData?.auction;
   const activeLot = controlData?.activeLot;
-  const activeLots = controlData?.activeLots ?? [];
+  const activeLots = useMemo(() => controlData?.activeLots ?? [], [controlData?.activeLots]);
   const nextLot = controlData?.nextLot;
   const nextLotAfter = controlData?.nextLotAfter;
   const completedLots = controlData?.completedLots ?? [];
-  const allHydratedLots = controlData?.allHydratedLots ?? [];
+  const allHydratedLots = useMemo(() => controlData?.allHydratedLots ?? [], [controlData?.allHydratedLots]);
   const timing = controlData?.timing;
   const isSequential = currentAuction?.auctionType === "live";
   const isConcurrent = currentAuction?.auctionType === "timed";

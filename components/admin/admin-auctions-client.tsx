@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Calendar, Play, Zap, Trash2, Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csv-export";
 import Link from "next/link";
@@ -56,19 +56,13 @@ export function AdminAuctionsClient({
     ? settings["auction.enforceMinimumDeposit"] === "true"
     : false;
 
-  // Optimistic UI state
-  const [optimisticDeposit, setOptimisticDeposit] = useState<boolean | null>(
-    null,
-  );
-
-  // Sync optimistic state when server state changes
-  useEffect(() => {
-    setOptimisticDeposit(null);
-  }, [serverEnforceMinimumDeposit]);
+  // Optimistic UI state: remembers which server value it was applied on top of, so it
+  // stops applying once the server value changes (no reset effect needed).
+  const [optimistic, setOptimistic] = useState<{ base: boolean; value: boolean } | null>(null);
 
   const enforceMinimumDeposit =
-    optimisticDeposit !== null
-      ? optimisticDeposit
+    optimistic !== null && optimistic.base === serverEnforceMinimumDeposit
+      ? optimistic.value
       : serverEnforceMinimumDeposit;
 
   const handleDepositSettingChange = async (checked: boolean | string) => {
@@ -83,7 +77,7 @@ export function AdminAuctionsClient({
     const isChecked = checked === true;
 
     // Set optimistic state
-    setOptimisticDeposit(isChecked);
+    setOptimistic({ base: serverEnforceMinimumDeposit, value: isChecked });
 
     try {
       await updateSetting({
@@ -98,7 +92,7 @@ export function AdminAuctionsClient({
       });
     } catch (error: any) {
       // Revert optimistic state on error
-      setOptimisticDeposit(null);
+      setOptimistic(null);
       toast({
         variant: "destructive",
         title: "Error",

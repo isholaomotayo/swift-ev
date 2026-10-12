@@ -75,7 +75,7 @@ export function AdminAuctionDetailClient({
   const [pendingFormatChange, setPendingFormatChange] = useState(false);
   const [pendingAutoAdvanceChange, setPendingAutoAdvanceChange] = useState(false);
 
-  const lots = auctionData?.lots ?? [];
+  const lots = useMemo(() => auctionData?.lots ?? [], [auctionData?.lots]);
   const auction = auctionData?.auction;
 
   const lotStats = useMemo(() => {

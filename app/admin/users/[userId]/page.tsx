@@ -30,18 +30,13 @@ export default async function AdminUserDetailPage({ params }: AdminUserDetailPag
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+  let data = null;
+  let notFound = false;
   try {
-    const data = await convex.query(api.users.getUserDetails, {
+    data = await convex.query(api.users.getUserDetails, {
       token,
       userId: params.userId as any,
     });
-
-    return (
-      <AdminUserDetailClient
-        token={token}
-        initialData={data}
-      />
-    );
   } catch (error: any) {
     console.error("Failed to fetch user details:", error);
 
@@ -49,15 +44,18 @@ export default async function AdminUserDetailPage({ params }: AdminUserDetailPag
     if (error?.message?.toLowerCase().includes("access denied") || error?.message?.toLowerCase().includes("unauthorized")) {
       redirect("/admin/users");
     }
-
-    // For a missing user, show a friendly not-found state
-    return (
-      <AdminUserDetailClient
-        token={token}
-        initialData={null}
-        errorMessage="User not found or no longer exists."
-      />
-    );
+    notFound = true;
   }
+
+  // Render outside try/catch: errors thrown while rendering are not catchable here.
+  return notFound ? (
+    <AdminUserDetailClient
+      token={token}
+      initialData={null}
+      errorMessage="User not found or no longer exists."
+    />
+  ) : (
+    <AdminUserDetailClient token={token} initialData={data} />
+  );
 }
 

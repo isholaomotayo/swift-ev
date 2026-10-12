@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
@@ -56,14 +56,18 @@ export function VehiclesListClient({
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50_000_000]);
   const [batteryHealthMin, setBatteryHealthMin] = useState<number>(70);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") ?? "");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [currentPage, setCurrentPage] = useState(0);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  useEffect(() => {
-    setSearchTerm(searchParams.get("search") ?? "");
-  }, [searchParams]);
+  // Follow the URL's ?search= param (adjust state during render, not in an effect)
+  const urlSearch = searchParams.get("search") ?? "";
+  const [syncedUrlSearch, setSyncedUrlSearch] = useState(urlSearch);
+  if (urlSearch !== syncedUrlSearch) {
+    setSyncedUrlSearch(urlSearch);
+    setSearchTerm(urlSearch);
+  }
 
   const queryParams = useMemo(
     () => ({
@@ -138,12 +142,13 @@ export function VehiclesListClient({
     (priceRange[0] !== 0 || priceRange[1] !== 50_000_000 ? 1 : 0) +
     (batteryHealthMin !== 70 ? 1 : 0);
 
+  const vehicleList = vehicleData?.vehicles;
   const filteredVehicles = useMemo(() => {
-    if (!vehicleData?.vehicles) return [];
-    if (!searchTerm.trim()) return vehicleData.vehicles;
+    if (!vehicleList) return [];
+    if (!searchTerm.trim()) return vehicleList;
 
     const searchLower = searchTerm.toLowerCase();
-    return vehicleData.vehicles.filter((vehicle: any) => {
+    return vehicleList.filter((vehicle: any) => {
       const make = vehicle.make?.toLowerCase() || "";
       const model = vehicle.model?.toLowerCase() || "";
       const vin = vehicle.vin?.toLowerCase() || "";
@@ -155,7 +160,7 @@ export function VehiclesListClient({
         lotNumber.includes(searchLower)
       );
     });
-  }, [vehicleData?.vehicles, searchTerm]);
+  }, [vehicleList, searchTerm]);
 
   const loading = vehicleData === undefined;
 

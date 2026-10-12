@@ -74,9 +74,10 @@ export function MailDetail({
   onStar,
   onToggleRead,
 }: MailDetailProps) {
+  const bodyHtml = email?.bodyHtml;
   const sanitizedHtml = useMemo(() => {
-    if (!email?.bodyHtml) return "";
-    return DOMPurify.sanitize(email.bodyHtml, {
+    if (!bodyHtml) return "";
+    return DOMPurify.sanitize(bodyHtml, {
       ALLOWED_TAGS: [
         "p", "br", "strong", "em", "u", "a", "ul", "ol", "li",
         "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre",
@@ -88,7 +89,7 @@ export function MailDetail({
         "style", "class",
       ],
     });
-  }, [email?.bodyHtml]);
+  }, [bodyHtml]);
 
   if (!email) {
     return (

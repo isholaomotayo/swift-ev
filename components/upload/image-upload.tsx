@@ -166,7 +166,7 @@ export function ImageUpload({
         });
       }
     },
-    [token, accept, maxSizeMB, maxFiles, uploadingFiles.length, generateUploadUrl, onUploadComplete]
+    [token, accept, maxSizeMB, maxFiles, uploadingFiles.length, generateUploadUrl, onUploadComplete, toast]
   );
 
   const handleDrop = useCallback(

@@ -20,10 +20,14 @@ export function AuctionsList({ initialAuctions }: AuctionsListProps) {
   const [selectedTab, setSelectedTab] = useState("all");
 
   // Use real-time subscription if initial data provided, otherwise fetch
-  const allAuctions = useQuery(
+  const subscribedAuctions = useQuery(
     api.auctions.listAuctions,
     initialAuctions ? "skip" : {}
-  ) || initialAuctions || [];
+  );
+  const allAuctions = useMemo(
+    () => subscribedAuctions || initialAuctions || [],
+    [subscribedAuctions, initialAuctions]
+  );
 
   // Client-side filtering
   const liveAuctions = useMemo(

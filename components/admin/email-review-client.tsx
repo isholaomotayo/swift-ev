@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -41,7 +41,7 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
   const { toast } = useToast();
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>("pending_review");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+  const [pickedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [isPending, startTransition] = useTransition();
 
@@ -61,6 +61,9 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
     limit: 100,
   });
 
+  // Default to the first email until the user picks one (derived, no effect needed).
+  const selectedEmailId = pickedEmailId ?? emailsResult?.emails?.[0]?._id ?? null;
+
   const selectedEmail = useQuery(
     api.emailAdmin.getTransactionalEmail,
     selectedEmailId
@@ -74,21 +77,20 @@ export function EmailReviewClient({ token }: EmailReviewClientProps) {
   const rejectEmail = useMutation(api.emailAdmin.rejectTransactionalEmail);
   const approveEmailAction = useAction(api.emails.approveTransactionalEmail);
 
-  // Sync edit form when selected email changes
-  useEffect(() => {
+  // Reset the edit form when the loaded email (or its saved content) changes.
+  // Adjusting state during render avoids an extra effect-driven render pass.
+  const loadedKey = selectedEmail
+    ? `${selectedEmail._id}|${selectedEmail.subject ?? ""}|${selectedEmail.bodyHtml ?? ""}`
+    : null;
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
+  if (loadedKey !== syncedKey) {
+    setSyncedKey(loadedKey);
     if (selectedEmail) {
       setEditedSubject(selectedEmail.subject || "");
       setEditedHtml(selectedEmail.bodyHtml || "");
       setIsDirty(false);
     }
-  }, [selectedEmail?._id, selectedEmail?.subject, selectedEmail?.bodyHtml]);
-
-  // Auto select first email when list loads or changes
-  useEffect(() => {
-    if (emailsResult?.emails && emailsResult.emails.length > 0 && !selectedEmailId) {
-      setSelectedEmailId(emailsResult.emails[0]._id);
-    }
-  }, [emailsResult?.emails, selectedEmailId]);
+  }
 
   // Handle Review Mode Toggle
   const handleToggleReviewMode = async () => {

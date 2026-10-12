@@ -136,7 +136,7 @@ export function DocumentUpload({
         setIsUploading(false);
       }
     },
-    [token, accept, maxSizeMB, generateUploadUrl, onUploadComplete]
+    [token, accept, maxSizeMB, generateUploadUrl, onUploadComplete, toast]
   );
 
   const handleFileInputChange = useCallback(

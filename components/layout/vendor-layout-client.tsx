@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -92,10 +92,12 @@ export function VendorLayoutClient({ children, user }: VendorLayoutClientProps) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const displayName = user.vendorCompany?.trim() || `${user.firstName} ${user.lastName}`.trim();
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
+  // Close mobile sidebar on route change (adjust state during render, not in an effect)
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-background selection:bg-volt-green/30">
