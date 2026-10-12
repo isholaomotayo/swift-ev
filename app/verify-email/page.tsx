@@ -32,11 +32,12 @@ function VerifyEmailContent() {
   const resendVerification = useMutation(api.auth.resendVerificationEmail);
 
   // Pre-populate resend email from logged-in user profile
+  const userEmail = user?.email;
   useEffect(() => {
-    if (user?.email && !resendEmail) {
-      setResendEmail(user.email);
+    if (userEmail) {
+      setResendEmail((current) => current || userEmail);
     }
-  }, [user]);
+  }, [userEmail]);
 
   useEffect(() => {
     // Guard: only run once (React StrictMode double-invokes effects in dev)
@@ -52,19 +53,6 @@ function VerifyEmailContent() {
     verifyEmail({ token })
       .then(() => {
         setStatus("success");
-        // If user already has an active session, auto-redirect them to their
-        // dashboard after a short delay so they can see the success message.
-        if (sessionToken) {
-          setTimeout(() => {
-            if (user?.role === "seller") {
-              router.replace("/vendor");
-            } else if (user?.role === "admin" || user?.role === "superadmin") {
-              router.replace("/admin");
-            } else {
-              router.replace("/dashboard");
-            }
-          }, 2500);
-        }
       })
       .catch((err) => {
         setErrorMessage(
@@ -73,6 +61,19 @@ function VerifyEmailContent() {
         setStatus("error");
       });
   }, [token, verifyEmail]);
+
+  // Once verified, send an already-signed-in user to their dashboard after a short pause.
+  // Separate from the verify effect so it sees auth state that finished loading later.
+  const role = user?.role;
+  useEffect(() => {
+    if (status !== "success" || !sessionToken) return;
+    const timer = setTimeout(() => {
+      if (role === "seller") router.replace("/vendor");
+      else if (role === "admin" || role === "superadmin") router.replace("/admin");
+      else router.replace("/dashboard");
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [status, sessionToken, role, router]);
 
   if (status === "verifying") {
     return (
