@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth, requireAdmin, getAuthUserOrNull } from "./lib/auth";
+import { requireAuth, requireAdmin, getAuthUserOrNull, isAdmin } from "./lib/auth";
 
 /**
  * Get platform-wide statistics
@@ -370,7 +370,7 @@ export const getAdminDashboardOverview = query({
   },
   handler: async (ctx, args) => {
     const user = await getAuthUserOrNull(ctx, args.token);
-    if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
+    if (!user || (!isAdmin(user))) {
       return null;
     }
 

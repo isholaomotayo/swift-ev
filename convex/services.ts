@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { requireAuth } from "./lib/auth";
+import { requireAuth, isAdmin } from "./lib/auth";
 
 /**
  * Get available additional services and their placeholder costs
@@ -137,7 +137,7 @@ export const getOrderServices = query({
             .collect();
 
         // Verification
-        if (services.length > 0 && services[0].userId !== user._id && user.role !== "admin") {
+        if (services.length > 0 && services[0].userId !== user._id && !isAdmin(user)) {
             throw new Error("Unauthorized");
         }
 
@@ -162,7 +162,7 @@ export const updateServiceStatus = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireAuth(ctx, args.token);
-        if (user.role !== "admin") throw new Error("Unauthorized - Admin only");
+        if (!isAdmin(user)) throw new Error("Unauthorized - Admin only");
 
         await ctx.db.patch(args.serviceId, {
             status: args.status,

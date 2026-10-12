@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { isAdmin } from "./lib/auth";
 import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -115,15 +116,14 @@ export const deleteFile = mutation({
 
     if (args.resourceType === "user_avatar" || args.resourceType === "user_document") {
       // User can delete their own files or admin can delete any
-      authorized = args.resourceId === user._id || user.role === "admin" || user.role === "superadmin";
+      authorized = args.resourceId === user._id || isAdmin(user);
     } else if (args.resourceType === "vehicle_image" || args.resourceType === "vehicle_document") {
       // Check if user owns the vehicle or is admin
       const vehicle = await ctx.db.get(args.resourceId as any);
       if (vehicle) {
         authorized =
           (vehicle as any).sellerId === user._id ||
-          user.role === "admin" ||
-          user.role === "superadmin";
+          isAdmin(user);
       }
     }
 

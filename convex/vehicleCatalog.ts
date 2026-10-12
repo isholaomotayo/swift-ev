@@ -254,7 +254,7 @@ export const addMake = mutation({
 
     const now = Date.now();
     const creatorRole = user
-      ? user.role === "admin" || user.role === "superadmin"
+      ? authIsAdmin(user)
         ? (user.role as "admin" | "superadmin")
         : user.role === "seller"
         ? "seller"

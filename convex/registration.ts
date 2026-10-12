@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "./lib/auth";
+import { requireAuth, isAdmin as hasAdminRole } from "./lib/auth";
 
 export const getVehicleRegistrationForm = query({
   args: {
@@ -15,7 +15,7 @@ export const getVehicleRegistrationForm = query({
       throw new Error("Order not found");
     }
 
-    const isAdmin = user.role === "admin" || user.role === "superadmin";
+    const isAdmin = hasAdminRole(user);
     if (order.userId !== user._id && !isAdmin) {
       // Check if seller of vehicle
       const vehicle = await ctx.db.get(order.vehicleId);

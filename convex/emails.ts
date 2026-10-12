@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
+import { requireAuth, requireAdmin, createAuditLog, isAdmin } from "./lib/auth";
 import {
   verificationEmailTemplate,
   passwordResetEmailTemplate,
@@ -970,7 +970,7 @@ export const approveTransactionalEmail = action({
     const user: any = await ctx.runQuery(internal.auth.getUserFromTokenQuery, {
       token: args.token,
     });
-    if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
+    if (!user || (!isAdmin(user))) {
       throw new Error("Unauthorized - Admin access required");
     }
 
