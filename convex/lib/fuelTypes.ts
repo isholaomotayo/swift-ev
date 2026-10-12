@@ -65,7 +65,7 @@ export function normalizeFuelType(fuelType?: string | null): string {
   if (lower.includes("hydrogen") || lower.includes("fcev")) {
     return "Hydrogen Fuel Cell (FCEV)";
   }
-  if (lower.includes("gas") || lower.includes("petrol") || lower.includes("diesel") || lower.includes("ice")) {
+  if (lower.includes("gas") || lower.includes("petrol") || lower.includes("diesel") || /\bice\b/.test(lower)) {
     return "Internal Combustion Engine (ICE)";
   }
   if (lower.includes("solar")) {
@@ -81,4 +81,10 @@ export function getFuelTypeSearchValues(fuelType: string): string[] {
     return FUEL_TYPE_ALIASES[norm as CanonicalFuelType];
   }
   return [fuelType];
+}
+
+/** Anything that is not an internal combustion engine counts as an EV for UI purposes. */
+export function isEVFuelType(fuelType?: string | null): boolean {
+  if (!fuelType) return true;
+  return normalizeFuelType(fuelType) !== "Internal Combustion Engine (ICE)";
 }

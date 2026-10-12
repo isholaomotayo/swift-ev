@@ -60,3 +60,11 @@ describe("Fuel Type Normalization and Backward Compatibility", () => {
     expect(iceSearchValues).toContain("Gas/Petrol");
   });
 });
+
+describe("normalizeFuelType word matching", () => {
+  it("'ice' only matches as a whole word, not inside other words", () => {
+    expect(normalizeFuelTypeConvex("Solar Device")).toBe("Solar");
+    expect(normalizeFuelTypeConvex("ICE")).toBe("Internal Combustion Engine (ICE)");
+    expect(normalizeFuelTypeConvex("ice engine")).toBe("Internal Combustion Engine (ICE)");
+  });
+});

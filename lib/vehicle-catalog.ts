@@ -1,5 +1,5 @@
-import carMakeCatalogJson from "@/store/car-make.json";
-import { toNormalizedKey, formatCanonicalName } from "@/lib/vehicle-dedup";
+import carMakeCatalogJson from "../store/car-make.json";
+import { toNormalizedKey, formatCanonicalName } from "./vehicle-dedup";
 
 export type CarMakeEntry = {
   Make: string;

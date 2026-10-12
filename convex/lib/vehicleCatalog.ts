@@ -1,52 +1,9 @@
 import { ConvexError } from "convex/values";
-import carMakeCatalogJson from "../../store/car-make.json";
 import { toNormalizedKey, formatCanonicalName } from "./vehicleDedup";
+import { CAR_MAKE_CATALOG, OTHER_MAKE_VALUE, normalizeMake, isValidMakeModel } from "../../lib/vehicle-catalog";
 
-type CarMakeEntry = {
-  Make: string;
-  Models: string[];
-};
-
-const CAR_MAKE_CATALOG = carMakeCatalogJson as CarMakeEntry[];
-
-const makeToModels = new Map<string, string[]>(
-  CAR_MAKE_CATALOG.map((entry) => [entry.Make, entry.Models])
-);
-
-const normalizedMakeToEntry = new Map<string, CarMakeEntry>(
-  CAR_MAKE_CATALOG.map((entry) => [toNormalizedKey(entry.Make), entry])
-);
-
-const MAKE_ALIASES: Record<string, string> = {
-  XPeng: "XPENG",
-  "GAC Aion": "GAC",
-  "Hozon (Neta)": "Neta",
-};
-
-const OTHER_MAKE_VALUE = "Other";
-
-export const normalizeMake = (make: string): string => {
-  const trimmed = make.trim();
-  if (!trimmed) return "";
-  if (makeToModels.has(trimmed)) return trimmed;
-  if (MAKE_ALIASES[trimmed]) return MAKE_ALIASES[trimmed];
-  const normKey = toNormalizedKey(trimmed);
-  const matched = normalizedMakeToEntry.get(normKey);
-  return matched ? matched.Make : trimmed;
-};
-
-export const isValidMakeModel = (make: string, model: string): boolean => {
-  const normalizedMake = normalizeMake(make);
-  const trimmedModel = model.trim();
-  if (!normalizedMake || !trimmedModel) return false;
-  const models = makeToModels.get(normalizedMake);
-  if (!models) return true; // Custom dynamic make allowed in DB
-  const normModelKey = toNormalizedKey(trimmedModel);
-  return (
-    models.includes(trimmedModel) ||
-    models.some((m) => toNormalizedKey(m) === normModelKey)
-  );
-};
+// Catalog data and make/model matching are defined once in lib/vehicle-catalog.ts.
+export { normalizeMake, isValidMakeModel };
 
 export const assertValidVehicleMakeModel = (make: string, model: string): void => {
   const trimmedMake = make.trim();
