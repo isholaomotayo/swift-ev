@@ -72,7 +72,8 @@ describe("Backend Wallet, Double-Entry Ledger & Dispute Refunds (In-Memory Herme
         token: buyer.token,
       });
       expect(balanceAfterDeposit?.available).toBe(depositAmountKobo);
-      expect(balanceAfterDeposit?.biddingPower).toBe(depositAmountKobo * 10);
+      // 10% deposit => bidding power (Naira) is wallet kobo / 10
+      expect(balanceAfterDeposit?.biddingPower).toBe(depositAmountKobo / 10);
 
       // 4. Request payout / withdrawal of ₦10,000 (1,000,000 kobo)
       const withdrawResult = await t.mutation(api.wallet.initiateWithdrawal, {

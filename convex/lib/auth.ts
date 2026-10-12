@@ -174,21 +174,21 @@ export function hasRole(
 /**
  * Check if user is an admin (admin or superadmin)
  */
-export function isAdmin(user: AuthenticatedUser): boolean {
+export function isAdmin(user: { role: UserRole }): boolean {
   return user.role === "admin" || user.role === "superadmin";
 }
 
 /**
  * Check if user is a superadmin
  */
-export function isSuperadmin(user: AuthenticatedUser): boolean {
+export function isSuperadmin(user: { role: UserRole }): boolean {
   return user.role === "superadmin";
 }
 
 /**
  * Check if user is a seller (vendor)
  */
-export function isSeller(user: AuthenticatedUser): boolean {
+export function isSeller(user: { role: UserRole }): boolean {
   return user.role === "seller";
 }
 

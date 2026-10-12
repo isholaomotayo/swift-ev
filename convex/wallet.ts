@@ -3,6 +3,8 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
+import { requestWithdrawal, completeWithdrawal, completePendingCredit, rejectWithdrawal as rejectWithdrawalLedger } from "./lib/ledger";
+import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 
 /**
  * Get wallet balance and details for the current user
@@ -37,7 +39,7 @@ export const getWalletBalance = query({
             reserved: reservedBalance,
             currency: user.walletCurrency ?? "NGN",
             // Bidding power = available balance * 10 (10% requirement)
-            biddingPower: walletBalance * 10,
+            biddingPower: buyingPowerFromWalletKobo(walletBalance),
         };
     },
 });
@@ -223,27 +225,17 @@ async function processWalletFunding(ctx: any, txRef: string, transactionId: numb
         throw new Error("Payment amount is insufficient");
     }
 
-    // Update transaction status
-    await ctx.db.patch(transaction._id, {
-        status: "completed",
-        completedAt: Date.now(),
-        paymentProvider: "flutterwave",
-        paymentReference: verification.flw_ref ?? String(verification.id),
-    });
-
-    // Get user and update wallet balance
+    // Complete the pending deposit and credit the wallet
     const user = await ctx.db.get(transaction.userId);
     if (!user) {
         throw new Error("User not found");
     }
 
-    const newBalance = (user.walletBalance ?? 0) + transaction.amount;
-
-    await ctx.db.patch(transaction.userId, {
-        walletBalance: newBalance,
-        buyingPower: buyingPowerFromWalletKobo(newBalance),
-        updatedAt: Date.now(),
+    const funded = await completePendingCredit(ctx, transaction._id, {
+        paymentProvider: "flutterwave",
+        paymentReference: verification.flw_ref ?? String(verification.id),
     });
+    const newBalance = funded.walletBalance;
 
     // Send H1: Wallet Funded Email
     await ctx.scheduler.runAfter(0, internal.emails.sendWalletFundedEmail, {
@@ -261,131 +253,6 @@ async function processWalletFunding(ctx: any, txRef: string, transactionId: numb
         message: "Wallet funded successfully",
     };
 }
-
-/**
- * Reserve funds for a bid
- * Called when user places a bid to lock 10% of bid amount
- */
-export const reserveFundsForBid = mutation({
-    args: {
-        token: v.string(),
-        bidAmount: v.number(),
-        bidId: v.optional(v.id("bids")),
-    },
-    handler: async (ctx, args) => {
-        const session = await ctx.db
-            .query("sessions")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
-            .first();
-
-        if (!session || session.expiresAt < Date.now()) {
-            throw new Error("Unauthorized");
-        }
-
-        const user = await ctx.db.get(session.userId);
-        if (!user) {
-            throw new Error("User not found");
-        }
-
-        const requiredReserve = calculateBidReserveAmountKobo(args.bidAmount);
-        const available = user.walletBalance ?? 0;
-
-        if (available < requiredReserve) {
-            throw new Error(`Insufficient funds. Need ₦${(requiredReserve / 100).toLocaleString()} but only have ₦${(available / 100).toLocaleString()}`);
-        }
-
-        // Move funds from available to reserved
-        const newBalance = available - requiredReserve;
-        const newReserved = (user.reservedBalance ?? 0) + requiredReserve;
-
-        await ctx.db.patch(session.userId, {
-            walletBalance: newBalance,
-            reservedBalance: newReserved,
-            buyingPower: buyingPowerFromWalletKobo(newBalance),
-            updatedAt: Date.now(),
-        });
-
-        // Create transaction record
-        const reference = `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        await ctx.db.insert("walletTransactions", {
-            userId: session.userId,
-            type: "bid_reserve",
-            amount: requiredReserve,
-            currency: "NGN",
-            status: "completed",
-            reference,
-            description: `Bid reserve for ₦${args.bidAmount.toLocaleString()} bid`,
-            relatedBidId: args.bidId,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-        });
-
-        return {
-            success: true,
-            reserved: requiredReserve,
-            newBalance,
-        };
-    },
-});
-
-/**
- * Release reserved funds (when outbid or auction lost)
- */
-export const releaseReservedFunds = mutation({
-    args: {
-        token: v.string(),
-        amount: v.number(),
-        reason: v.string(),
-        bidId: v.optional(v.id("bids")),
-    },
-    handler: async (ctx, args) => {
-        const session = await ctx.db
-            .query("sessions")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
-            .first();
-
-        if (!session || session.expiresAt < Date.now()) {
-            throw new Error("Unauthorized");
-        }
-
-        const user = await ctx.db.get(session.userId);
-        if (!user) {
-            throw new Error("User not found");
-        }
-
-        const reserved = user.reservedBalance ?? 0;
-        const releaseAmount = Math.min(args.amount, reserved);
-
-        // Move funds from reserved back to available
-        const restoredWallet = (user.walletBalance ?? 0) + releaseAmount;
-        await ctx.db.patch(session.userId, {
-            walletBalance: restoredWallet,
-            reservedBalance: reserved - releaseAmount,
-            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
-            updatedAt: Date.now(),
-        });
-
-        // Create transaction record
-        const reference = `RL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        await ctx.db.insert("walletTransactions", {
-            userId: session.userId,
-            type: "bid_release",
-            amount: releaseAmount,
-            currency: "NGN",
-            status: "completed",
-            reference,
-            description: `Funds released: ${args.reason}`,
-            relatedBidId: args.bidId,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-        });
-
-        return {
-            success: true,
-            released: releaseAmount,
-        };
-    },
-});
 
 /**
  * Initiate withdrawal (STUBBED)
@@ -412,31 +279,14 @@ export const initiateWithdrawal = mutation({
             throw new Error("User not found");
         }
 
-        const available = user.walletBalance ?? 0;
-
-        if (available < args.amount) {
-            throw new Error("Insufficient funds for withdrawal");
-        }
-
-        // Create pending withdrawal transaction
         const reference = `WD_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        await ctx.db.insert("walletTransactions", {
+        await requestWithdrawal(ctx, {
             userId: session.userId,
+            amountKobo: args.amount,
             type: "withdrawal",
-            amount: args.amount,
-            currency: "NGN",
-            status: "pending",
             reference,
             description: `Withdrawal to bank account ${args.accountNumber.slice(-4)}`,
             paymentProvider: "paystack_stub",
-            createdAt: Date.now(),
-        });
-
-        // Deduct from balance immediately
-        await ctx.db.patch(session.userId, {
-            walletBalance: available - args.amount,
-            pendingBalance: (user.pendingBalance ?? 0) + args.amount,
-            updatedAt: Date.now(),
         });
 
         return {
@@ -478,7 +328,7 @@ export const checkBiddingPower = query({
                 canBid: true,
                 available,
                 required: requiredBalance,
-                biddingPower: available * 10,
+                biddingPower: buyingPowerFromWalletKobo(available),
             };
         }
 
@@ -501,34 +351,15 @@ export const approveWithdrawal = mutation({
         transactionId: v.id("walletTransactions"),
     },
     handler: async (ctx, args) => {
-        const session = await ctx.db
-            .query("sessions")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
-            .first();
+        const admin = await requireAuth(ctx, args.token);
+        requireAdmin(admin);
 
-        if (!session || session.expiresAt < Date.now()) throw new Error("Unauthorized");
-        const adminUser = await ctx.db.get(session.userId);
-        if (!adminUser || adminUser.role !== "admin") throw new Error("Unauthorized - Admin only");
-
-        const transaction = await ctx.db.get(args.transactionId);
-        if (!transaction) throw new Error("Transaction not found");
-        if (transaction.type !== "withdrawal" || transaction.status !== "pending") {
-            throw new Error("Invalid transaction for withdrawal approval");
-        }
-
-        const user = await ctx.db.get(transaction.userId);
-        if (!user) throw new Error("User not found");
-
-        // Complete the transaction
-        await ctx.db.patch(args.transactionId, {
-            status: "completed",
-            completedAt: Date.now(),
-        });
-
-        // Deduct from pending balance
-        await ctx.db.patch(transaction.userId, {
-            pendingBalance: Math.max(0, (user.pendingBalance ?? 0) - transaction.amount),
-            updatedAt: Date.now(),
+        await completeWithdrawal(ctx, args.transactionId);
+        await createAuditLog(ctx, {
+            userId: admin._id,
+            action: "approve_withdrawal",
+            entityType: "walletTransaction",
+            entityId: args.transactionId,
         });
 
         return { success: true };
@@ -536,39 +367,27 @@ export const approveWithdrawal = mutation({
 });
 
 /**
- * Credit seller for an order that has been completed and verified.
+ * Reject withdrawal (Admin): returns the funds to the user's available balance.
  */
-export const creditSellerForOrder = internalMutation({
+export const rejectWithdrawal = mutation({
     args: {
-        orderId: v.id("orders"),
-        sellerId: v.id("users"),
-        payoutAmount: v.number(),
+        token: v.string(),
+        transactionId: v.id("walletTransactions"),
+        reason: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const seller = await ctx.db.get(args.sellerId);
-        if (!seller) return;
-        
-        const currentBalance = seller.walletBalance ?? 0;
-        
-        // Add to wallet balance
-        await ctx.db.patch(args.sellerId, {
-            walletBalance: currentBalance + args.payoutAmount,
-            updatedAt: Date.now(),
+        const admin = await requireAuth(ctx, args.token);
+        requireAdmin(admin);
+
+        await rejectWithdrawalLedger(ctx, args.transactionId);
+        await createAuditLog(ctx, {
+            userId: admin._id,
+            action: "reject_withdrawal",
+            entityType: "walletTransaction",
+            entityId: args.transactionId,
+            metadata: args.reason,
         });
 
-        // Record transaction
-        const order = await ctx.db.get(args.orderId);
-        await ctx.db.insert("walletTransactions", {
-            userId: args.sellerId,
-            type: "sale_payout",
-            amount: args.payoutAmount,
-            currency: "NGN",
-            status: "completed",
-            reference: `payout_order_${order?.orderNumber ?? args.orderId}`,
-            description: `Sale payout for order ${order?.orderNumber ?? ''}`,
-            relatedOrderId: args.orderId,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-        });
+        return { success: true };
     },
 });

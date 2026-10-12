@@ -1,7 +1,8 @@
 import { v } from "convex/values";
+import { debit } from "./lib/ledger";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
+import { requireAuth, requireAdmin, createAuditLog, isAdmin as hasAdminRole } from "./lib/auth";
 import { verifyFlutterwaveTransaction } from "./lib/flutterwave";
 import {
   applySuccessfulPaymentToOrder,
@@ -10,7 +11,6 @@ import {
   requirePlatformBankDetails,
   insertPayment,
   nextPaymentReferenceForOrder,
-  buyingPowerFromWalletBalance,
   releaseUnpaidSoftHold,
 } from "./lib/payments";
 
@@ -27,7 +27,7 @@ export const getOrderPaymentState = query({
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
 
-    const isAdmin = user.role === "admin" || user.role === "superadmin";
+    const isAdmin = hasAdminRole(user);
     const isBuyer = order.userId === user._id;
     const vehicle = await ctx.db.get(order.vehicleId);
     const isSeller = !!vehicle?.sellerId && vehicle.sellerId === user._id;
@@ -187,29 +187,18 @@ export const payOrderFromWallet = mutation({
     }
 
     const now = Date.now();
-    const newBalance = available - amountKobo;
-    await ctx.db.patch(user._id, {
-      walletBalance: newBalance,
-      buyingPower: buyingPowerFromWalletBalance(newBalance),
-      updatedAt: now,
-    });
-
     const reference = await nextPaymentReferenceForOrder(
       ctx,
       order._id,
       order.orderNumber
     );
-    await ctx.db.insert("walletTransactions", {
+    await debit(ctx, {
       userId: user._id,
+      amountKobo,
       type: "payment",
-      amount: amountKobo,
-      currency: "NGN",
-      status: "completed",
       reference,
       description: `Payment for order ${order.orderNumber}`,
       relatedOrderId: order._id,
-      createdAt: now,
-      completedAt: now,
     });
 
     await insertPayment(ctx, {

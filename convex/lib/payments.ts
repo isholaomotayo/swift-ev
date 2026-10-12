@@ -1,4 +1,5 @@
 import { GenericMutationCtx, GenericDatabaseReader } from "convex/server";
+import { credit, release, spendReserved } from "./ledger";
 import { DataModel, Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import {
@@ -269,24 +270,15 @@ export async function applyBidReserveAsDepositPayment(
   const now = Date.now();
 
   if (applyKobo > 0) {
-    await ctx.db.patch(args.userId, {
-      reservedBalance: reserved - applyKobo,
-      updatedAt: now,
-    });
-
     const reference = `DEP_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    await ctx.db.insert("walletTransactions", {
+    await spendReserved(ctx, {
       userId: args.userId,
+      amountKobo: applyKobo,
       type: "payment",
-      amount: applyKobo,
-      currency: "NGN",
-      status: "completed",
       reference,
       description: `Deposit applied to order (10% of ₦${args.winningBidNaira.toLocaleString()})`,
       relatedOrderId: args.orderId,
       relatedBidId: args.relatedBidId,
-      createdAt: now,
-      completedAt: now,
     });
 
     await insertPayment(ctx, {
@@ -320,43 +312,18 @@ export async function releaseUserBidReserve(
     bidId?: Id<"bids">;
   }
 ): Promise<number> {
-  const user = await ctx.db.get(args.userId);
-  if (!user) return 0;
-
-  const reserveKobo = Math.ceil(args.bidAmountNaira * 10);
-  const reserved = user.reservedBalance ?? 0;
-  const releaseAmount = Math.min(reserveKobo, reserved);
-  if (releaseAmount <= 0) return 0;
-
-  const now = Date.now();
-  const newWallet = (user.walletBalance ?? 0) + releaseAmount;
-  await ctx.db.patch(args.userId, {
-    walletBalance: newWallet,
-    reservedBalance: reserved - releaseAmount,
-    buyingPower: buyingPowerFromWalletBalance(newWallet),
-    updatedAt: now,
-  });
-
-  await ctx.db.insert("walletTransactions", {
+  const result = await release(ctx, {
     userId: args.userId,
+    amountKobo: Math.ceil(args.bidAmountNaira * 10),
     type: "bid_release",
-    amount: releaseAmount,
-    currency: "NGN",
-    status: "completed",
     reference: `RL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     description: `Funds released: ${args.reason}`,
     relatedBidId: args.bidId,
-    createdAt: now,
-    completedAt: now,
   });
-
-  return releaseAmount;
+  return result.amountKobo;
 }
 
-/** buyingPower is max bid in Naira derived from wallet kobo. */
-export function buyingPowerFromWalletBalance(walletBalanceKobo: number): number {
-  return walletBalanceKobo / 10;
-}
+export { buyingPowerFromWalletKobo as buyingPowerFromWalletBalance } from "./ledger";
 
 export function paymentDeadlineFrom(now = Date.now()): number {
   return now + PAYMENT_DEADLINE_MS;
@@ -520,27 +487,13 @@ export async function refundAppliedDepositsToWallet(
     const kobo = Math.round(dep.amount * 100);
     if (kobo <= 0) continue;
 
-    const user = await ctx.db.get(args.order.userId);
-    if (!user) continue;
-
-    const newWallet = (user.walletBalance ?? 0) + kobo;
-    await ctx.db.patch(args.order.userId, {
-      walletBalance: newWallet,
-      buyingPower: buyingPowerFromWalletBalance(newWallet),
-      updatedAt: args.now,
-    });
-
-    await ctx.db.insert("walletTransactions", {
+    await credit(ctx, {
       userId: args.order.userId,
+      amountKobo: kobo,
       type: "refund",
-      amount: kobo,
-      currency: "NGN",
-      status: "completed",
       reference: `REV_DEP_${dep._id}_${args.now}`,
       description: `Deposit refunded: ${args.reason}`,
       relatedOrderId: args.order._id,
-      createdAt: args.now,
-      completedAt: args.now,
     });
 
     await ctx.db.patch(dep._id, {

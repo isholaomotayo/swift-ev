@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
 import { requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
 import { createInAppNotification } from "./lib/payments";
+import { buyingPowerFromWalletKobo } from "./lib/ledger";
 
 /**
  * List all users with filtering and pagination
@@ -603,7 +604,7 @@ export const autoApproveAllPendingUsers = mutation({
         kycApprovedAt: u.kycApprovedAt || now,
         verificationFeeStatus: "waived",
         membershipTier: u.membershipTier === "guest" ? "premier" : u.membershipTier,
-        buyingPower: Math.max(u.buyingPower || 0, 10000000),
+        buyingPower: buyingPowerFromWalletKobo(u.walletBalance ?? 0),
         emailVerified: true,
         updatedAt: now,
       });
@@ -662,7 +663,7 @@ export const grantFreeAccessToAllUsers = mutation({
           kycApprovedAt: u.kycApprovedAt || now,
           verificationFeeStatus: "waived",
           membershipTier: u.membershipTier === "guest" ? "premier" : u.membershipTier,
-          buyingPower: Math.max(u.buyingPower || 0, 10000000),
+          buyingPower: buyingPowerFromWalletKobo(u.walletBalance ?? 0),
           updatedAt: now,
         });
         updatedCount++;

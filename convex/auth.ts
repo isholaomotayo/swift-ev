@@ -2,6 +2,7 @@ import { v, ConvexError } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserOrNull, requireAuth, requireAdmin, createAuditLog } from "./lib/auth";
+import { buyingPowerFromWalletKobo } from "./lib/ledger";
 
 export const getUserFromTokenQuery = internalQuery({
   args: { token: v.string() },
@@ -107,7 +108,7 @@ export const createUser = internalMutation({
       walletCurrency: "NGN",
       preferredCurrency: args.preferredCurrency ?? "NGN",
       verificationFeeStatus,
-      buyingPower: 10000000,
+      buyingPower: 0, // wallet starts empty; derived by the ledger
       depositAmount: 0,
       dailyBidsUsed: 0,
       lastBidResetAt: now,
@@ -166,7 +167,7 @@ export const createSession = internalMutation({
     const updatedKycStatus = "approved";
     const updatedFeeStatus = "waived";
     const updatedTier = user.membershipTier === "guest" ? "premier" : user.membershipTier;
-    const updatedBuyingPower = Math.max(user.buyingPower || 0, 10000000);
+    const updatedBuyingPower = buyingPowerFromWalletKobo(user.walletBalance ?? 0);
 
     const userPatch: Record<string, any> = { lastLoginAt: now };
     if (needsUpgrade) {
@@ -545,7 +546,7 @@ export const waiveUserVerificationFee = mutation({
     await ctx.db.patch(args.userId, {
       verificationFeeStatus: "waived",
       membershipTier: "premier",
-      buyingPower: Math.max(user.buyingPower || 0, 10000000),
+      buyingPower: buyingPowerFromWalletKobo(user.walletBalance ?? 0),
       updatedAt: Date.now(),
     });
 

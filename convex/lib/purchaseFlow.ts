@@ -21,15 +21,8 @@ export function calculateBidReserveAmountKobo(bidAmountNaira: number): number {
   return Math.ceil(bidAmountNaira * 10);
 }
 
-/** Max bid (Naira) supported by available wallet balance (kobo). */
-export function buyingPowerFromWalletKobo(walletBalanceKobo: number): number {
-  return walletBalanceKobo / 10;
-}
-
-/** Convert kobo reserve amount to Naira for order paidAmount. */
-export function koboToNaira(kobo: number): number {
-  return kobo / 100;
-}
+// Single definitions live in the ledger; re-exported for existing callers.
+export { buyingPowerFromWalletKobo, koboToNaira } from "./ledger";
 
 /** Payment deadline: 72 hours from order creation. */
 export const PAYMENT_DEADLINE_MS = 72 * 60 * 60 * 1000;

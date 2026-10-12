@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { hold, release } from "./lib/ledger";
+import { assertVehicleBiddable, assertWithinDailyBidLimit, currentDailyBids } from "./lib/bidEligibility";
+import { mutation, query, internalMutation, type QueryCtx } from "./_generated/server";
 import { calculateBidReserveAmountKobo, buyingPowerFromWalletKobo } from "./lib/purchaseFlow";
 import { requireKycApproved } from "./lib/auth";
 import { internal } from "./_generated/api";
@@ -8,6 +10,15 @@ import { internal } from "./_generated/api";
 // Keeping local constants for server-side code
 const MAX_BIDS_PER_LOT = 100;
 const MAX_USER_BIDS = 50;
+
+/** Whether bids lock a 10% reserve. Releases only apply when reserves were actually locked. */
+async function isDepositEnforced(ctx: { db: QueryCtx["db"] }): Promise<boolean> {
+  const setting = await ctx.db
+    .query("systemSettings")
+    .withIndex("by_key", (q) => q.eq("key", "auction.enforceMinimumDeposit"))
+    .first();
+  return setting ? setting.value === "true" : false;
+}
 
 /**
  * Place a manual bid on an auction lot
@@ -79,19 +90,7 @@ export const placeBid = mutation({
       throw new Error("Vehicle not found");
     }
 
-    // 1. Role Restriction: Individual buyers cannot bid on salvage/damaged vehicles
-    const isIndividual = user.membershipTier === "guest" || user.membershipTier === "basic" || user.membershipTier === "premier"; // Assuming business is the only 'business' tier
-    const isDamaged =
-      vehicle.condition === "salvage" ||
-      vehicle.titleType === "salvage" ||
-      vehicle.titleType === "export_only" ||
-      vehicle.titleType === "rebuilt";
-
-    if (isIndividual && isDamaged) {
-      throw new Error(
-        "Restricted: Individual accounts cannot bid on salvage/export-only vehicles. Please upgrade to a Business account."
-      );
-    }
+    assertVehicleBiddable(user, vehicle);
 
     // Check if auction has ended (only for live auctions)
     if (lot.status === "active" && lot.endsAt && lot.endsAt < Date.now()) {
@@ -148,19 +147,8 @@ export const placeBid = mutation({
       });
     }
 
-    // Check bid limits based on membership tier
-    const bidLimits = {
-      guest: 0,
-      basic: 3,
-      premier: 10,
-      business: Infinity,
-    };
-
-    const currentDailyBids = user.lastBidResetAt < oneDayAgo ? 0 : user.dailyBidsUsed;
-
-    if (currentDailyBids >= bidLimits[user.membershipTier]) {
-      throw new Error(`You've reached your daily bid limit. Upgrade your membership for more bids.`);
-    }
+    assertWithinDailyBidLimit(user, now);
+    const dailyBidsInWindow = currentDailyBids(user, now);
 
     // Create bid as the current winning bid
     const bidId = await ctx.db.insert("bids", {
@@ -185,29 +173,13 @@ export const placeBid = mutation({
 
     if (enforceDeposit) {
       // Move funds from available to reserved (locking the 10% reserve)
-      const newBalance = walletBalance - requiredReserve;
-      const newReserved = (user.reservedBalance ?? 0) + requiredReserve;
-
-      await ctx.db.patch(session.userId, {
-        walletBalance: newBalance,
-        reservedBalance: newReserved,
-        buyingPower: buyingPowerFromWalletKobo(newBalance),
-        updatedAt: Date.now(),
-      });
-
-      // Create transaction record for reserving funds
-      const reference = `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      await ctx.db.insert("walletTransactions", {
+      await hold(ctx, {
         userId: session.userId,
+        amountKobo: requiredReserve,
         type: "bid_reserve",
-        amount: requiredReserve,
-        currency: "NGN",
-        status: "completed",
-        reference,
+        reference: `BR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         description: `Bid reserve for ₦${args.amount.toLocaleString()} bid`,
         relatedBidId: bidId,
-        createdAt: Date.now(),
-        completedAt: Date.now(),
       });
     }
 
@@ -233,37 +205,14 @@ export const placeBid = mutation({
       const outbidUser = await ctx.db.get(bid.userId);
       if (outbidUser) {
         // Calculate the reserve that was held for this outbid amount
-        const outbidReserve = calculateBidReserveAmountKobo(bid.bidAmount);
-        const userReserved = outbidUser.reservedBalance ?? 0;
-
-        // Release up to what was actually reserved
-        const releaseAmount = Math.min(outbidReserve, userReserved);
-
-        if (releaseAmount > 0) {
-          // Return reserved funds to active wallet balance
-          const restoredWallet = (outbidUser.walletBalance ?? 0) + releaseAmount;
-          await ctx.db.patch(bid.userId, {
-            walletBalance: restoredWallet,
-            reservedBalance: userReserved - releaseAmount,
-            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
-            updatedAt: Date.now(),
-          });
-
-          // Create transaction record for releasing funds
-          const releaseReference = `RL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-          await ctx.db.insert("walletTransactions", {
-            userId: bid.userId,
-            type: "bid_release",
-            amount: releaseAmount,
-            currency: "NGN",
-            status: "completed",
-            reference: releaseReference,
-            description: `Funds released: Outbid on ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-            relatedBidId: bid._id,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-          });
-        }
+        if (await isDepositEnforced(ctx)) await release(ctx, {
+          userId: bid.userId,
+          amountKobo: calculateBidReserveAmountKobo(bid.bidAmount),
+          type: "bid_release",
+          reference: `RL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          description: `Funds released: Outbid on ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          relatedBidId: bid._id,
+        });
 
         // Send outbid email notification
         await ctx.scheduler.runAfter(0, internal.emails.sendOutbidEmail, {
@@ -281,7 +230,7 @@ export const placeBid = mutation({
 
     // Increment user's daily bids
     await ctx.db.patch(session.userId, {
-      dailyBidsUsed: currentDailyBids + 1,
+      dailyBidsUsed: dailyBidsInWindow + 1,
     });
 
     // 3. 60-Second Rule (Sniper Protection)
@@ -370,6 +319,13 @@ export const setMaxBid = mutation({
       throw new Error("This auction is not currently live for bidding");
     }
 
+    const maxBidVehicle = await ctx.db.get(lot.vehicleId);
+    if (!maxBidVehicle) {
+      throw new Error("Vehicle not found");
+    }
+    assertVehicleBiddable(user, maxBidVehicle);
+    assertWithinDailyBidLimit(user, Date.now());
+
     // Validate max bid amount
     const minimumBid = lot.currentBid + (lot.bidIncrement || 100);
     if (args.maxAmount < minimumBid) {
@@ -406,41 +362,23 @@ export const setMaxBid = mutation({
             `Insufficient wallet balance. Need ₦${(additionalReserveNeeded / 100).toLocaleString()} more for max bid deposit but only have ₦${(walletBalance / 100).toLocaleString()}. Please fund your wallet.`
           );
         }
-
-        const buyingPower = buyingPowerFromWalletKobo(walletBalance);
-        // Compare the total required reserve's implied buying power against the user's actual total buying power
-        // The easiest way is to just check if they have enough wallet balance for the additional reserve, which we did.
-        if (additionalReserveNeeded * 10 > buyingPower) {
-          throw new Error(
-            `Max bid exceeds your available buying power. Fund your wallet to increase buying power.`
-          );
-        }
       }
 
-      if (additionalReserveNeeded !== 0) {
-        const newBalance = walletBalance - additionalReserveNeeded;
-        const newReserved = (user.reservedBalance ?? 0) + additionalReserveNeeded;
-
-        await ctx.db.patch(session.userId, {
-          walletBalance: newBalance,
-          reservedBalance: newReserved,
-          buyingPower: buyingPowerFromWalletKobo(newBalance),
-          updatedAt: Date.now(),
-        });
-
-        const txType = additionalReserveNeeded > 0 ? "bid_reserve" : "bid_release";
-        const reference = `${txType === "bid_reserve" ? "BR" : "RL"}_MAX_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-        await ctx.db.insert("walletTransactions", {
+      if (additionalReserveNeeded > 0) {
+        await hold(ctx, {
           userId: session.userId,
-          type: txType as any,
-          amount: Math.abs(additionalReserveNeeded),
-          currency: "NGN",
-          status: "completed",
-          reference,
-          description: additionalReserveNeeded > 0 ? `Max bid reserve for ₦${args.maxAmount.toLocaleString()}` : `Max bid reserve adjusted`,
-          createdAt: Date.now(),
-          completedAt: Date.now(),
+          amountKobo: additionalReserveNeeded,
+          type: "bid_reserve",
+          reference: `BR_MAX_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          description: `Max bid reserve for ₦${args.maxAmount.toLocaleString()}`,
+        });
+      } else if (additionalReserveNeeded < 0) {
+        if (await isDepositEnforced(ctx)) await release(ctx, {
+          userId: session.userId,
+          amountKobo: -additionalReserveNeeded,
+          type: "bid_release",
+          reference: `RL_MAX_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          description: `Max bid reserve adjusted`,
         });
       }
     }
@@ -763,33 +701,14 @@ export const processProxyBids = internalMutation({
       
       const outbidUser = await ctx.db.get(bid.userId);
       if (outbidUser) {
-        const outbidReserve = calculateBidReserveAmountKobo(bid.bidAmount);
-        const userReserved = outbidUser.reservedBalance ?? 0;
-        const releaseAmount = Math.min(outbidReserve, userReserved);
-
-        if (releaseAmount > 0) {
-          const restoredWallet = (outbidUser.walletBalance ?? 0) + releaseAmount;
-          await ctx.db.patch(bid.userId, {
-            walletBalance: restoredWallet,
-            reservedBalance: userReserved - releaseAmount,
-            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
-            updatedAt: Date.now(),
-          });
-
-          const releaseReference = `RL_PROXY_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-          await ctx.db.insert("walletTransactions", {
-            userId: bid.userId,
-            type: "bid_release",
-            amount: releaseAmount,
-            currency: "NGN",
-            status: "completed",
-            reference: releaseReference,
-            description: `Funds released: Outbid on ${vehicle?.year} ${vehicle?.make} ${vehicle?.model}`,
-            relatedBidId: bid._id,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-          });
-        }
+        if (await isDepositEnforced(ctx)) await release(ctx, {
+          userId: bid.userId,
+          amountKobo: calculateBidReserveAmountKobo(bid.bidAmount),
+          type: "bid_release",
+          reference: `RL_PROXY_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          description: `Funds released: Outbid on ${vehicle?.year} ${vehicle?.make} ${vehicle?.model}`,
+          relatedBidId: bid._id,
+        });
 
         if (vehicle) {
           await ctx.scheduler.runAfter(0, internal.emails.sendOutbidEmail, {
@@ -813,32 +732,13 @@ export const processProxyBids = internalMutation({
         
         const outbidUser = await ctx.db.get(maxBid.userId);
         if (outbidUser) {
-          const outbidReserve = calculateBidReserveAmountKobo(maxBid.maxAmount);
-          const userReserved = outbidUser.reservedBalance ?? 0;
-          const releaseAmount = Math.min(outbidReserve, userReserved);
-          
-          if (releaseAmount > 0) {
-            const restoredWallet = (outbidUser.walletBalance ?? 0) + releaseAmount;
-            await ctx.db.patch(maxBid.userId, {
-              walletBalance: restoredWallet,
-              reservedBalance: userReserved - releaseAmount,
-              buyingPower: buyingPowerFromWalletKobo(restoredWallet),
-              updatedAt: Date.now(),
-            });
-
-            const releaseReference = `RL_MAX_EXCEEDED_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            await ctx.db.insert("walletTransactions", {
-              userId: maxBid.userId,
-              type: "bid_release",
-              amount: releaseAmount,
-              currency: "NGN",
-              status: "completed",
-              reference: releaseReference,
-              description: `Funds released: Max bid of ₦${maxBid.maxAmount.toLocaleString()} exceeded on ${vehicle?.year} ${vehicle?.make}`,
-              createdAt: Date.now(),
-              completedAt: Date.now(),
-            });
-          }
+          if (await isDepositEnforced(ctx)) await release(ctx, {
+            userId: maxBid.userId,
+            amountKobo: calculateBidReserveAmountKobo(maxBid.maxAmount),
+            type: "bid_release",
+            reference: `RL_MAX_EXCEEDED_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            description: `Funds released: Max bid of ₦${maxBid.maxAmount.toLocaleString()} exceeded on ${vehicle?.year} ${vehicle?.make}`,
+          });
         }
       }
     }
@@ -876,32 +776,13 @@ export const cancelMaxBid = mutation({
       // Release reserved funds for the max bid
       const user = await ctx.db.get(session.userId);
       if (user) {
-        const outbidReserve = calculateBidReserveAmountKobo(maxBid.maxAmount);
-        const userReserved = user.reservedBalance ?? 0;
-        const releaseAmount = Math.min(outbidReserve, userReserved);
-
-        if (releaseAmount > 0) {
-          const restoredWallet = (user.walletBalance ?? 0) + releaseAmount;
-          await ctx.db.patch(user._id, {
-            walletBalance: restoredWallet,
-            reservedBalance: userReserved - releaseAmount,
-            buyingPower: buyingPowerFromWalletKobo(restoredWallet),
-            updatedAt: Date.now(),
-          });
-
-          const releaseReference = `RL_MAX_CANCEL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-          await ctx.db.insert("walletTransactions", {
-            userId: user._id,
-            type: "bid_release",
-            amount: releaseAmount,
-            currency: "NGN",
-            status: "completed",
-            reference: releaseReference,
-            description: `Funds released: Max bid cancelled for ₦${maxBid.maxAmount.toLocaleString()}`,
-            createdAt: Date.now(),
-            completedAt: Date.now(),
-          });
-        }
+        if (await isDepositEnforced(ctx)) await release(ctx, {
+          userId: user._id,
+          amountKobo: calculateBidReserveAmountKobo(maxBid.maxAmount),
+          type: "bid_release",
+          reference: `RL_MAX_CANCEL_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          description: `Funds released: Max bid cancelled for ₦${maxBid.maxAmount.toLocaleString()}`,
+        });
       }
     }
 
