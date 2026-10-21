@@ -195,6 +195,7 @@ export function WatchlistClient({
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Remove from watchlist"
                     className="absolute top-3 right-3 z-10 bg-black/40 text-white hover:bg-red-600 hover:text-white rounded-full backdrop-blur-md transition-colors"
                     onClick={(e) => handleRemove(e, item.vehicle._id)}
                   >

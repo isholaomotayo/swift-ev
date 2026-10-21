@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-    title: "My Disputes | autoexports.live",
+    title: "My Disputes",
     description: "View and manage your dispute cases",
 };
 

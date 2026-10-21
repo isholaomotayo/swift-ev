@@ -185,6 +185,7 @@ export function AdminVehiclesClient({ initialVehicles, totalCount }: AdminVehicl
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending_approval">Pending Approval</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="pending_inspection">Pending Inspection</SelectItem>

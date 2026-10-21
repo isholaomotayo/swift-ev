@@ -3,10 +3,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-server";
+import { SITE_NAME } from "@/lib/constants";
 import { VendorLayoutClient } from "@/components/layout/vendor-layout-client";
 
 export const metadata: Metadata = {
-  title: "Vendor | autoexports.live",
+  title: {
+    default: "Vendor",
+    template: `%s | ${SITE_NAME}`,
+  },
   description: "Vendor dashboard for managing your vehicles and auctions on autoexports.live",
   robots: {
     index: false,

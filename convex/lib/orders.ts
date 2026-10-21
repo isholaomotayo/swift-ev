@@ -32,17 +32,5 @@ export async function generateUniqueOrderNumber(ctx: GenericMutationCtx<DataMode
   return orderNumber!;
 }
 
-/**
- * Calculate service fee
- */
-export function calculateServiceFee(bidAmount: number): number {
-  if (bidAmount <= 1_000_000) {
-    return 75_000;
-  } else if (bidAmount <= 5_000_000) {
-    return bidAmount * 0.07; // 7%
-  } else if (bidAmount <= 15_000_000) {
-    return bidAmount * 0.06; // 6%
-  } else {
-    return bidAmount * 0.05; // 5%
-  }
-}
+/** Shared pricing rule set; kept as a re-export for existing backend imports. */
+export { calculateServiceFee } from "../../lib/buy-now-pricing";

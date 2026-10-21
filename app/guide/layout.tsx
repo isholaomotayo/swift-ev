@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Member Guide | autoexports.live",
+    title: "Member Guide",
     description:
         "Comprehensive guide on how to buy and sell vehicles on autoexports.live. Learn about bidding, payments, shipping, and security.",
     keywords: [

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { VehicleCatalogManager } from "@/components/admin/vehicles/vehicle-catalog-manager";
 
 export const metadata: Metadata = {
-  title: "Vehicle Catalog & Models | Admin | autoexports.live",
+  title: "Vehicle Catalog & Models | Admin",
   description: "Manage makes, models, and duplicate prevention in vehicle catalog",
   robots: {
     index: false,

@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatLotNumber } from "@/lib/utils";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
@@ -200,8 +200,10 @@ export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesC
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending_inspection">Pending Inspection</SelectItem>
               <SelectItem value="pending_approval">Pending Approval</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="ready_for_auction">Ready for Auction</SelectItem>
               <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="in_auction">In Auction</SelectItem>
               <SelectItem value="payment_pending">Payment Pending</SelectItem>
@@ -257,7 +259,7 @@ export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesC
                 return (
                   <TableRow key={vehicle._id}>
                     <TableCell className="font-mono">
-                      {vehicle.lotNumber}
+                      {formatLotNumber(vehicle.lotNumber)}
                     </TableCell>
                     <TableCell>
                       <div>
@@ -347,7 +349,7 @@ export function VendorVehiclesClient({ initialVehicles, token }: VendorVehiclesC
               <span className="font-semibold text-foreground">
                 {withdrawingVehicle?.year} {withdrawingVehicle?.make} {withdrawingVehicle?.model}
               </span>{" "}
-              (Lot #{withdrawingVehicle?.lotNumber})?
+              (Lot #{withdrawingVehicle ? formatLotNumber(withdrawingVehicle.lotNumber) : ""})?
               <br />
               Withdrawing will remove this vehicle from all active listings and scheduled auctions.
             </DialogDescription>

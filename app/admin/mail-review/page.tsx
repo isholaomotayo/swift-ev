@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { EmailReviewClient } from "@/components/admin/email-review-client";
 
 export const metadata: Metadata = {
-  title: "Outgoing Email Review | Admin | autoexports.live",
+  title: "Outgoing Email Review | Admin",
   description: "Review, edit, preview, and approve outgoing emails for platform events",
   robots: {
     index: false,

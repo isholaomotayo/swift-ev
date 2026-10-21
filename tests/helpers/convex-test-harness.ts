@@ -125,7 +125,22 @@ export async function seedTestVehicle(
   t: TestHarness,
   sellerId: Id<"users">,
   overrides?: {
-    status?: "draft" | "pending_approval" | "approved" | "scheduled" | "in_auction" | "sold" | "payment_pending" | "rejected";
+    status?:
+      | "draft"
+      | "pending_inspection"
+      | "pending_approval"
+      | "approved"
+      | "ready_for_auction"
+      | "scheduled"
+      | "in_auction"
+      | "sold"
+      | "unsold"
+      | "withdrawn"
+      | "rejected"
+      | "payment_pending"
+      | "in_transit"
+      | "delivered"
+      | "cancelled";
     make?: string;
     model?: string;
     year?: number;

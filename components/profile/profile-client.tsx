@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { User, ShoppingBag, Gavel, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatStatusLabel } from "@/lib/utils";
 import { KycVerification } from "@/components/kyc/kyc-verification";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFormatPrice } from "@/hooks/use-format-price";
@@ -265,7 +265,7 @@ export function ProfileClient({
                             : "secondary"
                         }
                       >
-                        {order.status.replace("_", " ")}
+                        {formatStatusLabel(order.status)}
                       </Badge>
                     </div>
                   </div>

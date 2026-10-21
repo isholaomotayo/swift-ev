@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { VendorPendingOrdersClient } from "@/components/vendor/vendor-pending-orders-client";
 
 export const metadata: Metadata = {
-  title: "Pending payments | Vendor | autoexports.live",
+  title: "Pending payments | Vendor",
   robots: { index: false, follow: false },
 };
 

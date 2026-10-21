@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatLotNumber, formatStatusLabel } from "@/lib/utils";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
 interface VendorPendingOrdersClientProps {
@@ -98,7 +98,7 @@ export function VendorPendingOrdersClient({
                             {row.vehicle.model}
                           </div>
                           <div className="text-xs text-muted-foreground font-mono">
-                            LOT #{row.vehicle.lotNumber}
+                            LOT #{formatLotNumber(row.vehicle.lotNumber)}
                           </div>
                         </div>
                       ) : (
@@ -138,7 +138,7 @@ export function VendorPendingOrdersClient({
                     </TableCell>
                     <TableCell>
                       <Badge variant={overdue ? "destructive" : row.status === "delivered" ? "default" : "secondary"}>
-                        {row.status.replace(/_/g, " ")}
+                        {formatStatusLabel(row.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>

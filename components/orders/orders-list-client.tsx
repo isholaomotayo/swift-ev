@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PackageSearch, ArrowRight } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatStatusLabel } from "@/lib/utils";
 import { useState } from "react";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
@@ -75,11 +75,17 @@ export function OrdersListClient({
           <SelectContent>
             <SelectItem value="all">All Orders</SelectItem>
             <SelectItem value="pending_payment">Pending Payment</SelectItem>
+            <SelectItem value="payment_partial">Payment Partial</SelectItem>
             <SelectItem value="payment_complete">Payment Complete</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
             <SelectItem value="shipped">Shipped</SelectItem>
             <SelectItem value="in_transit">In Transit</SelectItem>
+            <SelectItem value="customs_clearance">Customs Clearance</SelectItem>
+            <SelectItem value="cleared">Cleared</SelectItem>
+            <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
             <SelectItem value="delivered">Delivered</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="refunded">Refunded</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -112,18 +118,18 @@ export function OrdersListClient({
                   <p className="text-sm text-gray-500">{formatDate(order._creationTime)}</p>
                 </div>
                 <Badge variant={getStatusColor(order.status)}>
-                  {order.status.replace("_", " ")}
+                  {formatStatusLabel(order.status)}
                 </Badge>
               </div>
 
-              {order.vehicle && (
-                <div className="mb-4">
-                  <p className="font-medium">
-                    {order.vehicle.year} {order.vehicle.make} {order.vehicle.model}
-                  </p>
-                  <p className="text-sm text-gray-500">Type: {order.orderType.replace("_", " ")}</p>
-                </div>
-              )}
+              <div className="mb-4">
+                <p className="font-medium">
+                  {order.vehicle
+                    ? `${order.vehicle.year} ${order.vehicle.make} ${order.vehicle.model}`
+                    : "Vehicle details unavailable"}
+                </p>
+                <p className="text-sm text-gray-500">Type: {formatStatusLabel(order.orderType)}</p>
+              </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
                 <div>

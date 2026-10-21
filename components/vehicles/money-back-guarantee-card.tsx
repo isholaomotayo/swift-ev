@@ -50,7 +50,7 @@ export function MoneyBackGuaranteeCard({
             </div>
             <div className="space-y-1">
               <h4 className="font-extrabold text-lg md:text-xl text-white flex items-center gap-2">
-                VoltBid Buyer Protection & Guarantee
+                AutoExports Buyer Protection &amp; Guarantee
               </h4>
               <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
                 Full money-back assurance on every vehicle purchase. Your funds remain in 100% secure escrow until the vehicle passes final inspection and is delivered.

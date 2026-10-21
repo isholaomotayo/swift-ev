@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Gavel, Clock } from "lucide-react";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, formatLotNumber, formatStatusLabel } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
@@ -90,7 +90,7 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
                     <div className="text-sm text-gray-500">Scheduled Start</div>
                     <div className="font-medium">{formatDate(auction.scheduledStart)}</div>
                   </div>
-                  <Badge variant={getStatusColor(auction.status)}>{auction.status}</Badge>
+                  <Badge variant={getStatusColor(auction.status)}>{formatStatusLabel(auction.status)}</Badge>
                 </div>
               </div>
             </div>
@@ -115,7 +115,7 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
                   {auction.vendorLots.map((lot: any) => (
                     <TableRow key={lot._id}>
                       <TableCell className="font-mono font-medium">
-                        #{lot.vehicle.lotNumber}
+                        #{formatLotNumber(lot.vehicle.lotNumber)}
                       </TableCell>
                       <TableCell>
                         {lot.vehicle.year} {lot.vehicle.make} {lot.vehicle.model}
@@ -129,7 +129,7 @@ export function VendorAuctionsClient({ auctions }: VendorAuctionsClientProps) {
                         <Badge variant="outline">{lot.bidCount}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getLotStatusColor(lot.status)}>{lot.status}</Badge>
+                        <Badge variant={getLotStatusColor(lot.status)}>{formatStatusLabel(lot.status)}</Badge>
                       </TableCell>
                       <TableCell>
                         {lot.endsAt ? (

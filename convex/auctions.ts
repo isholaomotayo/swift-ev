@@ -333,14 +333,14 @@ async function maybeEndAuctionIfNoRunnableLots(
   return true;
 }
 
-async function cancelPreBidsAndReleaseReserves(
+async function cancelOpenBidsAndReleaseReserves(
   ctx: MutationCtx,
-  lot: Doc<"auctionLots">,
-  now: number
+  lotId: Id<"auctionLots">,
+  opts: { now: number; referencePrefix: string; description: string }
 ) {
   const bids = await ctx.db
     .query("bids")
-    .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", lot._id))
+    .withIndex("by_auction_lot", (q) => q.eq("auctionLotId", lotId))
     .collect();
 
   for (const bid of bids) {
@@ -359,11 +359,23 @@ async function cancelPreBidsAndReleaseReserves(
       userId: bid.userId,
       amountKobo: calculateBidReserveAmountKobo(bid.bidAmount),
       type: "bid_release",
-      reference: `BIN_RELEASE_${now}_${bid._id}`,
-      description: "Bid reserve released: vehicle purchased before auction start",
+      reference: `${opts.referencePrefix}_${opts.now}_${bid._id}`,
+      description: opts.description,
       relatedBidId: bid._id,
     });
   }
+}
+
+async function cancelPreBidsAndReleaseReserves(
+  ctx: MutationCtx,
+  lot: Doc<"auctionLots">,
+  now: number
+) {
+  await cancelOpenBidsAndReleaseReserves(ctx, lot._id, {
+    now,
+    referencePrefix: "BIN_RELEASE",
+    description: "Bid reserve released: vehicle purchased before auction start",
+  });
 }
 
 /**
@@ -1682,6 +1694,13 @@ async function endLot(
   await ctx.db.patch(lotId, {
     status: "no_sale",
     reserveMet: false,
+  });
+
+  // A lot that closes without a sale must leave no bidder with funds still on hold.
+  await cancelOpenBidsAndReleaseReserves(ctx, lotId, {
+    now,
+    referencePrefix: "NO_SALE_RELEASE",
+    description: "Bid reserve released: auction ended without a sale",
   });
 
   assertVehicleStatusTransition(vehicleStatusOf(vehicle.status), "unsold");

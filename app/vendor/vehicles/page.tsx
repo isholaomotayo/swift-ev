@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorVehiclesClient } from "@/components/vendor/vendor-vehicles-client";
 
 export const metadata: Metadata = {
-  title: "My Vehicles | Vendor | autoexports.live",
+  title: "My Vehicles | Vendor",
   description: "Manage your vehicle listings",
   robots: {
     index: false,

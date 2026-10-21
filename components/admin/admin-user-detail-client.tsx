@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatStatusLabel } from "@/lib/utils";
 
 interface AdminUserDetailClientProps {
   token: string;
@@ -37,6 +37,7 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
   const updateStatus = useMutation(api.users.updateUserStatus);
   const updateKYC = useMutation(api.users.updateKYCStatus);
   const updateTier = useMutation(api.users.updateMembershipTier);
+  const convex = useConvex();
 
   if (!data && !error) {
     return (
@@ -66,6 +67,14 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
 
   const user = data.user;
 
+  const refresh = async () => {
+    const fresh = await convex.query(api.users.getUserDetails, {
+      token,
+      userId: user._id as Id<"users">,
+    });
+    setData(fresh);
+  };
+
   const handleStatusUpdate = async () => {
     if (!status || saving) return;
     setSaving(true);
@@ -78,7 +87,7 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
         status: status as any,
         reason: statusReason || undefined,
       });
-      setData((prev: any) => prev ? { ...prev, user: { ...prev.user, status } } : prev);
+      await refresh();
       setSuccess("Account status updated.");
     } catch (err: any) {
       setError(err?.message || "Failed to update status.");
@@ -99,7 +108,7 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
         kycStatus: kycStatus as any,
         notes: kycNotes || undefined,
       });
-      setData((prev: any) => prev ? { ...prev, user: { ...prev.user, kycStatus } } : prev);
+      await refresh();
       setSuccess("KYC status updated.");
     } catch (err: any) {
       setError(err?.message || "Failed to update KYC status.");
@@ -119,7 +128,7 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
         userId: user._id as Id<"users">,
         tier: membershipTier as any,
       });
-      setData((prev: any) => prev ? { ...prev, user: { ...prev.user, membershipTier } } : prev);
+      await refresh();
       setSuccess("Membership tier updated.");
     } catch (err: any) {
       setError(err?.message || "Failed to update membership tier.");
@@ -279,7 +288,7 @@ export function AdminUserDetailClient({ token, initialData, errorMessage }: Admi
                       {data.recentOrders.map((order: any) => (
                         <TableRow key={order._id}>
                           <TableCell className="text-xs">{order._id}</TableCell>
-                          <TableCell className="text-xs">{order.status}</TableCell>
+                          <TableCell className="text-xs">{formatStatusLabel(order.status)}</TableCell>
                           <TableCell className="text-xs">
                             ₦{(order.totalAmount ?? 0).toLocaleString()}
                           </TableCell>

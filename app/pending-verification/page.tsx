@@ -6,7 +6,7 @@ import { getConvexClient } from "@/lib/convex-server";
 import { PendingVerificationClient } from "@/components/auth/pending-verification-client";
 
 export const metadata: Metadata = {
-  title: "Account Verification Pending | autoexports.live",
+  title: "Account Verification Pending",
   description: "Complete your email and identity verification to access autoexports.live.",
   robots: {
     index: false,
@@ -35,12 +35,13 @@ export default async function PendingVerificationPage() {
     redirect("/login");
   }
 
-  // Auto-redirect to appropriate portal for instant free access
-  if (user.role === "seller") {
-    redirect("/vendor");
-  } else if (user.role === "admin" || user.role === "superadmin") {
-    redirect("/admin");
-  } else {
+  // Verified users have no reason to stay here; unverified users can resend the link.
+  if (user.emailVerified) {
+    if (user.role === "seller") {
+      redirect("/vendor");
+    } else if (user.role === "admin" || user.role === "superadmin") {
+      redirect("/admin");
+    }
     redirect("/dashboard");
   }
 

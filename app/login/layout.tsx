@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login | autoexports.live",
+  title: "Login",
   description: "Login to your autoexports.live account to start bidding on vehicles.",
   robots: {
     index: false,

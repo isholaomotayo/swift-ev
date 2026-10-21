@@ -76,6 +76,7 @@ interface AuctionLot {
   bidIncrement: number;
   buyItNowPrice?: number;
   buyItNowEnabled?: boolean;
+  reservePrice?: number;
   endsAt?: number;
 }
 
@@ -190,6 +191,8 @@ export function VehicleDetailClient({
   const isLive = auctionLot?.status === "active";
   const isPreBid = auctionLot?.status === "pending";
   const canBid = isLive || isPreBid;
+  const reservePrice = auctionLot?.reservePrice ?? vehicle.reservePrice;
+  const reserveMet = !reservePrice || currentBid >= reservePrice;
 
   const resolvedBuyNowPrice =
     (isLive
@@ -836,8 +839,12 @@ export function VehicleDetailClient({
                   )}
                   <div className="flex justify-center gap-4 mt-2 text-xs font-mono text-muted-foreground">
                     <span>{bidCount} Bids</span>
-                    <span>|</span>
-                    <span>Reserve: Met ✓</span>
+                    {reservePrice ? (
+                      <>
+                        <span>|</span>
+                        <span>{reserveMet ? "Reserve: Met ✓" : "Reserve: Not Met"}</span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
@@ -962,7 +969,7 @@ export function VehicleDetailClient({
               </div>
 
               {/* Landed Cost Calculator */}
-              <LandedCostCalculator currentBid={currentBid} />
+              <LandedCostCalculator basePrice={isLive ? currentBid : resolvedBuyNowPrice ?? currentBid} />
             </div>
           </div>
         </div>

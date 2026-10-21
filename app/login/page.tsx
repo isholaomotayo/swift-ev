@@ -149,7 +149,7 @@ export default function LoginPage() {
           {isJustRegistered && !isJustVerified && (
             <div className="mb-6 p-4 rounded-2xl border border-electric-blue/30 bg-electric-blue/5">
               <p className="text-sm font-medium text-electric-blue">
-                Account created! Please check your email and click the verification link before signing in.
+                Account created! You can sign in now. We&apos;ve emailed you a link to verify your address.
               </p>
             </div>
           )}

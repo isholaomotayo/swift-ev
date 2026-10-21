@@ -1,6 +1,70 @@
-import { query } from "./_generated/server";
+import { query, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { requireAuth, requireAdmin, getAuthUserOrNull, isAdmin } from "./lib/auth";
+
+/**
+ * Dashboard cards receive vehicle images as storage ids. Resolve them to URLs so the
+ * client never renders a raw id as an image src.
+ */
+async function resolveHeroImage(
+  ctx: QueryCtx,
+  images: Array<{ imageType: string; imageUrl: string }>
+): Promise<string | undefined> {
+  const image = images.find((img) => img.imageType === "hero") ?? images[0];
+  if (!image?.imageUrl) return undefined;
+  if (image.imageUrl.startsWith("http") || image.imageUrl.startsWith("/")) {
+    return image.imageUrl;
+  }
+  return (await ctx.storage.getUrl(image.imageUrl as Id<"_storage">)) ?? undefined;
+}
+
+/**
+ * Every vehicle status must land in exactly one bucket so the chart reconciles
+ * with the inventory totals shown beside it.
+ */
+const VEHICLE_STATUS_BUCKETS: {
+  name: string;
+  statuses: string[];
+  color: string;
+}[] = [
+  { name: "Draft", statuses: ["draft"], color: "bg-slate-400" },
+  {
+    name: "Pending Review",
+    statuses: ["pending_inspection", "pending_approval"],
+    color: "bg-warning-amber",
+  },
+  {
+    name: "Approved",
+    statuses: ["approved", "ready_for_auction"],
+    color: "bg-emerald-500",
+  },
+  { name: "Scheduled", statuses: ["scheduled"], color: "bg-cyan-500" },
+  { name: "In Auction", statuses: ["in_auction"], color: "bg-electric-blue" },
+  { name: "Sold", statuses: ["sold"], color: "bg-purple-500" },
+  {
+    name: "Payment Pending",
+    statuses: ["payment_pending"],
+    color: "bg-orange-500",
+  },
+  { name: "In Transit", statuses: ["in_transit"], color: "bg-indigo-500" },
+  { name: "Delivered", statuses: ["delivered"], color: "bg-teal-500" },
+  { name: "Unsold", statuses: ["unsold"], color: "bg-slate-500" },
+  {
+    name: "Withdrawn",
+    statuses: ["withdrawn", "rejected", "cancelled"],
+    color: "bg-red-500",
+  },
+];
+
+function buildVehicleStatusBreakdown(vehicles: { status: string }[]) {
+  return VEHICLE_STATUS_BUCKETS.map((bucket) => ({
+    name: bucket.name,
+    count: vehicles.filter((vehicle) => bucket.statuses.includes(vehicle.status))
+      .length,
+    color: bucket.color,
+  }));
+}
 
 /**
  * Get platform-wide statistics
@@ -610,13 +674,7 @@ export const getAdminDashboardOverview = query({
       },
       charts: {
         revenueTrend,
-        vehicleStatusBreakdown: [
-          { name: "Approved", count: approvedVehicles.length, color: "bg-emerald-500" },
-          { name: "In Auction", count: inAuctionVehicles.length, color: "bg-electric-blue" },
-          { name: "Sold", count: soldVehicles.length, color: "bg-purple-500" },
-          { name: "Pending", count: pendingVehicles.length, color: "bg-warning-amber" },
-          { name: "Draft", count: draftVehicles.length, color: "bg-slate-400" },
-        ],
+        vehicleStatusBreakdown: buildVehicleStatusBreakdown(allVehicles),
       },
     };
   },
@@ -671,10 +729,11 @@ export const getVendorDashboardOverview = query({
 
     // KPIs
     const pendingVehicles = vendorVehicles.filter(v => v.status === "pending_approval");
-    const approvedVehicles = vendorVehicles.filter(v => v.status === "approved");
     const inAuctionVehicles = vendorVehicles.filter(v => v.status === "in_auction");
-    const soldVehicles = vendorVehicles.filter(v => v.status === "sold");
-    const draftVehicles = vendorVehicles.filter(v => v.status === "draft");
+    // Match getVendorStats: a sale stays "sold" while it moves through fulfilment.
+    const soldVehicles = vendorVehicles.filter((v) =>
+      ["sold", "in_transit", "delivered"].includes(v.status)
+    );
 
     // Sneak Peek: Vehicles
     const recentVehicles = await Promise.all(
@@ -683,7 +742,7 @@ export const getVendorDashboardOverview = query({
         .slice(0, 5)
         .map(async (v) => {
           const images = await ctx.db.query("vehicleImages").withIndex("by_vehicle", q => q.eq("vehicleId", v._id)).collect();
-          const heroImage = images.find(img => img.imageType === "hero")?.imageUrl || images[0]?.imageUrl;
+          const heroImage = await resolveHeroImage(ctx, images);
           return { ...v, heroImage };
         })
     );
@@ -743,13 +802,7 @@ export const getVendorDashboardOverview = query({
       },
       charts: {
         revenueTrend,
-        vehicleStatusBreakdown: [
-          { name: "Approved", count: approvedVehicles.length, color: "bg-emerald-500" },
-          { name: "In Auction", count: inAuctionVehicles.length, color: "bg-electric-blue" },
-          { name: "Sold", count: soldVehicles.length, color: "bg-purple-500" },
-          { name: "Pending", count: pendingVehicles.length, color: "bg-warning-amber" },
-          { name: "Draft", count: draftVehicles.length, color: "bg-slate-400" },
-        ],
+        vehicleStatusBreakdown: buildVehicleStatusBreakdown(vendorVehicles),
       },
     };
   },
@@ -790,8 +843,7 @@ export const getBuyerDashboardOverview = query({
             vehicle = await ctx.db.get(lot.vehicleId);
             if (vehicle) {
               const images = await ctx.db.query("vehicleImages").withIndex("by_vehicle", q => q.eq("vehicleId", vehicle!._id)).collect();
-              const heroImage = images.find(img => img.imageType === "hero")?.imageUrl || images[0]?.imageUrl;
-              (vehicle as any).heroImage = heroImage;
+              (vehicle as any).heroImage = await resolveHeroImage(ctx, images);
             }
           }
           return { bid, lot, vehicle };
@@ -812,8 +864,7 @@ export const getBuyerDashboardOverview = query({
           const vehicle = await ctx.db.get(item.vehicleId);
           if (vehicle) {
             const images = await ctx.db.query("vehicleImages").withIndex("by_vehicle", q => q.eq("vehicleId", vehicle._id)).collect();
-            const heroImage = images.find(img => img.imageType === "hero")?.imageUrl || images[0]?.imageUrl;
-            (vehicle as any).heroImage = heroImage;
+            (vehicle as any).heroImage = await resolveHeroImage(ctx, images);
           }
           // Check for active lot
           let lot = null;

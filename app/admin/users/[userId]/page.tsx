@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { AdminUserDetailClient } from "@/components/admin/admin-user-detail-client";
 
 export const metadata: Metadata = {
-  title: "User Details | Admin | autoexports.live",
+  title: "User Details | Admin",
   description: "View and manage an individual user account",
   robots: {
     index: false,
@@ -15,12 +15,13 @@ export const metadata: Metadata = {
 };
 
 interface AdminUserDetailPageProps {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 export default async function AdminUserDetailPage({ params }: AdminUserDetailPageProps) {
+  const { userId } = await params;
   const cookieStore = await cookies();
   const token = cookieStore.get("autoexports_token")?.value;
 
@@ -35,7 +36,7 @@ export default async function AdminUserDetailPage({ params }: AdminUserDetailPag
   try {
     data = await convex.query(api.users.getUserDetails, {
       token,
-      userId: params.userId as any,
+      userId: userId as any,
     });
   } catch (error: any) {
     console.error("Failed to fetch user details:", error);

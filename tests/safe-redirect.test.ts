@@ -14,6 +14,6 @@ describe("safe redirect", () => {
   test("maps roles to home paths", () => {
     expect(getRoleHomePath("admin")).toBe("/admin");
     expect(getRoleHomePath("seller")).toBe("/vendor");
-    expect(getRoleHomePath("buyer")).toBe("/");
+    expect(getRoleHomePath("buyer")).toBe("/dashboard");
   });
 });

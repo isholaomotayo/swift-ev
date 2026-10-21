@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Vehicle Details | autoexports.live",
+  title: "Vehicle Details",
   description:
     "View detailed information about this vehicle including specifications, condition, auction status, and bidding options.",
   openGraph: {
-    title: "Vehicle Details | autoexports.live",
+    title: "Vehicle Details",
     description: "View detailed information about this vehicle.",
     type: "website",
   },

@@ -6,7 +6,7 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Dashboard | autoexports.live",
+  title: "Dashboard",
   description: "Your autoexports.live dashboard - manage your bids, watchlist, orders, and profile.",
   robots: {
     index: false,

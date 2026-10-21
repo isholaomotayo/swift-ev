@@ -272,7 +272,7 @@ export function WalletDashboard() {
             <TrendingUp className="h-5 w-5 text-slate-950/70" />
           </div>
           <div className="text-3xl font-black mb-1">
-            {formatCompactCurrency((walletData?.biddingPower ?? 0) / 100)}
+            {formatCompactCurrency(walletData?.biddingPower ?? 0)}
           </div>
           <p className="text-sm text-slate-950/70">Max bid amount (10× balance)</p>
         </div>
@@ -543,33 +543,56 @@ function TransactionList({ transactions }: { transactions?: Doc<"walletTransacti
 
   return (
     <div className="space-y-2">
-      {transactions.map((tx) => (
-        <div
-          key={tx._id}
-          className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/30 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-              {getIcon(tx.type)}
+      {transactions.map((tx) => {
+        const isPending = tx.status === "pending";
+        const isFailed = tx.status === "failed" || tx.status === "reversed";
+        const amountColor = isPending
+          ? "text-amber-600 dark:text-amber-400"
+          : isFailed
+            ? "text-red-500"
+            : getAmountColor(tx.type);
+
+        return (
+          <div
+            key={tx._id}
+            className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                {getIcon(tx.type)}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{tx.description}</p>
+                  {tx.status !== "completed" && (
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                        isPending
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      }`}
+                    >
+                      {tx.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(tx.createdAt).toLocaleDateString("en-NG", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">{tx.description}</p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(tx.createdAt).toLocaleDateString("en-NG", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+            <div className={`font-bold font-mono ${amountColor}`}>
+              {getAmountPrefix(tx.type)}₦{(tx.amount / 100).toLocaleString()}
             </div>
           </div>
-          <div className={`font-bold font-mono ${getAmountColor(tx.type)}`}>
-            {getAmountPrefix(tx.type)}₦{(tx.amount / 100).toLocaleString()}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

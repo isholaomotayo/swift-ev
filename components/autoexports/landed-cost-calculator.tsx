@@ -20,15 +20,16 @@ import {
 } from "@/lib/buy-now-pricing";
 
 interface LandedCostCalculatorProps {
-  currentBid: number;
+  /** Price being estimated (current bid, or the Buy Now price for buy-only listings). */
+  basePrice: number;
 }
 
-export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) {
+export function LandedCostCalculator({ basePrice }: LandedCostCalculatorProps) {
   const [destination, setDestination] = useState<DestinationPort>("lagos");
   const currency = useEffectiveCurrency();
   const exchangeRates = useExchangeRates();
 
-  const pricing = calculateBuyNowPricing(currentBid, destination);
+  const pricing = calculateBuyNowPricing(basePrice, destination);
 
   return (
     <Card className="border-auction-gold/20 shadow-lg bg-gray-50/50">
@@ -43,7 +44,7 @@ export function LandedCostCalculator({ currentBid }: LandedCostCalculatorProps) 
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Detailed Breakdown</span>
             <span className="font-medium text-deep-navy">
-              At {formatCurrency(currentBid, { currency, exchangeRates })}
+              At {formatCurrency(basePrice, { currency, exchangeRates })}
             </span>
           </div>
 

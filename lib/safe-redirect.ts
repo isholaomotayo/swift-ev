@@ -29,5 +29,6 @@ export function getSafeRedirectPath(
 export function getRoleHomePath(role?: string | null): string {
   if (role === "admin" || role === "superadmin") return "/admin";
   if (role === "seller") return "/vendor";
+  if (role === "buyer") return "/dashboard";
   return "/";
 }

@@ -54,7 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { formatCountdownClock, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCountdownClock, formatCurrency, formatDate, formatLotNumber, formatStatusLabel } from "@/lib/utils";
 import { getMutationErrorMessage } from "@/lib/auth-errors";
 
 const getFormattedLotStatus = (status: string, hasBidder: boolean) => {
@@ -437,7 +437,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                 <SelectContent>
                   {allAuctions.map((auc) => (
                     <SelectItem key={auc._id} value={auc._id}>
-                      {auc.name} ({auc.status})
+                      {auc.name} ({formatStatusLabel(auc.status)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -669,7 +669,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                 </span>
                 {isInspectingHistorical && (
                   <Badge variant="outline" className="text-warning-amber border-warning-amber/30 text-[10px]">
-                    Previewing Lot #{currentDisplayedLot?.lot.lotOrder} ({currentDisplayedLot?.lot.status})
+                    Previewing Lot #{currentDisplayedLot?.lot.lotOrder} ({formatStatusLabel(currentDisplayedLot?.lot.status)})
                   </Badge>
                 )}
               </div>
@@ -788,7 +788,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                       {activeLot.vehicle.year} {activeLot.vehicle.make} {activeLot.vehicle.model}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Lot {activeLot.vehicle.lotNumber}
+                      Lot {formatLotNumber(activeLot.vehicle.lotNumber)}
                     </p>
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground">Current Bid</p>
@@ -1008,7 +1008,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                         </span>{" "}
                         • Stock Lot:{" "}
                         <span className="font-mono text-foreground font-medium">
-                          {currentDisplayedLot.vehicle.lotNumber}
+                          {formatLotNumber(currentDisplayedLot.vehicle.lotNumber)}
                         </span>
                       </p>
                     </div>
@@ -1144,7 +1144,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                           {queuePreviewA.vehicle.model}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Lot {queuePreviewA.vehicle.lotNumber}
+                          Lot {formatLotNumber(queuePreviewA.vehicle.lotNumber)}
                         </p>
                         <div className="mt-2 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
@@ -1214,7 +1214,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                           {queuePreviewB.vehicle.model}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Lot {queuePreviewB.vehicle.lotNumber}
+                          Lot {formatLotNumber(queuePreviewB.vehicle.lotNumber)}
                         </p>
                         <div className="mt-2 flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
@@ -1327,7 +1327,7 @@ export function LiveControlCenter({ initialAuctionId }: LiveControlCenterProps) 
                               <p className="font-semibold">
                                 {vehicle.year} {vehicle.make} {vehicle.model}
                               </p>
-                              <p className="text-[10px] text-muted-foreground">Lot {vehicle.lotNumber}</p>
+                              <p className="text-[10px] text-muted-foreground">Lot {formatLotNumber(vehicle.lotNumber)}</p>
                             </div>
                           </TableCell>
                           <TableCell>

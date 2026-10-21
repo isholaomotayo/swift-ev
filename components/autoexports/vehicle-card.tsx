@@ -16,7 +16,7 @@ import { AuctionTimer } from "./auction-timer";
 import { PriceDisplay } from "./price-display";
 import { BatteryHealthBadge } from "./battery-health-badge";
 import { MoneyBackGuaranteeCard } from "@/components/vehicles/money-back-guarantee-card";
-import { cn } from "@/lib/utils";
+import { cn, formatLotNumber } from "@/lib/utils";
 
 interface VehicleCardProps {
   vehicle: {
@@ -133,7 +133,7 @@ export function VehicleCard({
             variant="secondary"
             className="font-mono bg-black/60 text-white border-white/10 backdrop-blur-md shadow-sm"
           >
-            LOT #{lotNumber}
+            LOT #{formatLotNumber(lotNumber)}
           </Badge>
           {showBuyNow && buyNowPrice && (
             <Badge className="bg-volt-green text-slate-950 border-none font-semibold shadow-sm">
@@ -146,6 +146,7 @@ export function VehicleCard({
         <Button
           variant="ghost"
           size="icon"
+          aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
           className="absolute top-3 right-3 z-10 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:text-white rounded-full transition-all duration-300"
           onClick={(e) => {
             e.preventDefault();

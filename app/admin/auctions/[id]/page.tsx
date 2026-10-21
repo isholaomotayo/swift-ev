@@ -31,12 +31,12 @@ export async function generateMetadata({
 
     if (!auctionData) {
       return {
-        title: "Auction Not Found | Admin | autoexports.live",
+        title: "Auction Not Found | Admin",
       };
     }
 
     return {
-      title: `${auctionData.auction.name} | Admin | autoexports.live`,
+      title: `${auctionData.auction.name} | Admin`,
       description: "Manage auction details, lots, and live auction controls",
       robots: {
         index: false,
@@ -45,7 +45,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Manage Auction | Admin | autoexports.live",
+      title: "Manage Auction | Admin",
       robots: {
         index: false,
         follow: false,

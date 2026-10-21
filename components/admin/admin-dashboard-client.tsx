@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, formatStatusLabel, cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFormatPrice } from "@/hooks/use-format-price";
 
@@ -514,7 +514,7 @@ export function AdminDashboardClient({ initialOverview, token }: AdminDashboardC
                               : "bg-warning-amber/10 text-warning-amber border-warning-amber/30"
                           )}
                         >
-                          {order.status}
+                          {formatStatusLabel(order.status)}
                         </Badge>
                       </div>
                     </div>

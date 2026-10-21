@@ -72,7 +72,7 @@ export function VendorAnalyticsClient({
                   {formatPrice(stats.totalRevenue)}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  {stats.sold} vehicles sold
+                  {stats.sold} {stats.sold === 1 ? "vehicle" : "vehicles"} sold
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">

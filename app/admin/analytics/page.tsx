@@ -5,7 +5,7 @@ import { AnalyticsClient } from "@/components/admin/analytics-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Analytics | Admin | autoexports.live",
+  title: "Analytics | Admin",
   description: "Platform performance metrics",
   robots: {
     index: false,

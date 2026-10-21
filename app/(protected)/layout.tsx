@@ -3,11 +3,17 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-server";
+import { SITE_NAME } from "@/lib/constants";
 import { ProtectedLayoutClient } from "@/components/layout/protected-layout-client";
 import { VendorLayoutClient } from "@/components/layout/vendor-layout-client";
 
 export const metadata: Metadata = {
-  title: "Dashboard | autoexports.live",
+  // Re-declare the template here: Next drops the root template for nested
+  // pages when a parent layout sets a plain string title.
+  title: {
+    default: "Dashboard",
+    template: `%s | ${SITE_NAME}`,
+  },
   description: "Your autoexports.live dashboard - manage your bids, watchlist, orders, and profile.",
   robots: {
     index: false,
@@ -54,9 +60,5 @@ export default async function ProtectedLayout({
     );
   }
 
-  return (
-    <ProtectedLayoutClient user={user}>
-      {children}
-    </ProtectedLayoutClient>
-  );
+  return <ProtectedLayoutClient>{children}</ProtectedLayoutClient>;
 }

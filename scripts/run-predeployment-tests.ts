@@ -13,6 +13,8 @@ console.log("Target Directories:");
 console.log("  • tests/backend/   - Hermetic Convex Backend Engines (Auctions, Vehicles, Orders, Wallet, KYC)");
 console.log("  • tests/ui-forms/  - Client Action & Form Processing Logic (Auth, Wizard, Checkout, Admin)");
 console.log("  • tests/e2e/       - Multi-Role Full Lifecycle Journeys (Seller -> Buyer -> Admin -> Delivery)");
+console.log("  • tests/reliability-invariants.test.ts - Money and identifier invariants");
+console.log("  • tests/architecture-guards.test.ts   - Cross-cutting architecture guards");
 console.log("--------------------------------------------------------------------------------\n");
 
 const startTime = Date.now();
@@ -24,6 +26,8 @@ const testProcess = spawn(
     "tests/backend",
     "tests/ui-forms",
     "tests/e2e",
+    "tests/reliability-invariants.test.ts",
+    "tests/architecture-guards.test.ts",
   ],
   {
     stdio: "inherit",

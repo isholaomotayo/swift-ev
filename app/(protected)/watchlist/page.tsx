@@ -5,7 +5,7 @@ import { WatchlistClient } from "@/components/watchlist/watchlist-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Watchlist | autoexports.live",
+  title: "My Watchlist",
   description: "View and manage your saved vehicles",
   robots: {
     index: false,

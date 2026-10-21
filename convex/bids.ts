@@ -103,6 +103,9 @@ export const placeBid = mutation({
     }
 
     // Validate bid amount
+    if (!Number.isFinite(args.amount) || args.amount <= 0 || !Number.isInteger(args.amount)) {
+      throw new Error("Bid amount must be a whole naira amount");
+    }
     const minimumBid = lot.currentBid + (lot.bidIncrement || 100);
     if (args.amount < minimumBid) {
       throw new Error(`Bid must be at least ${minimumBid}`);

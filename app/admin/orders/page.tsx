@@ -5,7 +5,7 @@ import { OrdersListClient } from "@/components/admin/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Orders | Admin | autoexports.live",
+  title: "Manage Orders | Admin",
   description: "Track and manage all orders",
   robots: {
     index: false,

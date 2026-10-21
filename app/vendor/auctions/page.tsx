@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { VendorAuctionsClient } from "@/components/vendor/vendor-auctions-client";
 
 export const metadata: Metadata = {
-  title: "My Auctions | Vendor | autoexports.live",
+  title: "My Auctions | Vendor",
   description: "Track your vehicles in auctions",
   robots: {
     index: false,

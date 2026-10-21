@@ -3,10 +3,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-server";
+import { SITE_NAME } from "@/lib/constants";
 import { AdminLayoutClient } from "@/components/layout/admin-layout-client";
 
 export const metadata: Metadata = {
-  title: "Admin | autoexports.live",
+  title: {
+    default: "Admin",
+    template: `%s | ${SITE_NAME}`,
+  },
   description: "Admin dashboard for managing autoexports.live platform",
   robots: {
     index: false,

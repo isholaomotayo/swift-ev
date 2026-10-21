@@ -6,7 +6,7 @@ import { OrdersListClient } from "@/components/orders/orders-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "My Orders | autoexports.live",
+  title: "My Orders",
   description: "Track your vehicle purchases",
   robots: {
     index: false,

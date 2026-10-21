@@ -27,6 +27,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { getMutationErrorMessage } from "@/lib/auth-errors";
+import { formatStatusLabel } from "@/lib/utils";
 
 interface DeleteAuctionDialogProps {
   auctionId: Id<"auctions">;
@@ -139,7 +140,7 @@ export function DeleteAuctionDialog({
                   <ul className="list-disc list-inside font-mono text-[11px] max-h-24 overflow-y-auto">
                     {preview.blockingOrders.map((o) => (
                       <li key={o.orderId}>
-                        Order #{o.orderNumber} ({o.status})
+                        Order #{o.orderNumber} ({formatStatusLabel(o.status)})
                       </li>
                     ))}
                   </ul>

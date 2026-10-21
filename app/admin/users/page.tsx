@@ -5,7 +5,7 @@ import { UsersListClient } from "@/components/admin/users-list-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Manage Users | Admin | autoexports.live",
+  title: "Manage Users | Admin",
   description: "Manage all platform users",
   robots: {
     index: false,

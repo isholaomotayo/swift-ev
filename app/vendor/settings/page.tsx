@@ -6,7 +6,7 @@ import { VendorSettingsClient } from "@/components/vendor/settings-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Settings | Vendor | autoexports.live",
+  title: "Settings | Vendor",
   description: "Manage your vendor account settings",
   robots: {
     index: false,

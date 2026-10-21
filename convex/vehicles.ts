@@ -1178,8 +1178,8 @@ export const updateVehicle = mutation({
         );
       }
 
-      // 3. Re-approval required for already approved / scheduled / ready / unsold listings
-      const approvedAvailableStatuses = ["approved", "ready_for_auction", "scheduled", "unsold"];
+      // 3. Re-approval required for already approved / scheduled / ready / unsold / rejected listings
+      const approvedAvailableStatuses = ["approved", "ready_for_auction", "scheduled", "unsold", "rejected"];
       if (approvedAvailableStatuses.includes(vehicle.status)) {
         resetToPendingApproval = true;
       }
@@ -1904,26 +1904,25 @@ export const getVendorStats = query({
     const pending = vehicles.filter((v) => v.status === "pending_approval").length;
     const paymentPending = vehicles.filter((v) => v.status === "payment_pending").length;
 
-    // Calculate revenue from sold vehicles
-    const soldVehicles = vehicles.filter((v) =>
-      ["sold", "in_transit", "delivered"].includes(v.status)
-    );
-    let totalRevenue = 0;
-
-    // Get auction lots for sold vehicles to find winning bids
-    for (const vehicle of soldVehicles) {
-      const lot = await ctx.db
-        .query("auctionLots")
+    // Revenue comes from orders so auction wins and Buy Now sales are counted alike.
+    const orders = [];
+    for (const vehicle of vehicles) {
+      const vehicleOrders = await ctx.db
+        .query("orders")
         .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-        .filter((q) => q.eq(q.field("status"), "sold"))
-        .first();
-
-      if (lot?.winningBid) {
-        totalRevenue += lot.winningBid;
-      }
+        .collect();
+      orders.push(...vehicleOrders);
     }
+    const revenueOrders = orders.filter(
+      (o) => o.status !== "cancelled" && o.status !== "refunded"
+    );
+    const totalRevenue = revenueOrders.reduce(
+      (sum, o) => sum + (o.totalAmount || 0),
+      0
+    );
 
-    const averageSalePrice = sold > 0 ? totalRevenue / sold : 0;
+    const averageSalePrice =
+      revenueOrders.length > 0 ? Math.round(totalRevenue / revenueOrders.length) : 0;
 
     return {
       totalVehicles: total,
@@ -1953,31 +1952,25 @@ export const getVendorRevenueHistory = query({
 
     const monthsBack = args.months || 6;
 
-    // Get vendor's sold vehicles
     const vehicles = await ctx.db
       .query("vehicles")
       .withIndex("by_seller", (q) => q.eq("sellerId", user._id))
-      .filter((q) => q.eq(q.field("status"), "sold"))
       .collect();
 
-    // Group sales by month
+    // Group non-cancelled order revenue (auction wins and Buy Now) by month.
     const monthlyRevenue: { [key: string]: number } = {};
 
     for (const vehicle of vehicles) {
-      const lot = await ctx.db
-        .query("auctionLots")
+      const orders = await ctx.db
+        .query("orders")
         .withIndex("by_vehicle", (q) => q.eq("vehicleId", vehicle._id))
-        .filter((q) => q.eq(q.field("status"), "sold"))
-        .first();
+        .collect();
 
-      if (lot?.soldAt && lot.winningBid) {
-        const date = new Date(lot.soldAt);
+      for (const order of orders) {
+        if (order.status === "cancelled" || order.status === "refunded") continue;
+        const date = new Date(order.createdAt ?? order._creationTime);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
-        if (!monthlyRevenue[monthKey]) {
-          monthlyRevenue[monthKey] = 0;
-        }
-        monthlyRevenue[monthKey] += lot.winningBid;
+        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] ?? 0) + (order.totalAmount || 0);
       }
     }
 

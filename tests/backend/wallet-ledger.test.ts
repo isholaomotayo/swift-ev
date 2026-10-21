@@ -33,6 +33,18 @@ describe("Backend Wallet, Double-Entry Ledger & Dispute Refunds (In-Memory Herme
 
     const reference = fundResult.txRef;
 
+    // The deposit is visible immediately but must stay pending and uncredited
+    // until the gateway confirms it.
+    const pendingHistory = await t.query(api.wallet.getTransactionHistory, {
+      token: buyer.token,
+    });
+    expect(pendingHistory[0].reference).toBe(reference);
+    expect(pendingHistory[0].status).toBe("pending");
+    expect(pendingHistory[0].description).toContain("Wallet funding");
+    expect(
+      (await t.query(api.wallet.getWalletBalance, { token: buyer.token }))?.available
+    ).toBe(0);
+
     // 3. Mock external Flutterwave API verification response for hermetic testing
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (url: any, init: any) => {

@@ -511,7 +511,7 @@ export const resendVerificationEmail = mutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .first();
 
-    if (user && user.status === "pending" && !user.emailVerified) {
+    if (user && !user.emailVerified) {
       await ctx.scheduler.runAfter(0, internal.emails.sendVerificationEmail, {
         userId: user._id,
         email: user.email,

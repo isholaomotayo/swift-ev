@@ -26,12 +26,12 @@ export async function generateMetadata({
     });
     if (!vehicle) {
       return {
-        title: "Vehicle Not Found | autoexports.live",
+        title: "Vehicle Not Found",
       };
     }
 
     return {
-      title: `${vehicle.year} ${vehicle.make} ${vehicle.model} | autoexports.live`,
+      title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
       description: `View details for ${vehicle.year} ${vehicle.make} ${vehicle.model}. Battery health: ${vehicle.batteryHealthPercent}%, Range: ${vehicle.estimatedRange}km.`,
       openGraph: {
         title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
@@ -41,7 +41,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Vehicle | autoexports.live",
+      title: "Vehicle",
     };
   }
 }

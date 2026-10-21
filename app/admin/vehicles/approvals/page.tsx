@@ -6,7 +6,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { VehicleApprovalsClient } from "@/components/admin/vehicle-approvals-client";
 
 export const metadata: Metadata = {
-  title: "Vehicle Approvals | Admin | autoexports.live",
+  title: "Vehicle Approvals | Admin",
   description: "Review and approve vendor vehicle submissions",
   robots: {
     index: false,

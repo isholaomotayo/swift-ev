@@ -137,12 +137,27 @@ export const getUserDetails = query({
       .withIndex("by_user", (q) => q.eq("userId", targetUserId))
       .collect();
 
-    // Get audit log
-    const auditLogs = await ctx.db
-      .query("auditLog")
-      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
-      .order("desc")
-      .take(50);
+    // Audit history for this user: events they authored plus admin actions
+    // recorded against them as an entity.
+    const [authoredLogs, entityLogs] = await Promise.all([
+      ctx.db
+        .query("auditLog")
+        .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+        .order("desc")
+        .take(50),
+      ctx.db
+        .query("auditLog")
+        .withIndex("by_entity", (q) =>
+          q.eq("entityType", "user").eq("entityId", targetUserId)
+        )
+        .order("desc")
+        .take(50),
+    ]);
+    const auditLogs = [...new Map(
+      [...authoredLogs, ...entityLogs].map((log) => [log._id, log])
+    ).values()]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 50);
 
     // Sanitize user data (remove password hash)
     const { passwordHash, ...sanitizedUser } = user;

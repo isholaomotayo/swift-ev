@@ -22,12 +22,12 @@ export async function generateMetadata({
     });
     if (!room) {
       return {
-        title: "Auction Not Found | autoexports.live",
+        title: "Auction Not Found",
       };
     }
 
     return {
-      title: `${room.auction.name} | autoexports.live`,
+      title: `${room.auction.name}`,
       description:
         room.auction.description || `Live auction with ${room.lots.length} lots`,
       openGraph: {
@@ -37,7 +37,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: "Auction | autoexports.live",
+      title: "Auction",
     };
   }
 }

@@ -5,7 +5,7 @@ import { MailClient } from "@/components/admin/mail-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Mail | Admin | autoexports.live",
+  title: "Mail | Admin",
   description: "Admin email management",
   robots: {
     index: false,

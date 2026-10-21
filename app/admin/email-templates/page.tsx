@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { EmailTemplateManager } from "@/components/admin/email-template-manager";
 
 export const metadata: Metadata = {
-  title: "Email Templates | Admin | autoexports.live",
+  title: "Email Templates | Admin",
   description: "Preview, edit, and manage transactional email templates",
   robots: {
     index: false,

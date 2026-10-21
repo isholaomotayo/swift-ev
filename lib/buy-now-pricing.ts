@@ -16,10 +16,15 @@ export const SHIPPING_BY_DESTINATION: Record<DestinationPort, number> = {
   port_harcourt: 2500 * USD_TO_NGN,
 };
 
+/** Naira amounts are stored and charged as whole naira, never fractions. */
+export function toWholeNaira(amount: number): number {
+  return Math.round(amount);
+}
+
 export function calculateCustomsFee(vehiclePriceNaira: number): number {
   const randomFactor = (vehiclePriceNaira % 997) / 997;
   const feeUsd = 4000 + randomFactor * 200;
-  return feeUsd * USD_TO_NGN;
+  return toWholeNaira(feeUsd * USD_TO_NGN);
 }
 
 export const DESTINATION_LABELS: Record<DestinationPort, string> = {
@@ -33,12 +38,12 @@ export function calculateServiceFee(vehiclePriceNaira: number): number {
     return 75_000;
   }
   if (vehiclePriceNaira <= 5_000_000) {
-    return vehiclePriceNaira * 0.07;
+    return toWholeNaira(vehiclePriceNaira * 0.07);
   }
   if (vehiclePriceNaira <= 15_000_000) {
-    return vehiclePriceNaira * 0.06;
+    return toWholeNaira(vehiclePriceNaira * 0.06);
   }
-  return vehiclePriceNaira * 0.05;
+  return toWholeNaira(vehiclePriceNaira * 0.05);
 }
 
 export type BuyNowPricingBreakdown = {
@@ -57,15 +62,16 @@ export function calculateBuyNowPricing(
   vehiclePriceNaira: number,
   destination: DestinationPort = "lagos"
 ): BuyNowPricingBreakdown {
-  const serviceFee = calculateServiceFee(vehiclePriceNaira);
+  const vehiclePrice = toWholeNaira(vehiclePriceNaira);
+  const serviceFee = calculateServiceFee(vehiclePrice);
   const shippingCost = SHIPPING_BY_DESTINATION[destination];
   const documentationFee = DOCUMENTATION_FEE_NAIRA;
   const inspectionFee = INSPECTION_FEE_NAIRA;
-  const customsClearingFee = calculateCustomsFee(vehiclePriceNaira);
+  const customsClearingFee = calculateCustomsFee(vehiclePrice);
   const registrationFee = REGISTRATION_FEE_NAIRA;
 
   const totalAmount =
-    vehiclePriceNaira +
+    vehiclePrice +
     serviceFee +
     documentationFee +
     inspectionFee +
@@ -74,7 +80,7 @@ export function calculateBuyNowPricing(
     registrationFee;
 
   return {
-    vehiclePrice: vehiclePriceNaira,
+    vehiclePrice,
     serviceFee,
     documentationFee,
     inspectionFee,

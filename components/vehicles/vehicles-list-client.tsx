@@ -20,8 +20,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import { MakeModelSelect } from "@/components/vehicles/make-model-select";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { FUEL_TYPES } from "@/lib/constants";
+import { useEffectiveCurrency } from "@/store/currency";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
 
 const CONDITIONS = [
   { value: "excellent", label: "Excellent" },
@@ -48,6 +50,8 @@ export function VehiclesListClient({
 }: VehiclesListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const displayCurrency = useEffectiveCurrency();
+  const exchangeRates = useExchangeRates();
 
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -288,9 +292,10 @@ export function VehiclesListClient({
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Price (NGN)</Label>
+              <Label className="text-sm font-semibold">Price</Label>
               <span className="text-xs text-muted-foreground font-mono">
-                {(priceRange[0] / 1_000_000).toFixed(1)}M - {(priceRange[1] / 1_000_000).toFixed(1)}M
+                {formatCurrency(priceRange[0], { currency: displayCurrency, exchangeRates })} -{" "}
+                {formatCurrency(priceRange[1], { currency: displayCurrency, exchangeRates })}
               </span>
             </div>
             <Slider

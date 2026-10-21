@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | autoexports.live",
+  title: "Admin Dashboard",
   description: "Admin dashboard for managing autoexports.live platform",
   robots: {
     index: false,

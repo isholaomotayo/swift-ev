@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, formatStatusLabel } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
 
 interface DashboardClientProps {
@@ -279,7 +279,7 @@ export function DashboardClient({ initialOverview, token, user }: DashboardClien
                   </div>
                 </Button>
               </Link>
-              <Link href="/settings">
+              <Link href="/profile">
                 <Button variant="outline" className="w-full h-auto p-4 justify-start group border-dashed hover:border-solid hover:border-muted-foreground/50 hover:bg-muted/5 transition-all">
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
                     <Settings className="h-5 w-5 text-muted-foreground" />
@@ -339,7 +339,7 @@ export function DashboardClient({ initialOverview, token, user }: DashboardClien
                             : "bg-muted text-muted-foreground border-border"
                         )}
                       >
-                        {order.status.replace(/_/g, ' ')}
+                        {formatStatusLabel(order.status)}
                       </Badge>
                     </div>
                   </div>

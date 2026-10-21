@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatLotNumber } from "@/lib/utils";
 import { LiveControlCenter } from "@/components/admin/auctions/live-control-center";
 import { DeleteAuctionDialog } from "@/components/admin/auctions/delete-auction-dialog";
 import { getMutationErrorMessage } from "@/lib/auth-errors";
@@ -480,7 +480,7 @@ export function AdminAuctionDetailClient({
                             {vehicle.year} {vehicle.make} {vehicle.model}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            VIN: {vehicle.vin || "N/A"} | Lot: {vehicle.lotNumber}
+                            VIN: {vehicle.vin || "N/A"} | Lot: {formatLotNumber(vehicle.lotNumber)}
                           </p>
                         </div>
                       </TableCell>

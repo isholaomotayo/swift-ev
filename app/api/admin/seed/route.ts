@@ -4,9 +4,15 @@ import { api } from "@/convex/_generated/api";
 import fs from "fs";
 import path from "path";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+        return NextResponse.json({ success: false, error: "NEXT_PUBLIC_CONVEX_URL not configured" }, { status: 500 });
+    }
+    const convex = new ConvexHttpClient(convexUrl);
+
     const secret = process.env.SEED_SECRET;
     if (!secret || req.headers.get("x-seed-secret") !== secret) {
         return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

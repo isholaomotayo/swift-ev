@@ -148,7 +148,7 @@ export function AuthProvider({ children, initialToken = null }: AuthProviderProp
 
       toast({
         title: "Registration Successful",
-        description: "Account created! Please check your email for a verification link before signing in.",
+        description: "Account created! You can sign in now. Check your email for a verification link.",
       });
 
       // Redirect to login with a flag so the page can show a success notice.

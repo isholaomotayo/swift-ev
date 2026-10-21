@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   return {
-    title: "Order Details | autoexports.live",
+    title: "Order Details",
     robots: {
       index: false,
       follow: false,

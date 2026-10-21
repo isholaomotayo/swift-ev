@@ -5,7 +5,7 @@ import { SettingsClient } from "@/components/admin/settings-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "System Settings | Admin | autoexports.live",
+  title: "System Settings | Admin",
   description: "Configure platform-wide settings",
   robots: {
     index: false,

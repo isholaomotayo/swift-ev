@@ -24,7 +24,7 @@ describe("UI Form Actions & Auth Validation (Client-Side Logic)", () => {
     expect(getRoleHomePath("superadmin")).toBe("/admin");
     expect(getRoleHomePath("admin")).toBe("/admin");
     expect(getRoleHomePath("seller")).toBe("/vendor");
-    expect(getRoleHomePath("buyer")).toBe("/");
+    expect(getRoleHomePath("buyer")).toBe("/dashboard");
     expect(getRoleHomePath(null)).toBe("/");
     expect(getRoleHomePath(undefined)).toBe("/");
   });

@@ -6,7 +6,7 @@ import { UserMailClient } from "@/components/user/mail-client";
 import { api } from "@/convex/_generated/api";
 
 export const metadata: Metadata = {
-  title: "Inbox | autoexports.live",
+  title: "Inbox",
   description: "Your in-app email inbox",
   robots: {
     index: false,

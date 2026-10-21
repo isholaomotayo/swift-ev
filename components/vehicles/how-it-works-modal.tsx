@@ -84,7 +84,7 @@ export function HowItWorksModal({
               </Badge>
             </div>
             <DialogTitle className="text-2xl md:text-3xl font-black tracking-tight text-white pt-1">
-              How Purchasing Works on VoltBid
+              How Purchasing Works on AutoExports
             </DialogTitle>
             <DialogDescription className="text-slate-300 text-sm md:text-base leading-relaxed max-w-2xl">
               Transparent, escrow-backed vehicle sourcing. Buy with 100% confidence through verified 180-point inspections and guaranteed money-back protection.
@@ -286,7 +286,7 @@ export function HowItWorksModal({
                   </div>
                   <div>
                     <h4 className="font-extrabold text-lg text-foreground">
-                      The VoltBid 100% Money-Back Guarantee
+                      The AutoExports 100% Money-Back Guarantee
                     </h4>
                     <p className="text-xs text-muted-foreground">
                       Complete financial assurance protected by audited escrow accounts and regulated transit insurance.
@@ -331,7 +331,7 @@ export function HowItWorksModal({
                       Legal Accountability
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      VoltBid / AutoExports operates under official corporate registration with physical offices, giving you full legal recourse and consumer rights protection.
+                      AutoExports operates under official corporate registration with physical offices, giving you full legal recourse and consumer rights protection.
                     </p>
                   </div>
                 </div>

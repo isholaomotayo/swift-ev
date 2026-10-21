@@ -82,6 +82,16 @@ export function formatCompactCurrency(amountNgn: number): string {
   }).format(amountNgn);
 }
 
+/** Human-readable label for a snake_case backend enum (e.g. "buy_it_now" → "Buy It Now"). */
+export function formatStatusLabel(value?: string | null): string {
+  if (!value) return "";
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 /**
  * Format date to readable string
  */
@@ -197,19 +207,10 @@ export function getBatteryHealthBadge(healthPercent: number): {
 }
 
 /**
- * Calculate service fee based on AutoExports fee structure
+ * Calculate service fee based on AutoExports fee structure.
+ * Re-exported from the shared pricing module so every surface uses one rule set.
  */
-export function calculateServiceFee(bidAmount: number): number {
-  if (bidAmount <= 1_000_000) {
-    return 75_000;
-  } else if (bidAmount <= 5_000_000) {
-    return bidAmount * 0.07; // 7%
-  } else if (bidAmount <= 15_000_000) {
-    return bidAmount * 0.06; // 6%
-  } else {
-    return bidAmount * 0.05; // 5%
-  }
-}
+export { calculateServiceFee } from "./buy-now-pricing";
 
 /**
  * Format VIN number (add spacing for readability)
@@ -221,11 +222,13 @@ export function formatVIN(vin?: string): string {
 }
 
 /**
- * Format lot number with leading zeros
+ * Format a lot number for display. Stored lot numbers already carry their prefix
+ * (e.g. "VB-20261012-X0BLJ"), so only bare sequence numbers get one added.
  */
 export function formatLotNumber(lotNumber: string | number): string {
-  const num = typeof lotNumber === "string" ? lotNumber : String(lotNumber);
-  return `VB-${num.padStart(6, "0")}`;
+  const value = String(lotNumber).trim();
+  if (/^(VB|AE)-/i.test(value)) return value;
+  return `VB-${value.padStart(6, "0")}`;
 }
 
 /**

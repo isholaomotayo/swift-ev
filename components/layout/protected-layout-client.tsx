@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Header } from "@/components/layout/header";
@@ -53,28 +52,17 @@ const navItems = [
 
 interface ProtectedLayoutClientProps {
   children: React.ReactNode;
-  user: {
-    role: string;
-  };
 }
 
 import { cn } from "@/lib/utils";
 
-export function ProtectedLayoutClient({ children, user }: ProtectedLayoutClientProps) {
+export function ProtectedLayoutClient({ children }: ProtectedLayoutClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  // Redirect admin users to their respective dashboards
-  useEffect(() => {
-    if (user.role === "admin" || user.role === "superadmin") {
-      router.push("/admin");
-    }
-  }, [user.role, router]);
-
-  if (user.role === "admin" || user.role === "superadmin") {
-    return null;
-  }
+  // Admins keep access to buyer pages: they can buy vehicles and must be able to
+  // open the resulting orders.
 
   return (
     <div className="flex min-h-screen flex-col bg-background selection:bg-electric-blue/30">

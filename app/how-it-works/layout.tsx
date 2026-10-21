@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "How It Works | autoexports.live",
+  title: "How It Works",
   description:
     "Learn how autoexports.live works - from browsing vehicles to placing bids, winning auctions, and receiving your vehicle at your doorstep in Nigeria.",
   keywords: [
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "vehicle import process",
   ],
   openGraph: {
-    title: "How It Works | autoexports.live",
+    title: "How It Works",
     description: "Learn how autoexports.live works - from browsing to receiving your car.",
     type: "website",
   },

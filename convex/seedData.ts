@@ -353,7 +353,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 1 - BYD Atto 3 (Ready for Auction)
     const vehicle1Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000001",
+      lotNumber: "VB-000001",
       vin: "LGXCE2EL7N0123456",
       make: "BYD",
       model: "Atto 3",
@@ -392,7 +392,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 2 - BYD Seal (Ready for Auction)
     const vehicle2Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000002",
+      lotNumber: "VB-000002",
       vin: "LGXCE2EL7N0234567",
       make: "BYD",
       model: "Seal",
@@ -431,7 +431,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 3 - XPeng P7 (Ready for Auction)
     const vehicle3Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000003",
+      lotNumber: "VB-000003",
       vin: "LXVPE2EL7N0345678",
       make: "XPeng",
       model: "P7",
@@ -470,7 +470,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 4 - XPeng G9 (Ready for Auction)
     const vehicle4Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000004",
+      lotNumber: "VB-000004",
       vin: "LXVPE2EL7N0456789",
       make: "XPeng",
       model: "G9",
@@ -509,7 +509,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 5 - BYD Tang (In Auction - Will be active)
     const vehicle5Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000005",
+      lotNumber: "VB-000005",
       vin: "LGXCE2EL7N0567890",
       make: "BYD",
       model: "Tang",
@@ -548,7 +548,7 @@ export const seedDatabase = mutation({
 
     // Vehicle 6 - NIO ES6 (Ready for Auction)
     const vehicle6Id = await ctx.db.insert("vehicles", {
-      lotNumber: "000006",
+      lotNumber: "VB-000006",
       vin: "LNVPE2EL7N0678901",
       make: "NIO",
       model: "ES6",

@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, CreditCard, Truck, FileText, CheckCircle2 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatLotNumber, formatStatusLabel } from "@/lib/utils";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
 import { ServiceSelector } from "@/components/services/service-selector";
@@ -70,6 +71,59 @@ export function OrderDetailClient({
   const additionalServicesCost = orderDetails.additionalServices?.reduce((acc: number, s: any) => acc + s.cost, 0) || 0;
   const totalWithServices = order.totalAmount + additionalServicesCost;
 
+  const escapeHtml = (value: unknown) =>
+    String(value ?? "").replace(
+      /[&<>"']/g,
+      (char) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char
+    );
+
+  const handleDownloadInvoice = () => {
+    const vehicleLabel = vehicle
+      ? `${vehicle.year} ${vehicle.make} ${vehicle.model}`
+      : "Vehicle details unavailable";
+    const rows: Array<[string, number]> = [
+      ["Vehicle price", order.winningBid || 0],
+      ["Service fee", order.serviceFee || 0],
+      ...(order.documentationFee ? [["Documentation", order.documentationFee] as [string, number]] : []),
+      ...(order.inspectionFee ? [["Inspection", order.inspectionFee] as [string, number]] : []),
+      ...(order.shippingCost ? [["Shipping", order.shippingCost] as [string, number]] : []),
+      ...(order.estimatedDuties || order.clearanceFee
+        ? [["Customs & clearing", order.estimatedDuties || order.clearanceFee || 0] as [string, number]]
+        : []),
+      ...(order.registrationFee ? [["Registration", order.registrationFee] as [string, number]] : []),
+      ...((orderDetails.additionalServices ?? []).map((service: any) => [
+        formatStatusLabel(service.serviceType),
+        service.cost,
+      ]) as Array<[string, number]>),
+    ];
+    const invoiceHtml = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(order.orderNumber)}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 24px;color:#111}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:24px}td{padding:8px 0;border-bottom:1px solid #e5e7eb}td:last-child{text-align:right;font-weight:600}.total td{border-bottom:none;font-size:18px;padding-top:16px}</style>
+</head><body>
+<h1>Invoice ${escapeHtml(order.orderNumber)}</h1>
+<p>${escapeHtml(formatDate(order._creationTime))}</p>
+<p><strong>${escapeHtml(vehicleLabel)}</strong></p>
+<p>Status: ${escapeHtml(formatStatusLabel(order.status))}</p>
+<table>${rows
+      .map(([label, amount]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(formatCurrency(amount))}</td></tr>`)
+      .join("")}
+<tr class="total"><td>Total</td><td>${escapeHtml(formatCurrency(totalWithServices))}</td></tr>
+<tr><td>Paid</td><td>${escapeHtml(formatCurrency(order.paidAmount || 0))}</td></tr>
+<tr><td>Balance due</td><td>${escapeHtml(formatCurrency(order.balanceDue || 0))}</td></tr>
+</table>
+</body></html>`;
+    const blob = new Blob([invoiceHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `invoice-${order.orderNumber}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="container mx-auto p-8 max-w-5xl">
       {/* Header */}
@@ -87,7 +141,7 @@ export function OrderDetailClient({
             <p className="text-gray-500 mt-1">Placed on {formatDate(order._creationTime)}</p>
           </div>
           <Badge variant={getStatusColor(order.status)} className="text-base px-4 py-2">
-            {order.status.replace("_", " ")}
+            {formatStatusLabel(order.status)}
           </Badge>
         </div>
       </div>
@@ -119,20 +173,25 @@ export function OrderDetailClient({
           />
 
           {/* Vehicle Information */}
-          {vehicle && (
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Package className="w-5 h-5" />
-                <h2 className="text-xl font-semibold">Vehicle Details</h2>
-              </div>
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Package className="w-5 h-5" />
+              <h2 className="text-xl font-semibold">Vehicle Details</h2>
+            </div>
+            {vehicle ? (
               <div className="space-y-2">
                 <p className="text-lg font-medium">
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </p>
-                <p className="text-sm text-gray-500">Lot Number: {vehicle.lotNumber}</p>
+                <p className="text-sm text-gray-500">Lot Number: {formatLotNumber(vehicle.lotNumber)}</p>
               </div>
-            </Card>
-          )}
+            ) : (
+              <p className="text-sm text-gray-500">
+                Vehicle details are no longer available, but your order and payment records are preserved.
+                Contact support if you need them restored.
+              </p>
+            )}
+          </Card>
 
           {/* Step 10: Vehicle Registration Form */}
           <VehicleRegistrationForm orderId={orderId} token={token} />
@@ -354,12 +413,14 @@ export function OrderDetailClient({
           <Card className="p-6">
             <h3 className="font-semibold mb-3">Actions</h3>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleDownloadInvoice}>
                 <FileText className="w-4 h-4 mr-2" />
                 Download Invoice
               </Button>
-              <Button variant="outline" className="w-full">
-                Contact Support
+              <Button variant="outline" className="w-full" asChild>
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Order ${order.orderNumber}`)}`}>
+                  Contact Support
+                </a>
               </Button>
             </div>
           </Card>
